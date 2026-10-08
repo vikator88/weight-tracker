@@ -1,0 +1,23 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+
+# Test output
+TestResults/
+*.trx
+*.coverage
+coverage*.json
+coverage*.xml
+coverage*.info
+
+# User-specific project files
+*.user
+*.suo
+*.userprefs
+
+# Local configuration overrides
+appsettings.*.local.json
+*.local.env

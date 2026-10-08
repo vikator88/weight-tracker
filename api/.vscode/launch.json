@@ -1,0 +1,48 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug API",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "prelaunch",
+            "program": "${workspaceFolder}/src/WeightTracker.Api/bin/Debug/net10.0/WeightTracker.Api.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/WeightTracker.Api",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://localhost:5199"
+            },
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+                "uriFormat": "%s/scalar"
+            },
+            "console": "internalConsole",
+            "sourceFileMap": {
+                "/_": "${workspaceFolder}"
+            }
+        },
+        {
+            "name": "Debug API (no prelaunch)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/WeightTracker.Api/bin/Debug/net10.0/WeightTracker.Api.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/WeightTracker.Api",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://localhost:5199"
+            },
+            "console": "internalConsole"
+        },
+        {
+            "name": "Attach to process",
+            "type": "coreclr",
+            "request": "attach"
+        }
+    ]
+}

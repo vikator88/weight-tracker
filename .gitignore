@@ -1,0 +1,19 @@
+# Cross-stack ignores only.
+# Stack-specific rules live next to their project: api/.gitignore, frontend/.gitignore, ...
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors and IDEs
+.vs/
+.idea/
+*.swp
+
+# VS Code: share the run/debug configuration, ignore personal state.
+# Patterns are **-prefixed so they apply to every project folder, not just the root.
+**/.vscode/*
+!**/.vscode/tasks.json
+!**/.vscode/launch.json
+!**/.vscode/extensions.json
+!**/.vscode/settings.json

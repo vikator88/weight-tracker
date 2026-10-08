@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WeightTracker.Domain/WeightTracker.Domain.csproj" />
+    <Project Path="src/WeightTracker.Application/WeightTracker.Application.csproj" />
+    <Project Path="src/WeightTracker.Infra/WeightTracker.Infra.csproj" />
+    <Project Path="src/WeightTracker.Migrations/WeightTracker.Migrations.csproj" />
+    <Project Path="src/WeightTracker.Api/WeightTracker.Api.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/WeightTracker.Integration/WeightTracker.Integration.csproj" />
+    <Project Path="test/WeightTracker.Unit/WeightTracker.Unit.csproj" />
+  </Folder>
+</Solution>

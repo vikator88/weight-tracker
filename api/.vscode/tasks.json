@@ -1,0 +1,84 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "clean",
+            "command": "dotnet",
+            "type": "process",
+            "args": ["clean", "${workspaceFolder}/WeightTracker.slnx"],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "restore",
+            "command": "dotnet",
+            "type": "process",
+            "args": ["restore", "${workspaceFolder}/WeightTracker.slnx"],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "build",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/WeightTracker.slnx",
+                "--no-restore",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "// db-up": "Migrations need Postgres. docker compose up -d is a no-op when it is already running.",
+            "label": "db-up",
+            "command": "docker",
+            "type": "process",
+            "args": ["compose", "-f", "${workspaceFolder}/../infra/docker-compose.yml", "up", "-d", "--wait"],
+            "problemMatcher": []
+        },
+        {
+            "// migrate": "Applies any pending FluentMigrator migrations. Already-applied ones are skipped.",
+            "label": "migrate",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "run",
+                "--project",
+                "${workspaceFolder}/src/WeightTracker.Migrations",
+                "--no-build",
+                "--",
+                "Host=localhost;Port=5432;Database=weight-tracker;Username=admin;Password=admin"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "// prelaunch": "Full chain used by the debugger. Stops at the first failing step.",
+            "label": "prelaunch",
+            "dependsOrder": "sequence",
+            "dependsOn": ["clean", "restore", "build", "db-up", "migrate"],
+            "problemMatcher": []
+        },
+        {
+            "label": "test",
+            "command": "dotnet",
+            "type": "process",
+            "args": ["test", "${workspaceFolder}/WeightTracker.slnx"],
+            "group": "test",
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "// migrate-down": "Rolls the whole schema back. Destructive, never part of prelaunch.",
+            "label": "migrate-down",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "run",
+                "--project",
+                "${workspaceFolder}/src/WeightTracker.Migrations",
+                "--",
+                "Host=localhost;Port=5432;Database=weight-tracker;Username=admin;Password=admin",
+                "--down"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}
