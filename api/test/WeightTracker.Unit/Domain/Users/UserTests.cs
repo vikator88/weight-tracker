@@ -15,7 +15,8 @@ public class UserTests
     {
         // Arrange & Act
         var user = User.Create(
-            Email.From("user@weighttracker.test"), "Ada", "Lovelace", Birth, Role.USER, "hash", CreatedAt);
+            Email.From("user@weighttracker.test"), PersonName.From("Ada"), PersonName.From("Lovelace"),
+            Birth, Role.USER, PasswordHash.From("hash"), CreatedAt);
 
         // Assert
         user.IsNew.Should().BeTrue();
@@ -26,7 +27,8 @@ public class UserTests
     {
         // Arrange & Act
         var user = User.Create(
-            Email.From("user@weighttracker.test"), "Ada", "Lovelace", Birth, Role.USER, "hash", CreatedAt);
+            Email.From("user@weighttracker.test"), PersonName.From("Ada"), PersonName.From("Lovelace"),
+            Birth, Role.USER, PasswordHash.From("hash"), CreatedAt);
 
         // Assert
         user.Id.Value.Should().NotBe(Guid.Empty);
@@ -39,15 +41,17 @@ public class UserTests
         var email = Email.From("trainer@weighttracker.test");
 
         // Act
-        var user = User.Create(email, "Ada", "Lovelace", Birth, Role.TRAINER, "hashed-password", CreatedAt);
+        var user = User.Create(
+            email, PersonName.From("Ada"), PersonName.From("Lovelace"),
+            Birth, Role.TRAINER, PasswordHash.From("hashed-password"), CreatedAt);
 
         // Assert
         user.Email.Should().Be(email);
-        user.Name.Should().Be("Ada");
-        user.Surname.Should().Be("Lovelace");
+        user.Name.Should().Be(PersonName.From("Ada"));
+        user.Surname.Should().Be(PersonName.From("Lovelace"));
         user.DateBirth.Should().Be(Birth);
         user.Role.Should().Be(Role.TRAINER);
-        user.PasswordHash.Should().Be("hashed-password");
+        user.PasswordHash.Should().Be(PasswordHash.From("hashed-password"));
         user.CreatedAt.Should().Be(CreatedAt);
     }
 
@@ -56,7 +60,8 @@ public class UserTests
     {
         // Arrange & Act
         var user = User.Rehydrate(
-            Id.New(), Email.From("user@weighttracker.test"), "Ada", "Lovelace", Birth, Role.USER, "hash", CreatedAt);
+            Id.New(), Email.From("user@weighttracker.test"), PersonName.From("Ada"),
+            PersonName.From("Lovelace"), Birth, Role.USER, PasswordHash.From("hash"), CreatedAt);
 
         // Assert
         user.IsNew.Should().BeFalse();
@@ -70,16 +75,18 @@ public class UserTests
         var email = Email.From("admin@weighttracker.test");
 
         // Act
-        var user = User.Rehydrate(id, email, "Grace", "Hopper", Birth, Role.ADMIN, "stored-hash", CreatedAt);
+        var user = User.Rehydrate(
+            id, email, PersonName.From("Grace"), PersonName.From("Hopper"),
+            Birth, Role.ADMIN, PasswordHash.From("stored-hash"), CreatedAt);
 
         // Assert
         user.Id.Should().Be(id);
         user.Email.Should().Be(email);
-        user.Name.Should().Be("Grace");
-        user.Surname.Should().Be("Hopper");
+        user.Name.Should().Be(PersonName.From("Grace"));
+        user.Surname.Should().Be(PersonName.From("Hopper"));
         user.DateBirth.Should().Be(Birth);
         user.Role.Should().Be(Role.ADMIN);
-        user.PasswordHash.Should().Be("stored-hash");
+        user.PasswordHash.Should().Be(PasswordHash.From("stored-hash"));
         user.CreatedAt.Should().Be(CreatedAt);
     }
 
@@ -91,7 +98,8 @@ public class UserTests
     {
         // Arrange
         var user = User.Create(
-            Email.From("user@weighttracker.test"), "Ada", "Lovelace", Birth, role, "hash", CreatedAt);
+            Email.From("user@weighttracker.test"), PersonName.From("Ada"), PersonName.From("Lovelace"),
+            Birth, role, PasswordHash.From("hash"), CreatedAt);
 
         // Act
         var canTrain = user.CanTrain();

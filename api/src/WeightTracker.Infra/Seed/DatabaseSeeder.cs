@@ -55,7 +55,7 @@ public class DatabaseSeeder
 
     private async Task SeedUsers(CancellationToken cancellationToken)
     {
-        var passwordHash = _passwordHasher.Hash(SeedData.Password);
+        var passwordHash = _passwordHasher.Hash(Password.From(SeedData.Password));
 
         var users = new[]
         {
@@ -120,7 +120,8 @@ public class DatabaseSeeder
     }
 
     private static User BuildUser(
-        Guid id, string email, string name, string surname, DateOnly dateBirth, Role role, string passwordHash)
+        Guid id, string email, string name, string surname, DateOnly dateBirth, Role role, PasswordHash passwordHash)
         => User.Rehydrate(
-            Id.From(id), Email.From(email), name, surname, dateBirth, role, passwordHash, SeedData.CreatedAt);
+            Id.From(id), Email.From(email), PersonName.From(name), PersonName.From(surname),
+            dateBirth, role, passwordHash, SeedData.CreatedAt);
 }
