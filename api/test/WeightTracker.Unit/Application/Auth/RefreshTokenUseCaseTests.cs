@@ -22,8 +22,8 @@ public class RefreshTokenUseCaseTests
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
     private readonly User _user = User.Rehydrate(
-        Id.New(), Email.From("user@weighttracker.test"), "Ada", "Lovelace",
-        new DateOnly(1988, 5, 12), Role.USER, "stored-hash", Now);
+        Id.New(), Email.From("user@weighttracker.test"), PersonName.From("Ada"), PersonName.From("Lovelace"),
+        new DateOnly(1988, 5, 12), Role.USER, PasswordHash.From("stored-hash"), Now);
 
     public RefreshTokenUseCaseTests()
     {

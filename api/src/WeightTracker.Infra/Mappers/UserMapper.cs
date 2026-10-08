@@ -14,11 +14,11 @@ public static class UserMapper
         {
             Id = user.Id.Value,
             Email = user.Email.Value,
-            Name = user.Name,
-            Surname = user.Surname,
+            Name = user.Name.Value,
+            Surname = user.Surname.Value,
             DateBirth = user.DateBirth,
             Role = (int)user.Role,
-            PasswordHash = user.PasswordHash,
+            PasswordHash = user.PasswordHash.Value,
             CreatedAt = DateTime.SpecifyKind(user.CreatedAt, DateTimeKind.Utc),
         };
     }
@@ -30,11 +30,11 @@ public static class UserMapper
             return User.Rehydrate(
                 Id.From(entity.Id),
                 Email.From(entity.Email),
-                entity.Name,
-                entity.Surname,
+                PersonName.From(entity.Name),
+                PersonName.From(entity.Surname),
                 entity.DateBirth,
                 MapRole(entity.Role),
-                entity.PasswordHash,
+                PasswordHash.From(entity.PasswordHash),
                 entity.CreatedAt);
         }
         catch (DomainException exception)

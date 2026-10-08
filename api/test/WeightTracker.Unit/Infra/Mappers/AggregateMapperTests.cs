@@ -21,8 +21,8 @@ public class AggregateMapperTests
     public class Users
     {
         private static User AUser(Role role = Role.TRAINER) => User.Rehydrate(
-            Id.New(), Email.From("trainer@weighttracker.test"), "Grace", "Hopper",
-            new DateOnly(1985, 12, 9), role, "stored-hash", CreatedAt);
+            Id.New(), Email.From("trainer@weighttracker.test"), PersonName.From("Grace"), PersonName.From("Hopper"),
+            new DateOnly(1985, 12, 9), role, PasswordHash.From("stored-hash"), CreatedAt);
 
         [Fact]
         public void RoundTrip_ShouldPreserveEveryField()
@@ -50,8 +50,9 @@ public class AggregateMapperTests
         {
             // Arrange & Act
             var user = User.Rehydrate(
-                Id.New(), Email.From("Trainer@WeightTracker.TEST"), "Grace", "Hopper",
-                new DateOnly(1985, 12, 9), Role.TRAINER, "stored-hash", CreatedAt);
+                Id.New(), Email.From("Trainer@WeightTracker.TEST"), PersonName.From("Grace"),
+                PersonName.From("Hopper"), new DateOnly(1985, 12, 9), Role.TRAINER,
+                PasswordHash.From("stored-hash"), CreatedAt);
 
             // Assert
             UserMapper.MapToEntity(user).Email.Should().Be("trainer@weighttracker.test");
@@ -90,6 +91,48 @@ public class AggregateMapperTests
             // Arrange
             var entity = UserMapper.MapToEntity(AUser());
             entity.Email = "not-an-email";
+
+            // Act
+            var act = () => UserMapper.MapToDomain(entity);
+
+            // Assert
+            act.Should().Throw<PersistenceMappingException>();
+        }
+
+        [Fact]
+        public void MapToDomain_ShouldRejectAnEmptyStoredName()
+        {
+            // Arrange
+            var entity = UserMapper.MapToEntity(AUser());
+            entity.Name = string.Empty;
+
+            // Act
+            var act = () => UserMapper.MapToDomain(entity);
+
+            // Assert
+            act.Should().Throw<PersistenceMappingException>();
+        }
+
+        [Fact]
+        public void MapToDomain_ShouldRejectAnEmptyStoredSurname()
+        {
+            // Arrange
+            var entity = UserMapper.MapToEntity(AUser());
+            entity.Surname = string.Empty;
+
+            // Act
+            var act = () => UserMapper.MapToDomain(entity);
+
+            // Assert
+            act.Should().Throw<PersistenceMappingException>();
+        }
+
+        [Fact]
+        public void MapToDomain_ShouldRejectAnEmptyStoredPasswordHash()
+        {
+            // Arrange
+            var entity = UserMapper.MapToEntity(AUser());
+            entity.PasswordHash = string.Empty;
 
             // Act
             var act = () => UserMapper.MapToDomain(entity);

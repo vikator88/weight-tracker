@@ -6,6 +6,7 @@ using WeightTracker.Application.Interfaces;
 using WeightTracker.Application.UseCases.Auth;
 using WeightTracker.Domain.Auth;
 using WeightTracker.Domain.Common;
+using WeightTracker.Domain.Exceptions;
 using WeightTracker.Domain.Users;
 using Xunit;
 
@@ -36,8 +37,8 @@ public class LoginUseCaseTests
         _tokens.Object, _clock.Object, _unitOfWork.Object);
 
     private static User AUser() => User.Rehydrate(
-        Id.New(), Email.From("user@weighttracker.test"), "Ada", "Lovelace",
-        new DateOnly(1988, 5, 12), Role.USER, "stored-hash", Now);
+        Id.New(), Email.From("user@weighttracker.test"), PersonName.From("Ada"), PersonName.From("Lovelace"),
+        new DateOnly(1988, 5, 12), Role.USER, PasswordHash.From("stored-hash"), Now);
 
     [Fact]
     public async Task UnknownEmail_ShouldBeRejectedAsInvalidCredentials()
@@ -57,7 +58,7 @@ public class LoginUseCaseTests
     {
         // Arrange
         _users.Setup(repository => repository.GetByEmail(It.IsAny<Email>(), It.IsAny<CancellationToken>())).ReturnsAsync(AUser());
-        _passwordHasher.Setup(hasher => hasher.Verify(It.IsAny<string>(), It.IsAny<string>())).Returns(false);
+        _passwordHasher.Setup(hasher => hasher.Verify(It.IsAny<string>(), It.IsAny<PasswordHash>())).Returns(false);
 
         // Act
         var act = async () => await AUseCase().Execute("user@weighttracker.test", "wrong", CancellationToken.None);
@@ -86,7 +87,7 @@ public class LoginUseCaseTests
             () => AUseCase().Execute("missing@weighttracker.test", "Passw0rd!", CancellationToken.None));
 
         _users.Setup(repository => repository.GetByEmail(It.IsAny<Email>(), It.IsAny<CancellationToken>())).ReturnsAsync(AUser());
-        _passwordHasher.Setup(hasher => hasher.Verify(It.IsAny<string>(), It.IsAny<string>())).Returns(false);
+        _passwordHasher.Setup(hasher => hasher.Verify(It.IsAny<string>(), It.IsAny<PasswordHash>())).Returns(false);
 
         // Act
         var wrongPassword = await Record.ExceptionAsync(
@@ -102,7 +103,7 @@ public class LoginUseCaseTests
     {
         // Arrange
         _users.Setup(repository => repository.GetByEmail(It.IsAny<Email>(), It.IsAny<CancellationToken>())).ReturnsAsync(AUser());
-        _passwordHasher.Setup(hasher => hasher.Verify(It.IsAny<string>(), It.IsAny<string>())).Returns(true);
+        _passwordHasher.Setup(hasher => hasher.Verify(It.IsAny<string>(), It.IsAny<PasswordHash>())).Returns(true);
 
         // Act
         var result = await AUseCase().Execute("user@weighttracker.test", "Passw0rd!", CancellationToken.None);
@@ -114,12 +115,31 @@ public class LoginUseCaseTests
     }
 
     [Fact]
+    public async Task AWeakButCorrectPassword_ShouldStillAuthenticate()
+    {
+        // Arrange
+        var weakPassword = "weak";
+        var act = () => Password.From(weakPassword);
+        act.Should().Throw<InvalidPasswordException>("the fixture must be a password the strength rules reject");
+        _users.Setup(repository => repository.GetByEmail(It.IsAny<Email>(), It.IsAny<CancellationToken>())).ReturnsAsync(AUser());
+        _passwordHasher.Setup(hasher => hasher.Verify(It.IsAny<string>(), It.IsAny<PasswordHash>())).Returns(true);
+
+        // Act
+        var result = await AUseCase().Execute("user@weighttracker.test", weakPassword, CancellationToken.None);
+
+        // Assert
+        result.AccessToken.Should().Be(
+            "access-token",
+            "the login path must not run the strength rules: an existing weak credential still authenticates");
+    }
+
+    [Fact]
     public async Task ValidCredentials_ShouldPersistExactlyOneRefreshTokenHash()
     {
         // Arrange
         var user = AUser();
         _users.Setup(repository => repository.GetByEmail(It.IsAny<Email>(), It.IsAny<CancellationToken>())).ReturnsAsync(user);
-        _passwordHasher.Setup(hasher => hasher.Verify(It.IsAny<string>(), It.IsAny<string>())).Returns(true);
+        _passwordHasher.Setup(hasher => hasher.Verify(It.IsAny<string>(), It.IsAny<PasswordHash>())).Returns(true);
 
         RefreshToken? saved = null;
         _refreshTokens.Setup(repository => repository.Save(It.IsAny<RefreshToken>(), It.IsAny<CancellationToken>()))
@@ -144,7 +164,7 @@ public class LoginUseCaseTests
     {
         // Arrange
         _users.Setup(repository => repository.GetByEmail(It.IsAny<Email>(), It.IsAny<CancellationToken>())).ReturnsAsync(AUser());
-        _passwordHasher.Setup(hasher => hasher.Verify(It.IsAny<string>(), It.IsAny<string>())).Returns(true);
+        _passwordHasher.Setup(hasher => hasher.Verify(It.IsAny<string>(), It.IsAny<PasswordHash>())).Returns(true);
 
         // Act
         await AUseCase().Execute("user@weighttracker.test", "Passw0rd!", CancellationToken.None);

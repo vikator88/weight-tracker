@@ -118,12 +118,13 @@ public class UserRepositoryTests : IntegrationTest
         // Assert
         user.Should().NotBeNull();
         user!.Email.Should().Be(Email.From(SeedData.TrainerEmail));
-        user.Name.Should().Be("Grace");
-        user.Surname.Should().Be("Hopper");
+        user.Name.Should().Be(PersonName.From("Grace"));
+        user.Surname.Should().Be(PersonName.From("Hopper"));
         user.Role.Should().Be(Role.TRAINER);
         user.CanTrain().Should().BeTrue();
-        user.PasswordHash.Should().NotBeNullOrWhiteSpace();
-        user.PasswordHash.Should().NotBe(SeedData.Password, "credentials are stored hashed, never in plain text");
+        user.PasswordHash.Value.Should().NotBeNullOrWhiteSpace();
+        user.PasswordHash.Value.Should().NotBe(
+            SeedData.Password, "credentials are stored hashed, never in plain text");
     }
 
     [Fact]

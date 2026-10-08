@@ -29,34 +29,36 @@ I want to propose a change for an existing project built from this Clean Archite
 Ask me only the questions needed to define the change.
 
 You must ask about:
+
 1. Change name
-2. Change objective
-3. Scope of the change:
-   - new modules introduced
-   - existing modules affected
-4. Main concepts introduced or changed
-5. New or modified capabilities, including the exact operations or endpoints affected when the change touches API behavior
-6. Business rules introduced or changed
-7. State and mutability affected by the change
-8. Endpoint visibility matrix for every affected operation when the change touches API behavior
-9. Classification of each affected piece: aggregate root, entity, value object, domain service, or application service
-10. Canonical template reference for each affected capability or module
-   - state whether each reference is template-backed or skeleton-backed when relevant
-11. Unique business identifiers affected by the change and whether each one is mutable or immutable
-   - whether each one is client-supplied or system-generated
-12. Technical primary keys for each new entity introduced by the change only when they affect persistence design
-13. Persisted relation semantics affected by the change when they introduce special handling or business-identifier joins
-14. Identifier generation strategy for every new or changed business identifier:
-   - confirm whether it uses the shared `Id` value object
-   - if system-generated, confirm whether generation uses `Id`
-   - if it does not use `Id`, justify the exception explicitly
-15. Seed data and test bootstrap expectations only if the change modifies or depends on them materially
-   - include exact seeded records, fixed credentials, or bootstrap behavior when tests depend on them
-16. Environment, auth contract, credential strategy, or local execution prerequisites only if the change modifies them materially
-   - if auth behavior changes, state the exact login response field name for the token
-   - if credential persistence changes, state whether passwords are hashed or whether plain-text storage is an explicitly approved demo-only exception
-   - if local runtime or test execution changes, state the exact required .NET SDK version or `global.json` pin when relevant
-17. Out-of-scope items
+2. Change objective — what should be true after this change that is not true today
+3. Scope — which domain areas are affected (Users, Auth, Workouts) and which layers each one
+   touches, and whether a new domain area is introduced
+4. Main concepts introduced or changed — aggregates, entities, value objects, enums, or changed
+   fields on existing ones
+5. Business rules introduced or changed, and what state they make mutable or immutable
+6. API impact — whether observable API behavior changes at all; if it does, the exact method and
+   route per affected operation, the visibility of each (public / authenticated / role-restricted),
+   and for role- or ownership-scoped responses what each role must NOT see
+7. Persistence and identifiers — only if the change stores or alters stored data: new or changed
+   tables and columns, whether existing rows need migrating, and for any new business identifier
+   whether it uses the shared `Id`, is system-generated or client-supplied, and is mutable or
+   immutable. If mutable, the persistence semantics that keep an update from duplicating a row.
+8. Seed, credentials and environment — only if the change materially modifies or depends on them:
+   the exact seeded records and credentials the tests assert on; the exact login response field
+   name for the token if auth changes; whether passwords are hashed or plain-text storage is an
+   explicitly approved demo-only exception if credential storage changes; the required .NET SDK
+   version or `global.json` pin if local execution changes
+9. Out of scope — what this change deliberately does not do, and what must not change
+
+Ask conditional items only when they apply, and skip them silently otherwise. Where the skeleton
+already fixes a default — the shared `Id`, hashed passwords, PostgreSQL, .NET 10 — propose the
+default and ask me only to confirm it, rather than asking me to author it. The classification of
+each affected piece and the canonical reference for each affected domain area are yours to derive
+from `.stpr/template/README.md` and `STPR_INVARIANTS.md`; state them back in sections 4 and 5 of
+the plan rather than asking me for them. If two reasonable readings of my answer would lead to
+materially different work, ask me which one, with the options and their consequences, before
+producing the artifacts.
 
 Do not ask again about project-wide decisions such as database, authentication, or global architecture unless this change modifies them.
 

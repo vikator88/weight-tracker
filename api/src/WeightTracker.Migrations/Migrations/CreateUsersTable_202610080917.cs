@@ -11,13 +11,13 @@ public sealed class CreateUsersTable_202610080917 : Migration
             .WithColumn("id").AsGuid().NotNullable().PrimaryKey("pk_users")
             // Length aligned with Email.MaxLength
             .WithColumn("email").AsString(254).NotNullable()
-            // Length aligned with User.NameMaxLength
+            // Length aligned with PersonName.MaxLength
             .WithColumn("name").AsString(100).NotNullable()
-            // Length aligned with User.SurnameMaxLength
+            // Length aligned with PersonName.MaxLength
             .WithColumn("surname").AsString(100).NotNullable()
             .WithColumn("date_birth").AsDate().NotNullable()
             .WithColumn("role").AsInt32().NotNullable()
-            // Length aligned with User.PasswordHashMaxLength
+            // Length aligned with PasswordHash.MaxLength
             .WithColumn("password_hash").AsString(500).NotNullable()
             .WithColumn("created_at").AsCustom("timestamptz").NotNullable();
 

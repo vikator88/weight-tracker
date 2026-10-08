@@ -27,6 +27,9 @@ public class ExceptionMapper
         {
             InvalidEmailException
                 or InvalidIdException
+                or InvalidPersonNameException
+                or InvalidPasswordException
+                or InvalidPasswordHashException
                 or TrainerCannotBeWorkoutOwnerException
                 => Problem(StatusCodes.Status400BadRequest, exception.Message),
 

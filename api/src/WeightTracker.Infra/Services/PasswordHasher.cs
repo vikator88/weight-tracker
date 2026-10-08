@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using WeightTracker.Application.Interfaces;
+using WeightTracker.Domain.Users;
 
 namespace WeightTracker.Infra.Services;
 
@@ -16,16 +17,17 @@ public class PasswordHasher : IPasswordHasher
 
     private readonly PasswordHasher<object> _hasher = new();
 
-    public string Hash(string plainPassword) => _hasher.HashPassword(HashedSubject, plainPassword);
+    public PasswordHash Hash(Password plainPassword)
+        => PasswordHash.From(_hasher.HashPassword(HashedSubject, plainPassword.Value));
 
-    public bool Verify(string plainPassword, string passwordHash)
+    public bool Verify(string plainPassword, PasswordHash passwordHash)
     {
-        if (string.IsNullOrEmpty(passwordHash) || string.IsNullOrEmpty(plainPassword))
+        if (string.IsNullOrEmpty(plainPassword))
             return false;
 
         try
         {
-            var result = _hasher.VerifyHashedPassword(HashedSubject, passwordHash, plainPassword);
+            var result = _hasher.VerifyHashedPassword(HashedSubject, passwordHash.Value, plainPassword);
 
             return result is PasswordVerificationResult.Success
                 or PasswordVerificationResult.SuccessRehashNeeded;
