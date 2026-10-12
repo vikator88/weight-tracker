@@ -19,10 +19,10 @@ public class EntityEqualityTests
         // Arrange
         var id = Id.New();
 
-        var first = Exercise.Rehydrate(id, "Press Banca", null, BodyParts.CHEST);
+        var first = Exercise.Rehydrate(id, ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
 
         // Act
-        var second = Exercise.Rehydrate(id, "Different Name", "https://video", BodyParts.LEGS);
+        var second = Exercise.Rehydrate(id, ExerciseName.From("Different Name"), Url.From("https://videos.example.com/plancha"), BodyParts.LEGS);
 
         // Assert
         first.Should().Be(second);
@@ -35,10 +35,10 @@ public class EntityEqualityTests
         // Arrange
         var id = Id.New();
 
-        var first = Exercise.Rehydrate(id, "Press Banca", null, BodyParts.CHEST);
+        var first = Exercise.Rehydrate(id, ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
 
         // Act
-        var second = Exercise.Rehydrate(id, "Press Banca", null, BodyParts.CHEST);
+        var second = Exercise.Rehydrate(id, ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
 
         // Assert
         first.GetHashCode().Should().Be(second.GetHashCode());
@@ -48,10 +48,10 @@ public class EntityEqualityTests
     public void SameTypeAndDifferentId_ShouldNotBeEqual()
     {
         // Arrange
-        var first = Exercise.Rehydrate(Id.New(), "Press Banca", null, BodyParts.CHEST);
+        var first = Exercise.Rehydrate(Id.New(), ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
 
         // Act
-        var second = Exercise.Rehydrate(Id.New(), "Press Banca", null, BodyParts.CHEST);
+        var second = Exercise.Rehydrate(Id.New(), ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
 
         // Assert
         first.Should().NotBe(second);
@@ -64,7 +64,7 @@ public class EntityEqualityTests
         // Arrange
         var id = Id.New();
 
-        Entity exercise = Exercise.Rehydrate(id, "Press Banca", null, BodyParts.CHEST);
+        Entity exercise = Exercise.Rehydrate(id, ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
 
         // Act
         Entity workout = Workout.Rehydrate(id, Id.New(), null, new DateTime(2026, 10, 1), new());
@@ -77,7 +77,7 @@ public class EntityEqualityTests
     public void Entity_ShouldNotBeEqualToNull()
     {
         // Arrange & Act
-        var exercise = Exercise.Rehydrate(Id.New(), "Press Banca", null, BodyParts.CHEST);
+        var exercise = Exercise.Rehydrate(Id.New(), ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
 
         // Assert
         exercise.Equals(null).Should().BeFalse();
@@ -92,11 +92,11 @@ public class EntityEqualityTests
         var id = Id.New();
         var dictionary = new Dictionary<Exercise, int>
         {
-            [Exercise.Rehydrate(id, "Press Banca", null, BodyParts.CHEST)] = 1,
+            [Exercise.Rehydrate(id, ExerciseName.From("Press Banca"), null, BodyParts.CHEST)] = 1,
         };
 
         // Act
-        var equivalent = Exercise.Rehydrate(id, "Press Banca", null, BodyParts.CHEST);
+        var equivalent = Exercise.Rehydrate(id, ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
 
         // Assert
         dictionary.ContainsKey(equivalent).Should().BeTrue();

@@ -31,7 +31,7 @@ public sealed record WorkoutExerciseResponse(
         Domain.Exercises.Exercise exercise, IReadOnlyList<SetPrescription> prescriptions)
         => new(
             exercise.Id.Value,
-            exercise.Name,
+            exercise.Name.Value,
             exercise.BodyPart.ToString(),
             prescriptions.Select(SetResponse.From).ToList());
 }

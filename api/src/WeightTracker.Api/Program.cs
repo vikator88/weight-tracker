@@ -53,6 +53,10 @@ builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 
 builder.Services.AddScoped<GetAllExercisesUseCase>();
+builder.Services.AddScoped<GetExerciseByIdUseCase>();
+builder.Services.AddScoped<CreateExerciseUseCase>();
+builder.Services.AddScoped<UpdateExerciseUseCase>();
+builder.Services.AddScoped<DeleteExerciseUseCase>();
 builder.Services.AddScoped<GetAllWorkoutsUseCase>();
 builder.Services.AddScoped<LoginUseCase>();
 builder.Services.AddScoped<SignupUseCase>();

@@ -86,7 +86,7 @@ public sealed class Workout : AggregateRoot
     public void RemoveExercise(Exercise exercise)
     {
         if (_exercises.ContainsKey(exercise) == false)
-            throw new ExerciseNotInWorkoutException(exercise.Name, this.Id);
+            throw new ExerciseNotInWorkoutException(exercise.Name.Value, this.Id);
 
         _exercises.Remove(exercise);
     }

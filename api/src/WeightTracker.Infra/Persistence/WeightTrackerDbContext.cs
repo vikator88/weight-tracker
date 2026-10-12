@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using WeightTracker.Domain.Exercises;
 using WeightTracker.Infra.Entities;
 
 namespace WeightTracker.Infra.Persistence;
@@ -49,8 +50,8 @@ public class WeightTrackerDbContext : DbContext
             entity.ToTable("exercises");
             entity.HasKey(exercise => exercise.Id);
             entity.Property(exercise => exercise.Id).HasColumnName("id").ValueGeneratedNever();
-            entity.Property(exercise => exercise.Name).HasColumnName("name").HasMaxLength(150).IsRequired();
-            entity.Property(exercise => exercise.VideoUrl).HasColumnName("video_url").HasMaxLength(500);
+            entity.Property(exercise => exercise.Name).HasColumnName("name").HasMaxLength(ExerciseName.MaxLength).IsRequired();
+            entity.Property(exercise => exercise.VideoUrl).HasColumnName("video_url").HasMaxLength(Url.MaxLength);
             entity.Property(exercise => exercise.BodyPart).HasColumnName("body_part");
         });
 

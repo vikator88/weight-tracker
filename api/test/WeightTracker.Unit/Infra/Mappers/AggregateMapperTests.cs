@@ -206,15 +206,15 @@ public class AggregateMapperTests
         public void RoundTrip_ShouldPreserveEveryField()
         {
             // Arrange
-            var original = Exercise.Rehydrate(Id.New(), "Plancha", "https://video", BodyParts.BACK);
+            var original = Exercise.Rehydrate(Id.New(), ExerciseName.From("Plancha"), Url.From("https://videos.example.com/plancha"), BodyParts.BACK);
 
             // Act
             var restored = ExerciseMapper.MapToDomain(ExerciseMapper.MapToEntity(original));
 
             // Assert
             restored.Id.Should().Be(original.Id);
-            restored.Name.Should().Be("Plancha");
-            restored.VideoUrl.Should().Be("https://video");
+            restored.Name.Value.Should().Be("Plancha");
+            restored.VideoUrl!.Value.Should().Be("https://videos.example.com/plancha");
             restored.BodyPart.Should().Be(BodyParts.BACK);
             restored.IsNew.Should().BeFalse();
         }
@@ -223,10 +223,28 @@ public class AggregateMapperTests
         public void RoundTrip_ShouldPreserveAMissingVideoUrl()
         {
             // Arrange & Act
-            var original = Exercise.Rehydrate(Id.New(), "Sentadilla", null, BodyParts.LEGS);
+            var original = Exercise.Rehydrate(Id.New(), ExerciseName.From("Sentadilla"), null, BodyParts.LEGS);
 
             // Assert
             ExerciseMapper.MapToDomain(ExerciseMapper.MapToEntity(original)).VideoUrl.Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("ab", null)]
+        [InlineData("Sentadilla", "https://video")]
+        public void MapToDomain_ShouldRejectAStoredNameOrUrlThatBreaksTheDomainRules(string name, string? videoUrl)
+        {
+            // Arrange
+            var entity = ExerciseMapper.MapToEntity(
+                Exercise.Rehydrate(Id.New(), ExerciseName.From("Sentadilla"), null, BodyParts.LEGS));
+            entity.Name = name;
+            entity.VideoUrl = videoUrl;
+
+            // Act
+            var act = () => ExerciseMapper.MapToDomain(entity);
+
+            // Assert
+            act.Should().Throw<PersistenceMappingException>();
         }
 
         [Fact]
@@ -234,7 +252,7 @@ public class AggregateMapperTests
         {
             // Arrange
             var entity = ExerciseMapper.MapToEntity(
-                Exercise.Rehydrate(Id.New(), "Sentadilla", null, BodyParts.LEGS));
+                Exercise.Rehydrate(Id.New(), ExerciseName.From("Sentadilla"), null, BodyParts.LEGS));
             entity.BodyPart = 99;
 
             // Act

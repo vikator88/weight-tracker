@@ -12,4 +12,9 @@ public interface IExerciseRepository
 
     public Task Save(Exercise exercise, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Stages the removal of an exercise. Nothing is removed until the unit of work commits.
+    /// </summary>
+    public Task Delete(Exercise exercise, CancellationToken cancellationToken);
+
 }

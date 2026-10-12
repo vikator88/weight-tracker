@@ -30,6 +30,13 @@ public class ExerciseRepository : IExerciseRepository
         return entity is null ? null : ExerciseMapper.MapToDomain(entity);
     }
 
+    public async Task Delete(Exercise exercise, CancellationToken cancellationToken)
+    {
+        var tracked = await _context.Exercises.FirstOrDefaultAsync(stored => stored.Id == exercise.Id.Value, cancellationToken);
+
+        _context.Exercises.Remove(tracked ?? ExerciseMapper.MapToEntity(exercise));
+    }
+
     public async Task Save(Exercise exercise, CancellationToken cancellationToken)
     {
         var entity = ExerciseMapper.MapToEntity(exercise);
