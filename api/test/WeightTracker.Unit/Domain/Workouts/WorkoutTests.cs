@@ -81,7 +81,7 @@ public class WorkoutTests
     {
         // Arrange
         var workout = Workout.Create(Id.New(), null, WorkoutDate);
-        var exercise = new Exercise("Press Banca", BodyParts.CHEST);
+        var exercise = Exercise.Create(ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
 
         // Act
         workout.AddExercise(exercise, [new SetPrescription(4, new SetTarget.Reps(10))]);
@@ -98,8 +98,8 @@ public class WorkoutTests
         var workout = Workout.Create(Id.New(), null, WorkoutDate);
         var exerciseId = Id.New();
 
-        var stored = Exercise.Rehydrate(exerciseId, "Press Banca", null, BodyParts.CHEST);
-        var equivalent = Exercise.Rehydrate(exerciseId, "Press Banca", null, BodyParts.CHEST);
+        var stored = Exercise.Rehydrate(exerciseId, ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
+        var equivalent = Exercise.Rehydrate(exerciseId, ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
 
         workout.AddExercise(stored, [new SetPrescription(4, new SetTarget.Reps(10))]);
 
@@ -117,10 +117,10 @@ public class WorkoutTests
         // Arrange
         var workout = Workout.Create(Id.New(), null, WorkoutDate);
 
-        workout.AddExercise(new Exercise("Press Banca", BodyParts.CHEST), [new SetPrescription(4, new SetTarget.Reps(10))]);
+        workout.AddExercise(Exercise.Create(ExerciseName.From("Press Banca"), null, BodyParts.CHEST), [new SetPrescription(4, new SetTarget.Reps(10))]);
 
         // Act
-        workout.AddExercise(new Exercise("Sentadilla", BodyParts.LEGS), [new SetPrescription(5, new SetTarget.Reps(5))]);
+        workout.AddExercise(Exercise.Create(ExerciseName.From("Sentadilla"), null, BodyParts.LEGS), [new SetPrescription(5, new SetTarget.Reps(5))]);
 
         // Assert
         workout.Exercises.Should().HaveCount(2);
@@ -131,7 +131,7 @@ public class WorkoutTests
     {
         // Arrange
         var workout = Workout.Create(Id.New(), null, WorkoutDate);
-        var exercise = new Exercise("Press Banca", BodyParts.CHEST);
+        var exercise = Exercise.Create(ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
         workout.AddExercise(exercise, [new SetPrescription(4, new SetTarget.Reps(10))]);
 
         // Act
@@ -148,7 +148,7 @@ public class WorkoutTests
         var workout = Workout.Create(Id.New(), null, WorkoutDate);
 
         // Act
-        var act = () => workout.RemoveExercise(new Exercise("Peso Muerto", BodyParts.BACK));
+        var act = () => workout.RemoveExercise(Exercise.Create(ExerciseName.From("Peso Muerto"), null, BodyParts.BACK));
 
         // Assert
         act.Should().Throw<ExerciseNotInWorkoutException>();
@@ -161,11 +161,11 @@ public class WorkoutTests
         var workout = Workout.Create(Id.New(), null, WorkoutDate);
         var exerciseId = Id.New();
         workout.AddExercise(
-            Exercise.Rehydrate(exerciseId, "Press Banca", null, BodyParts.CHEST),
+            Exercise.Rehydrate(exerciseId, ExerciseName.From("Press Banca"), null, BodyParts.CHEST),
             [new SetPrescription(4, new SetTarget.Reps(10))]);
 
         // Act
-        workout.RemoveExercise(Exercise.Rehydrate(exerciseId, "Press Banca", null, BodyParts.CHEST));
+        workout.RemoveExercise(Exercise.Rehydrate(exerciseId, ExerciseName.From("Press Banca"), null, BodyParts.CHEST));
 
         // Assert
         workout.Exercises.Should().BeEmpty();
@@ -188,7 +188,7 @@ public class WorkoutTests
         var id = Id.New();
         var userId = Id.New();
         var trainerId = Id.New();
-        var exercise = Exercise.Rehydrate(Id.New(), "Plancha", null, BodyParts.BACK);
+        var exercise = Exercise.Rehydrate(Id.New(), ExerciseName.From("Plancha"), null, BodyParts.BACK);
 
         // Act
         var workout = Workout.Rehydrate(id, userId, trainerId, WorkoutDate, new()
@@ -209,7 +209,7 @@ public class WorkoutTests
     {
         // Arrange
         var workout = Workout.Create(Id.New(), null, WorkoutDate);
-        var exercise = new Exercise("Press Banca", BodyParts.CHEST);
+        var exercise = Exercise.Create(ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
         workout.AddExercise(exercise, [new SetPrescription(4, new SetTarget.Reps(10))]);
 
         var snapshot = workout.Exercises;

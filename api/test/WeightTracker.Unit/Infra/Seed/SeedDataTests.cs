@@ -56,7 +56,7 @@ public class SeedDataTests
         var seeded = new[]
         {
             SeedData.UserId, SeedData.TrainerId, SeedData.AdminId,
-            SeedData.PressBancaId, SeedData.SentadillaId, SeedData.PlanchaId,
+            SeedData.PressBancaId, SeedData.SentadillaId, SeedData.PlanchaId, SeedData.CurlBicepsId,
             SeedData.OwnedWorkoutId, SeedData.TrainedWorkoutId, SeedData.TrainerOwnWorkoutId,
         };
 

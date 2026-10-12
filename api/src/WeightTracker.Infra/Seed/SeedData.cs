@@ -22,6 +22,8 @@ public static class SeedData
     public static readonly Guid PressBancaId = new("00000000-0000-0000-0000-000000000011");
     public static readonly Guid SentadillaId = new("00000000-0000-0000-0000-000000000012");
     public static readonly Guid PlanchaId = new("00000000-0000-0000-0000-000000000013");
+    /// <summary>Referenced by no workout, so it can be deleted.</summary>
+    public static readonly Guid CurlBicepsId = new("00000000-0000-0000-0000-000000000014");
 
     /// <summary>Owned by the user, no trainer.</summary>
     public static readonly Guid OwnedWorkoutId = new("00000000-0000-0000-0000-000000000021");

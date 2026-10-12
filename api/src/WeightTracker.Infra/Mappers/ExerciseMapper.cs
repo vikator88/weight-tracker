@@ -13,8 +13,8 @@ public static class ExerciseMapper
         return new ExerciseEntity
         {
             Id = exercise.Id.Value,
-            Name = exercise.Name,
-            VideoUrl = exercise.VideoUrl,
+            Name = exercise.Name.Value,
+            VideoUrl = exercise.VideoUrl?.Value,
             BodyPart = (int)exercise.BodyPart,
         };
     }
@@ -25,8 +25,8 @@ public static class ExerciseMapper
         {
             return Exercise.Rehydrate(
                 Id.From(entity.Id),
-                entity.Name,
-                entity.VideoUrl,
+                ExerciseName.From(entity.Name),
+                entity.VideoUrl is null ? null : Url.From(entity.VideoUrl),
                 MapBodyPart(entity.BodyPart));
         }
         catch (DomainException exception)

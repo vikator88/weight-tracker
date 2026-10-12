@@ -14,10 +14,10 @@ public class WorkoutMapperTests
     private static readonly DateTime WorkoutDate = new(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc);
 
     private static readonly Exercise Sentadilla =
-        Exercise.Rehydrate(Id.From(Guid.CreateVersion7()), "Sentadilla", null, BodyParts.LEGS);
+        Exercise.Rehydrate(Id.From(Guid.CreateVersion7()), ExerciseName.From("Sentadilla"), null, BodyParts.LEGS);
 
     private static readonly Exercise Plancha =
-        Exercise.Rehydrate(Id.From(Guid.CreateVersion7()), "Plancha", "https://video", BodyParts.BACK);
+        Exercise.Rehydrate(Id.From(Guid.CreateVersion7()), ExerciseName.From("Plancha"), Url.From("https://videos.example.com/plancha"), BodyParts.BACK);
 
     private static IReadOnlyDictionary<Guid, ExerciseEntity> KnownExercises()
         => new[] { Sentadilla, Plancha }

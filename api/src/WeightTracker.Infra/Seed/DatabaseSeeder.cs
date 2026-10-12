@@ -45,9 +45,10 @@ public class DatabaseSeeder
     {
         var exercises = new[]
         {
-            Exercise.Rehydrate(Id.From(SeedData.PressBancaId), "Press Banca", null, BodyParts.CHEST),
-            Exercise.Rehydrate(Id.From(SeedData.SentadillaId), "Sentadilla", null, BodyParts.LEGS),
-            Exercise.Rehydrate(Id.From(SeedData.PlanchaId), "Plancha", null, BodyParts.BACK),
+            Exercise.Rehydrate(Id.From(SeedData.PressBancaId), ExerciseName.From("Press Banca"), null, BodyParts.CHEST),
+            Exercise.Rehydrate(Id.From(SeedData.SentadillaId), ExerciseName.From("Sentadilla"), null, BodyParts.LEGS),
+            Exercise.Rehydrate(Id.From(SeedData.PlanchaId), ExerciseName.From("Plancha"), null, BodyParts.BACK),
+            Exercise.Rehydrate(Id.From(SeedData.CurlBicepsId), ExerciseName.From("Curl de Bíceps"), null, BodyParts.ARMS),
         };
 
         await _context.Exercises.AddRangeAsync(exercises.Select(ExerciseMapper.MapToEntity), cancellationToken);
@@ -79,9 +80,9 @@ public class DatabaseSeeder
 
     private async Task SeedWorkouts(CancellationToken cancellationToken)
     {
-        var pressBanca = Exercise.Rehydrate(Id.From(SeedData.PressBancaId), "Press Banca", null, BodyParts.CHEST);
-        var sentadilla = Exercise.Rehydrate(Id.From(SeedData.SentadillaId), "Sentadilla", null, BodyParts.LEGS);
-        var plancha = Exercise.Rehydrate(Id.From(SeedData.PlanchaId), "Plancha", null, BodyParts.BACK);
+        var pressBanca = Exercise.Rehydrate(Id.From(SeedData.PressBancaId), ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
+        var sentadilla = Exercise.Rehydrate(Id.From(SeedData.SentadillaId), ExerciseName.From("Sentadilla"), null, BodyParts.LEGS);
+        var plancha = Exercise.Rehydrate(Id.From(SeedData.PlanchaId), ExerciseName.From("Plancha"), null, BodyParts.BACK);
 
         var ownedWorkout = Workout.Rehydrate(
             Id.From(SeedData.OwnedWorkoutId),
