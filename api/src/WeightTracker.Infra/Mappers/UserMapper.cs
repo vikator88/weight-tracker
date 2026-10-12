@@ -30,8 +30,8 @@ public static class UserMapper
             return User.Rehydrate(
                 Id.From(entity.Id),
                 Email.From(entity.Email),
-                PersonName.From(entity.Name),
-                PersonName.From(entity.Surname),
+                MapName(entity.Name),
+                MapName(entity.Surname),
                 entity.DateBirth,
                 MapRole(entity.Role),
                 PasswordHash.From(entity.PasswordHash),
@@ -43,6 +43,10 @@ public static class UserMapper
                 $"Stored user '{entity.Id}' could not be restored", exception);
         }
     }
+
+    // Signup stores PersonName.Empty() as "", so an empty column restores to Empty
+    private static PersonName MapName(string value) =>
+        value.Length == 0 ? PersonName.Empty() : PersonName.From(value);
 
     private static Role MapRole(int role)
     {

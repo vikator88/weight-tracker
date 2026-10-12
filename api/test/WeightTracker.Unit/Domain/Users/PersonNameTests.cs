@@ -127,4 +127,41 @@ public class PersonNameTests
         // Assert
         name.ToString().Should().Be("Lovelace");
     }
+
+    [Fact]
+    public void Empty_ShouldReturnAnEmptyValue()
+    {
+        // Arrange & Act
+        var name = PersonName.Empty();
+
+        // Assert
+        name.Value.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Empty_ShouldEqualAnotherEmpty()
+    {
+        // Arrange
+        var first = PersonName.Empty();
+
+        // Act
+        var second = PersonName.Empty();
+
+        // Assert
+        first.Should().Be(second);
+    }
+
+    [Fact]
+    public void Empty_ShouldBypassTheRuleThatFromEnforces()
+    {
+        // Arrange
+        var act = () => PersonName.From(string.Empty);
+        act.Should().Throw<InvalidPersonNameException>("the fixture must be a value the rules reject");
+
+        // Act
+        var name = PersonName.Empty();
+
+        // Assert
+        name.Value.Should().BeEmpty();
+    }
 }

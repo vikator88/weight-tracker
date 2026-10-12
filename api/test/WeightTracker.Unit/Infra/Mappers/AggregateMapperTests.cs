@@ -46,6 +46,22 @@ public class AggregateMapperTests
         }
 
         [Fact]
+        public void RoundTrip_ShouldPreserveEmptyNames()
+        {
+            // Arrange
+            var original = User.Rehydrate(
+                Id.New(), Email.From("trainer@weighttracker.test"), PersonName.Empty(), PersonName.Empty(),
+                new DateOnly(1985, 12, 9), Role.USER, PasswordHash.From("stored-hash"), CreatedAt);
+
+            // Act
+            var restored = UserMapper.MapToDomain(UserMapper.MapToEntity(original));
+
+            // Assert
+            restored.Name.Should().Be(PersonName.Empty());
+            restored.Surname.Should().Be(PersonName.Empty());
+        }
+
+        [Fact]
         public void MapToEntity_ShouldStoreTheNormalizedEmail()
         {
             // Arrange & Act
@@ -100,11 +116,39 @@ public class AggregateMapperTests
         }
 
         [Fact]
-        public void MapToDomain_ShouldRejectAnEmptyStoredName()
+        public void MapToDomain_ShouldRestoreAnEmptyStoredNameAsEmpty()
         {
             // Arrange
             var entity = UserMapper.MapToEntity(AUser());
             entity.Name = string.Empty;
+
+            // Act
+            var user = UserMapper.MapToDomain(entity);
+
+            // Assert
+            user.Name.Should().Be(PersonName.Empty());
+        }
+
+        [Fact]
+        public void MapToDomain_ShouldRestoreAnEmptyStoredSurnameAsEmpty()
+        {
+            // Arrange
+            var entity = UserMapper.MapToEntity(AUser());
+            entity.Surname = string.Empty;
+
+            // Act
+            var user = UserMapper.MapToDomain(entity);
+
+            // Assert
+            user.Surname.Should().Be(PersonName.Empty());
+        }
+
+        [Fact]
+        public void MapToDomain_ShouldRejectAWhitespaceStoredName()
+        {
+            // Arrange
+            var entity = UserMapper.MapToEntity(AUser());
+            entity.Name = "   ";
 
             // Act
             var act = () => UserMapper.MapToDomain(entity);
@@ -114,11 +158,11 @@ public class AggregateMapperTests
         }
 
         [Fact]
-        public void MapToDomain_ShouldRejectAnEmptyStoredSurname()
+        public void MapToDomain_ShouldRejectAWhitespaceStoredSurname()
         {
             // Arrange
             var entity = UserMapper.MapToEntity(AUser());
-            entity.Surname = string.Empty;
+            entity.Surname = "   ";
 
             // Act
             var act = () => UserMapper.MapToDomain(entity);

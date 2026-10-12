@@ -39,5 +39,14 @@ public sealed record PersonName
         return new PersonName(normalized);
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns></returns>
+    public static PersonName Empty()
+    {
+        return new PersonName(string.Empty);
+    }
+
     public override string ToString() => Value;
 }

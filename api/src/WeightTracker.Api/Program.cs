@@ -19,21 +19,28 @@ using WeightTracker.Migrations;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("Default")
+var connectionString =
+    builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured");
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 
-var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
-    ?? throw new InvalidOperationException($"The '{JwtOptions.SectionName}' configuration section is missing");
+var jwtOptions =
+    builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
+    ?? throw new InvalidOperationException(
+        $"The '{JwtOptions.SectionName}' configuration section is missing"
+    );
 
 // Fail fast rather than booting with a weak or absent signing key
 if (Encoding.UTF8.GetByteCount(jwtOptions.SigningKey) < JwtOptions.MinimumSigningKeyBytes)
     throw new InvalidOperationException(
         $"Jwt:SigningKey must be at least {JwtOptions.MinimumSigningKeyBytes} bytes. "
-        + "Supply it through configuration or the Jwt__SigningKey environment variable.");
+            + "Supply it through configuration or the Jwt__SigningKey environment variable."
+    );
 
-builder.Services.AddDbContext<WeightTrackerDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddDbContext<WeightTrackerDbContext>(options =>
+    options.UseNpgsql(connectionString)
+);
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -48,13 +55,14 @@ builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<GetAllExercisesUseCase>();
 builder.Services.AddScoped<GetAllWorkoutsUseCase>();
 builder.Services.AddScoped<LoginUseCase>();
+builder.Services.AddScoped<SignupUseCase>();
 builder.Services.AddScoped<RefreshTokenUseCase>();
 
 builder.Services.AddScoped<DatabaseSeeder>();
 builder.Services.AddScoped<ExceptionMapper>();
 
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder
+    .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         // Keep the claim types exactly as they were issued
@@ -66,7 +74,9 @@ builder.Services
             ValidateAudience = true,
             ValidAudience = jwtOptions.Audience,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtOptions.SigningKey)
+            ),
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero,
             NameClaimType = "sub",
@@ -93,10 +103,12 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapScalarApiReference(options => options
-        .WithTitle("Weight Tracker API")
-        .AddPreferredSecuritySchemes(BearerSecuritySchemeTransformer.SchemeName)
-        .EnablePersistentAuthentication());
+    app.MapScalarApiReference(options =>
+        options
+            .WithTitle("Weight Tracker API")
+            .AddPreferredSecuritySchemes(BearerSecuritySchemeTransformer.SchemeName)
+            .EnablePersistentAuthentication()
+    );
 
     DatabaseMigrator.MigrateUp(connectionString);
 
