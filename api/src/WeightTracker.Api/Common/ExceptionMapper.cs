@@ -26,30 +26,38 @@ public class ExceptionMapper
         return exception switch
         {
             InvalidEmailException
-                or InvalidIdException
-                or InvalidPersonNameException
-                or InvalidPasswordException
-                or InvalidPasswordHashException
-                or TrainerCannotBeWorkoutOwnerException
-                => Problem(StatusCodes.Status400BadRequest, exception.Message),
+            or InvalidIdException
+            or InvalidPersonNameException
+            or InvalidPasswordException
+            or InvalidPasswordHashException
+            or TrainerCannotBeWorkoutOwnerException
+            or PasswordNotStrongEnoughException => Problem(
+                StatusCodes.Status400BadRequest,
+                exception.Message
+            ),
 
-            InvalidCredentialsException
-                or InvalidRefreshTokenException
-                => Problem(StatusCodes.Status401Unauthorized, exception.Message),
+            InvalidCredentialsException or InvalidRefreshTokenException => Problem(
+                StatusCodes.Status401Unauthorized,
+                exception.Message
+            ),
 
-            UnauthorizedOperationException
-                => Problem(StatusCodes.Status403Forbidden, exception.Message),
+            UnauthorizedOperationException or AdminSignupNotAllowedException => Problem(
+                StatusCodes.Status403Forbidden,
+                exception.Message
+            ),
 
-            UserNotFoundException
-                or ExerciseNotInWorkoutException
-                => Problem(StatusCodes.Status404NotFound, exception.Message),
+            UserNotFoundException or ExerciseNotInWorkoutException => Problem(
+                StatusCodes.Status404NotFound,
+                exception.Message
+            ),
 
-            RefreshTokenAlreadyRevokedException
-                => Problem(StatusCodes.Status409Conflict, exception.Message),
+            RefreshTokenAlreadyRevokedException or EmailAlreadyExistException => Problem(
+                StatusCodes.Status409Conflict,
+                exception.Message
+            ),
 
             // Any other domain rule breach is still a caller problem
-            DomainException
-                => Problem(StatusCodes.Status400BadRequest, exception.Message),
+            DomainException => Problem(StatusCodes.Status400BadRequest, exception.Message),
 
             _ => InternalServerError(exception),
         };
@@ -62,8 +70,8 @@ public class ExceptionMapper
         return Problem(StatusCodes.Status500InternalServerError, "An unexpected error occurred");
     }
 
-    private static IActionResult Problem(int statusCode, string detail)
-        => new ObjectResult(new ProblemDetails { Status = statusCode, Detail = detail })
+    private static IActionResult Problem(int statusCode, string detail) =>
+        new ObjectResult(new ProblemDetails { Status = statusCode, Detail = detail })
         {
             StatusCode = statusCode,
         };

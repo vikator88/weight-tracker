@@ -58,8 +58,9 @@ This file is intentionally concise. It should capture project-level rules, workf
 - **Unit tests** (`test/WeightTracker.Unit`): cover aggregates, value objects, use cases and mappers.
   Mirror the `src` folder structure (`Domain/<Module>`, `Domain/Common`, `Application/<Module>`, `Infra/Mappers`).
   No database, no HTTP, no Docker. Repositories and services are mocked.
-- **Integration tests** (`test/WeightTracker.Integration`): run against the real Postgres from
-  `infra/docker-compose.yml`, driving the API through `WebApplicationFactory`. This is the only tier
+- **Integration tests** (`test/WeightTracker.Integration`): run against a real Postgres 17 that
+  Testcontainers starts fresh for each run, migrates once, and removes when the run ends, driving the
+  API through `WebApplicationFactory`. This is the only tier
   that touches the database, so it carries both the happy-path coverage and the auth/error matrix below.
 - **Authenticate only through the API.** Any test that calls an endpoint obtains its bearer token with
   `AuthenticatedClientFor(email)`, which calls `POST /auth/login`. Never mint a token with
@@ -82,7 +83,7 @@ This file is intentionally concise. It should capture project-level rules, workf
 - **Arrange / Act / Assert.** Every test body is split into labelled phases. See
   `.stpr/template/STPR_INVARIANTS.md` for the exact convention.
 - **Verification.** Any change touching API, domain, persistence, mappers, seed or auth runs the full
-  `dotnet test WeightTracker.slnx` with the database container up before it is considered done.
+  `dotnet test WeightTracker.slnx` with Docker running before it is considered done.
   Integration tests require Docker; do not skip them to make a run go green.
 
 ## Running And Verifying Locally
@@ -90,14 +91,15 @@ This file is intentionally concise. It should capture project-level rules, workf
 Requires .NET SDK 10 and Docker.
 
 ```bash
-docker compose -f ../infra/docker-compose.yml up -d   # Postgres 17 on 5432
+docker compose -f ../infra/docker-compose.yml up -d   # Postgres 17 on 5432 (development only)
 dotnet build WeightTracker.slnx                       # warnings are errors
 dotnet test WeightTracker.slnx                        # unit + integration
 ```
 
-- `dotnet test` needs the container running. The integration suite creates and migrates its
-  own `weight-tracker-test` database, so a fresh clone needs no manual database setup, and
-  running it never touches the development data in `weight-tracker`.
+- `dotnet test` needs Docker running but not the compose container. The integration suite
+  starts its own throwaway Postgres container through Testcontainers, migrates it, and removes
+  it at the end, so a fresh clone needs no manual database setup, every run starts from a clean
+  database, and running it never touches the development data in `weight-tracker`.
 - `dotnet run --project src/WeightTracker.Api` in Development applies migrations and seeds
   the development database on startup.
 - **API reference**: in Development, Scalar is served at `http://localhost:5199/scalar` and the raw
@@ -153,7 +155,7 @@ When adding entities, endpoints, or making architectural changes:
 - [ ] Every controller catch delegates to `ExceptionMapper.Map(exception)`, and new custom exceptions have explicit status mappings.
 - [ ] `.stpr/template/src` is still byte-identical to its `src` counterparts (see the parity check below).
 - [ ] New or changed behavior is covered by the relevant tests and the affected suites pass.
-- [ ] If the change touched endpoints, persistence, auth, mappers or seed, the full `dotnet test WeightTracker.slnx` was run with the database container up.
+- [ ] If the change touched endpoints, persistence, auth, mappers or seed, the full `dotnet test WeightTracker.slnx` was run with Docker running.
 - [ ] Every protected route added or changed covers `401` without token and `401` with an invalid token.
 - [ ] Every new test is split into labelled `// Arrange` / `// Act` / `// Assert` phases, with exactly one Act.
 - [ ] No duplicated code that should be shared; naming and structure match the template.

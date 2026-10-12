@@ -11,18 +11,50 @@ namespace WeightTracker.Api.Endpoints.Auth;
 [AllowAnonymous]
 public class AuthController : ControllerBase
 {
+    private readonly SignupUseCase _signup;
     private readonly LoginUseCase _login;
     private readonly RefreshTokenUseCase _refresh;
     private readonly ExceptionMapper _exceptionMapper;
 
     public AuthController(
+        SignupUseCase signup,
         LoginUseCase login,
         RefreshTokenUseCase refresh,
-        ExceptionMapper exceptionMapper)
+        ExceptionMapper exceptionMapper
+    )
     {
+        _signup = signup;
         _login = login;
         _refresh = refresh;
         _exceptionMapper = exceptionMapper;
+    }
+
+    /// <summary>
+    /// Sets up a new user and keeps they logged in.
+    /// </summary>
+    [HttpPost("signup")]
+    [ProducesResponseType<AuthResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Signup(
+        [FromBody] SignupRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            var result = await _signup.Execute(
+                request.Email,
+                request.Password,
+                request.Role,
+                cancellationToken
+            );
+
+            return Ok(AuthResponse.From(result));
+        }
+        catch (Exception exception)
+        {
+            return _exceptionMapper.Map(exception);
+        }
     }
 
     /// <summary>
@@ -32,7 +64,10 @@ public class AuthController : ControllerBase
     [ProducesResponseType<AuthResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Login(
+        [FromBody] LoginRequest request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -53,7 +88,10 @@ public class AuthController : ControllerBase
     [ProducesResponseType<AuthResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Refresh([FromBody] RefreshRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Refresh(
+        [FromBody] RefreshRequest request,
+        CancellationToken cancellationToken
+    )
     {
         try
         {

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using Testcontainers.PostgreSql;
 using WeightTracker.Infra.Persistence;
 using WeightTracker.Infra.Seed;
 using WeightTracker.Migrations;
@@ -15,30 +16,43 @@ namespace WeightTracker.Integration.Bootstrap;
 /// Hosts the API in process against a real Postgres database.
 /// </summary>
 /// <remarks>
-/// Runs against <c>weight-tracker-test</c> on the container from
-/// <c>infra/docker-compose.yml</c>, deliberately a different database from the one used for
-/// local development, so running the suite never wipes development data.
+/// Each test run starts its own throwaway Postgres container through Testcontainers, migrates
+/// it once, and removes it when the run ends, so every run begins from a fresh database and
+/// never touches the development data from <c>infra/docker-compose.yml</c>.
 /// </remarks>
 public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private const string DatabaseName = "weight-tracker-test";
 
-    public const string ConnectionString =
-        $"Host=localhost;Port=5432;Database={DatabaseName};Username=admin;Password=admin";
-
-    private const string MaintenanceConnectionString =
-        "Host=localhost;Port=5432;Database=postgres;Username=admin;Password=admin";
-
     private const string SigningKey = "integration-test-signing-key-at-least-32-bytes";
+
+    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17")
+        .WithDatabase(DatabaseName)
+        .Build();
 
     static ApiFactory()
     {
         // The API validates its configuration at the top of Program, before the host is
         // built, so the overrides have to be in place through the environment variable
         // provider rather than through ConfigureAppConfiguration.
-        Environment.SetEnvironmentVariable("ConnectionStrings__Default", ConnectionString);
         Environment.SetEnvironmentVariable("Jwt__SigningKey", SigningKey);
     }
+
+    /// <summary>
+    /// Connection string of the suite's database. Only valid once the container has started.
+    /// </summary>
+    public string ConnectionString => _postgres.GetConnectionString();
+
+    /// <summary>
+    /// Connection string pointing at another database on the suite's container, for tests that
+    /// need a throwaway database of their own.
+    /// </summary>
+    public string ConnectionStringFor(string database, bool pooling = true) =>
+        new NpgsqlConnectionStringBuilder(ConnectionString)
+        {
+            Database = database,
+            Pooling = pooling,
+        }.ConnectionString;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -55,27 +69,13 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        // The compose file only provisions the development database, so the suite creates
-        // its own. Keeps `docker compose up` plus `dotnet test` enough on a fresh clone.
-        await EnsureDatabaseExists();
+        await _postgres.StartAsync();
+
+        // The container's port is only known once it is running. The host is built lazily on
+        // the first CreateClient, after this fixture is initialised, so Program still sees it.
+        Environment.SetEnvironmentVariable("ConnectionStrings__Default", ConnectionString);
 
         DatabaseMigrator.MigrateUp(ConnectionString);
-    }
-
-    private static async Task EnsureDatabaseExists()
-    {
-        await using var connection = new NpgsqlConnection(MaintenanceConnectionString);
-        await connection.OpenAsync();
-
-        await using var exists = new NpgsqlCommand(
-            "SELECT 1 FROM pg_database WHERE datname = @name", connection);
-        exists.Parameters.AddWithValue("name", DatabaseName);
-
-        if (await exists.ExecuteScalarAsync() is not null)
-            return;
-
-        await using var create = new NpgsqlCommand($"""CREATE DATABASE "{DatabaseName}" """, connection);
-        await create.ExecuteNonQueryAsync();
     }
 
     /// <summary>
@@ -114,5 +114,6 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await scope.ServiceProvider.GetRequiredService<DatabaseSeeder>().Seed(CancellationToken.None);
     }
 
-    Task IAsyncLifetime.DisposeAsync() => Task.CompletedTask;
+    // Removing the container drops the database with it, so the next run starts fresh
+    async Task IAsyncLifetime.DisposeAsync() => await _postgres.DisposeAsync();
 }
