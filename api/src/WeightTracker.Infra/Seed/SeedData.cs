@@ -34,5 +34,17 @@ public static class SeedData
     /// <summary>Owned by the trainer themselves, no trainer assigned.</summary>
     public static readonly Guid TrainerOwnWorkoutId = new("00000000-0000-0000-0000-000000000023");
 
+    /// <summary>Press Banca in the owned workout, effort HIGH.</summary>
+    public static readonly Guid OwnedPressBancaEntryId = new("00000000-0000-0000-0000-000000000031");
+
+    /// <summary>Sentadilla in the trained workout, first, effort MIDHIGH.</summary>
+    public static readonly Guid TrainedSentadillaEntryId = new("00000000-0000-0000-0000-000000000032");
+
+    /// <summary>Plancha in the trained workout, second, effort LOW.</summary>
+    public static readonly Guid TrainedPlanchaEntryId = new("00000000-0000-0000-0000-000000000033");
+
+    /// <summary>Press Banca in the trainer's own workout, effort MID.</summary>
+    public static readonly Guid TrainerOwnPressBancaEntryId = new("00000000-0000-0000-0000-000000000034");
+
     public static readonly DateTime CreatedAt = new(2026, 10, 1, 8, 0, 0, DateTimeKind.Utc);
 }

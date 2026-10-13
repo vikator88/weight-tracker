@@ -40,9 +40,9 @@ public class WorkoutsController : ControllerBase
 
         try
         {
-            var workouts = await _getAllWorkouts.Execute(callerId!, callerRole, cancellationToken);
+            var result = await _getAllWorkouts.Execute(callerId!, callerRole, cancellationToken);
 
-            return Ok(workouts.Select(WorkoutResponse.From).ToList());
+            return Ok(result.Workouts.Select(workout => WorkoutResponse.From(workout, result.Exercises)).ToList());
         }
         catch (Exception exception)
         {

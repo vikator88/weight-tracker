@@ -62,4 +62,46 @@ public class ExerciseRepositoryTests : IntegrationTest
         // Assert
         stored.Should().NotBeNull();
     }
+
+    [Fact]
+    public async Task GetAllByIds_ShouldReturnOnlyTheRequestedExercises()
+    {
+        // Arrange
+        var requested = new[] { Id.From(SeedData.PressBancaId), Id.From(SeedData.PlanchaId) };
+
+        // Act
+        var exercises = await Factory.WithScope(services =>
+            services.GetRequiredService<IExerciseRepository>().GetAllByIds(requested, CancellationToken.None));
+
+        // Assert
+        exercises.Select(exercise => exercise.Id).Should().BeEquivalentTo(requested);
+    }
+
+    [Fact]
+    public async Task GetAllByIds_ShouldIgnoreUnknownIds()
+    {
+        // Arrange
+        var requested = new[] { Id.From(SeedData.SentadillaId), Id.New() };
+
+        // Act
+        var exercises = await Factory.WithScope(services =>
+            services.GetRequiredService<IExerciseRepository>().GetAllByIds(requested, CancellationToken.None));
+
+        // Assert
+        exercises.Should().ContainSingle().Which.Id.Should().Be(Id.From(SeedData.SentadillaId));
+    }
+
+    [Fact]
+    public async Task GetAllByIds_ShouldReturnNothingForNoIds()
+    {
+        // Arrange
+        var requested = Array.Empty<Id>();
+
+        // Act
+        var exercises = await Factory.WithScope(services =>
+            services.GetRequiredService<IExerciseRepository>().GetAllByIds(requested, CancellationToken.None));
+
+        // Assert
+        exercises.Should().BeEmpty();
+    }
 }

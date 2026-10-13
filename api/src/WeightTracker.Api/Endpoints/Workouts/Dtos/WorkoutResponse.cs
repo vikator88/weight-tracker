@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using WeightTracker.Domain.Common;
+using WeightTracker.Domain.Exercises;
 using WeightTracker.Domain.Workouts;
 
 namespace WeightTracker.Api.Endpoints.Workouts.Dtos;
@@ -10,14 +12,16 @@ public sealed record WorkoutResponse(
     Guid? TrainerId,
     IReadOnlyList<WorkoutExerciseResponse> Exercises)
 {
-    public static WorkoutResponse From(Workout workout)
+    /// <param name="workout">Workout to project.</param>
+    /// <param name="exercises">Exercises referenced by the workout, keyed by identifier.</param>
+    public static WorkoutResponse From(Workout workout, IReadOnlyDictionary<Id, Exercise> exercises)
         => new(
             workout.Id.Value,
             DateOnly.FromDateTime(workout.WorkoutDate),
             workout.UserId.Value,
             workout.TrainerId?.Value,
             workout.Exercises
-                .Select(entry => WorkoutExerciseResponse.From(entry.Key, entry.Value))
+                .Select(entry => WorkoutExerciseResponse.From(entry, exercises[entry.ExerciseId]))
                 .ToList());
 }
 
@@ -25,15 +29,16 @@ public sealed record WorkoutExerciseResponse(
     Guid ExerciseId,
     string Name,
     string BodyPart,
+    string Effort,
     IReadOnlyList<SetResponse> Sets)
 {
-    public static WorkoutExerciseResponse From(
-        Domain.Exercises.Exercise exercise, IReadOnlyList<SetPrescription> prescriptions)
+    public static WorkoutExerciseResponse From(WorkoutExercise entry, Exercise exercise)
         => new(
             exercise.Id.Value,
             exercise.Name.Value,
             exercise.BodyPart.ToString(),
-            prescriptions.Select(SetResponse.From).ToList());
+            entry.Effort.ToString(),
+            entry.Sets.Select(SetResponse.From).ToList());
 }
 
 public sealed record SetResponse(int Count, SetTargetResponse Target)

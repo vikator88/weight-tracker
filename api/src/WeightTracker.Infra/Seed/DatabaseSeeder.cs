@@ -80,40 +80,41 @@ public class DatabaseSeeder
 
     private async Task SeedWorkouts(CancellationToken cancellationToken)
     {
-        var pressBanca = Exercise.Rehydrate(Id.From(SeedData.PressBancaId), ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
-        var sentadilla = Exercise.Rehydrate(Id.From(SeedData.SentadillaId), ExerciseName.From("Sentadilla"), null, BodyParts.LEGS);
-        var plancha = Exercise.Rehydrate(Id.From(SeedData.PlanchaId), ExerciseName.From("Plancha"), null, BodyParts.BACK);
-
         var ownedWorkout = Workout.Rehydrate(
             Id.From(SeedData.OwnedWorkoutId),
             Id.From(SeedData.UserId),
             null,
             new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc),
-            new()
-            {
-                [pressBanca] = [new SetPrescription(4, new SetTarget.Reps(10))],
-            });
+            [
+                WorkoutExercise.Rehydrate(
+                    Id.From(SeedData.OwnedPressBancaEntryId), Id.From(SeedData.PressBancaId), Effort.HIGH,
+                    [new SetPrescription(4, new SetTarget.Reps(10))]),
+            ]);
 
         var trainedWorkout = Workout.Rehydrate(
             Id.From(SeedData.TrainedWorkoutId),
             Id.From(SeedData.UserId),
             Id.From(SeedData.TrainerId),
             new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc),
-            new()
-            {
-                [sentadilla] = [new SetPrescription(5, new SetTarget.Reps(5))],
-                [plancha] = [new SetPrescription(3, new SetTarget.Duration(40))],
-            });
+            [
+                WorkoutExercise.Rehydrate(
+                    Id.From(SeedData.TrainedSentadillaEntryId), Id.From(SeedData.SentadillaId), Effort.MIDHIGH,
+                    [new SetPrescription(5, new SetTarget.Reps(5))]),
+                WorkoutExercise.Rehydrate(
+                    Id.From(SeedData.TrainedPlanchaEntryId), Id.From(SeedData.PlanchaId), Effort.LOW,
+                    [new SetPrescription(3, new SetTarget.Duration(40))]),
+            ]);
 
         var trainerOwnWorkout = Workout.Rehydrate(
             Id.From(SeedData.TrainerOwnWorkoutId),
             Id.From(SeedData.TrainerId),
             null,
             new DateTime(2026, 10, 5, 0, 0, 0, DateTimeKind.Utc),
-            new()
-            {
-                [pressBanca] = [new SetPrescription(3, new SetTarget.MaxReps())],
-            });
+            [
+                WorkoutExercise.Rehydrate(
+                    Id.From(SeedData.TrainerOwnPressBancaEntryId), Id.From(SeedData.PressBancaId), Effort.MID,
+                    [new SetPrescription(3, new SetTarget.MaxReps())]),
+            ]);
 
         var workouts = new[] { ownedWorkout, trainedWorkout, trainerOwnWorkout };
 

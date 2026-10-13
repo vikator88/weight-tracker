@@ -29,7 +29,7 @@ When selecting a reference, first decide whether it is:
 
 | Item                    | Classification                                | Why                                                                       |
 | ----------------------- | --------------------------------------------- | ------------------------------------------------------------------------- |
-| `Workouts`              | `Aggregate root with value objects`           | Create / Rehydrate / IsNew, value objects, multi-table aggregate          |
+| `Workouts`              | `Aggregate root with value objects`           | Create / Rehydrate / IsNew, inner entity (WorkoutExercise), value objects, multi-table aggregate |
 | `ExerciseUseCase`       | `UseCase for getAll operation`                | Stable reference data used by auth and users                              |
 | `Id` / `Email`          | `Shared value objects`                        | Shared identifier and business identifier used across modules             |
 | `WorkoutRepository`     | `Repository implementation`                   | Multi-table aggregate load, cross-aggregate reference by id               |

@@ -4,10 +4,9 @@ namespace WeightTracker.Domain.Common;
 /// This class is the Entity base for DomainDrivenDesign
 /// </summary>
 /// <remarks>
-/// Identity equality is based on the concrete type plus the identifier. Entities are
-/// used as dictionary keys inside aggregates (see <c>Workout</c>), so reference equality
+/// Identity equality is based on the concrete type plus the identifier. Reference equality
 /// would make an entity rehydrated from persistence fail to match an equal instance
-/// already held by the aggregate.
+/// already held elsewhere.
 /// </remarks>
 public abstract class Entity : IEquatable<Entity>
 {

@@ -312,7 +312,7 @@ public void RemoveExercise_ShouldRejectAnExerciseNotInTheWorkout()
     var workout = Workout.Create(Id.New(), null, WorkoutDate);
 
     // Act
-    var act = () => workout.RemoveExercise(Exercise.Create(ExerciseName.From("Peso Muerto"), null, BodyParts.BACK));
+    var act = () => workout.RemoveExercise(Id.New());
 
     // Assert
     act.Should().Throw<ExerciseNotInWorkoutException>();

@@ -31,6 +31,7 @@ public class ExceptionMapper
             or InvalidExerciseNameException
             or InvalidUrlException
             or InvalidBodyPartException
+            or InvalidEffortException
             or InvalidPasswordException
             or InvalidPasswordHashException
             or TrainerCannotBeWorkoutOwnerException
@@ -54,7 +55,8 @@ public class ExceptionMapper
                 exception.Message
             ),
 
-            RefreshTokenAlreadyRevokedException or EmailAlreadyExistException or ExerciseInUseException => Problem(
+            RefreshTokenAlreadyRevokedException or EmailAlreadyExistException or ExerciseInUseException
+                or ExerciseAlreadyInWorkoutException => Problem(
                 StatusCodes.Status409Conflict,
                 exception.Message
             ),

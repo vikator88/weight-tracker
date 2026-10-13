@@ -67,7 +67,7 @@ public class EntityEqualityTests
         Entity exercise = Exercise.Rehydrate(id, ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
 
         // Act
-        Entity workout = Workout.Rehydrate(id, Id.New(), null, new DateTime(2026, 10, 1), new());
+        Entity workout = Workout.Rehydrate(id, Id.New(), null, new DateTime(2026, 10, 1), []);
 
         // Assert
         exercise.Should().NotBe(workout);

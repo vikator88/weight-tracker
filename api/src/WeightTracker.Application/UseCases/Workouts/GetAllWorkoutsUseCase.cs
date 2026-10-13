@@ -17,14 +17,34 @@ public class GetAllWorkoutsUseCase
 {
     private IWorkoutRepository _workouts;
 
+    private IExerciseRepository _exercises;
+
     public GetAllWorkoutsUseCase(
-        IWorkoutRepository workouts
+        IWorkoutRepository workouts,
+        IExerciseRepository exercises
     )
     {
         _workouts = workouts;
+        _exercises = exercises;
     }
 
-    public async Task<IEnumerable<Workout>> Execute(Id callerId, Role callerRole, CancellationToken cancellationToken)
+    public async Task<WorkoutListDTO> Execute(Id callerId, Role callerRole, CancellationToken cancellationToken)
+    {
+        var workouts = (await ScopedWorkouts(callerId, callerRole, cancellationToken)).ToList();
+
+        // Only exercises referenced by the scoped workouts, so the join never widens visibility
+        var exerciseIds = workouts
+            .SelectMany(workout => workout.Exercises)
+            .Select(entry => entry.ExerciseId)
+            .Distinct()
+            .ToList();
+
+        var exercises = await _exercises.GetAllByIds(exerciseIds, cancellationToken);
+
+        return new WorkoutListDTO(workouts, exercises.ToDictionary(exercise => exercise.Id));
+    }
+
+    private async Task<IEnumerable<Workout>> ScopedWorkouts(Id callerId, Role callerRole, CancellationToken cancellationToken)
     {
         return callerRole switch
         {

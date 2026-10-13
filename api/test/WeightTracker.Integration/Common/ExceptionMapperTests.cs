@@ -13,7 +13,7 @@ namespace WeightTracker.Integration.Common;
 /// <summary>
 /// Needs neither a database nor a host. It lives in this project because it is the one that
 /// references the Api layer. Covers the status of every exception the exercises endpoints can
-/// raise, including the ones no HTTP request can reach.
+/// raise, and of the Workout aggregate rules, including the ones no HTTP request can reach.
 /// </summary>
 public class ExceptionMapperTests
 {
@@ -87,5 +87,44 @@ public class ExceptionMapperTests
 
         // Assert
         status.Should().Be(StatusCodes.Status409Conflict);
+    }
+
+    [Fact]
+    public void Map_ShouldReturnBadRequestForAnInvalidEffort()
+    {
+        // Arrange
+        var exception = new InvalidEffortException(99);
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public void Map_ShouldReturnConflictForAnExerciseAlreadyInTheWorkout()
+    {
+        // Arrange
+        var exception = new ExerciseAlreadyInWorkoutException(Id.New(), Id.New());
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status409Conflict);
+    }
+
+    [Fact]
+    public void Map_ShouldReturnNotFoundForAnExerciseNotInTheWorkout()
+    {
+        // Arrange
+        var exception = new ExerciseNotInWorkoutException(Id.New(), Id.New());
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status404NotFound);
     }
 }

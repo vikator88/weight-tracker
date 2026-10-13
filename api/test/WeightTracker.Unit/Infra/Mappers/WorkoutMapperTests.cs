@@ -1,8 +1,6 @@
 using FluentAssertions;
 using WeightTracker.Domain.Common;
-using WeightTracker.Domain.Exercises;
 using WeightTracker.Domain.Workouts;
-using WeightTracker.Infra.Entities;
 using WeightTracker.Infra.Exceptions;
 using WeightTracker.Infra.Mappers;
 using Xunit;
@@ -13,32 +11,29 @@ public class WorkoutMapperTests
 {
     private static readonly DateTime WorkoutDate = new(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc);
 
-    private static readonly Exercise Sentadilla =
-        Exercise.Rehydrate(Id.From(Guid.CreateVersion7()), ExerciseName.From("Sentadilla"), null, BodyParts.LEGS);
+    private static readonly Id SentadillaId = Id.New();
 
-    private static readonly Exercise Plancha =
-        Exercise.Rehydrate(Id.From(Guid.CreateVersion7()), ExerciseName.From("Plancha"), Url.From("https://videos.example.com/plancha"), BodyParts.BACK);
-
-    private static IReadOnlyDictionary<Guid, ExerciseEntity> KnownExercises()
-        => new[] { Sentadilla, Plancha }
-            .Select(ExerciseMapper.MapToEntity)
-            .ToDictionary(entity => entity.Id);
+    private static readonly Id PlanchaId = Id.New();
 
     private static Workout AFullyLoadedWorkout(Id? trainerId = null)
         => Workout.Rehydrate(
             Id.New(), Id.New(), trainerId, WorkoutDate,
-            new()
-            {
-                [Sentadilla] =
+            [
+                WorkoutExercise.Rehydrate(Id.New(), SentadillaId, Effort.MIDHIGH,
                 [
                     new SetPrescription(5, new SetTarget.Reps(5)),
                     new SetPrescription(2, new SetTarget.MaxReps()),
-                ],
-                [Plancha] = [new SetPrescription(3, new SetTarget.Duration(40))],
-            });
+                ]),
+                WorkoutExercise.Rehydrate(Id.New(), PlanchaId, Effort.LOW, [new SetPrescription(3, new SetTarget.Duration(40))]),
+            ]);
+
+    private static Workout AWorkoutWithOneSet(SetTarget target)
+        => Workout.Rehydrate(
+            Id.New(), Id.New(), null, WorkoutDate,
+            [WorkoutExercise.Rehydrate(Id.New(), SentadillaId, Effort.MID, [new SetPrescription(4, target)])]);
 
     private static Workout RoundTrip(Workout workout)
-        => WorkoutMapper.MapToDomain(WorkoutMapper.MapToEntity(workout), KnownExercises());
+        => WorkoutMapper.MapToDomain(WorkoutMapper.MapToEntity(workout));
 
     [Fact]
     public void RoundTrip_ShouldPreserveIdentityAndOwnership()
@@ -71,15 +66,17 @@ public class WorkoutMapperTests
     }
 
     [Fact]
-    public void RoundTrip_ShouldPreserveEveryExerciseAndItsSets()
+    public void RoundTrip_ShouldPreserveEachExerciseIdentityReferenceAndEffort()
     {
-        // Arrange & Act
-        var restored = RoundTrip(AFullyLoadedWorkout());
+        // Arrange
+        var original = AFullyLoadedWorkout();
+
+        // Act
+        var restored = RoundTrip(original);
 
         // Assert
-        restored.Exercises.Should().HaveCount(2);
-        restored.Exercises[Sentadilla].Should().HaveCount(2);
-        restored.Exercises[Plancha].Should().HaveCount(1);
+        restored.Exercises.Select(entry => (entry.Id, entry.ExerciseId, entry.Effort)).Should().Equal(
+            original.Exercises.Select(entry => (entry.Id, entry.ExerciseId, entry.Effort)));
     }
 
     [Fact]
@@ -89,7 +86,7 @@ public class WorkoutMapperTests
         var restored = RoundTrip(AFullyLoadedWorkout());
 
         // Assert
-        restored.Exercises[Sentadilla].Should().ContainInOrder(
+        restored.Exercises[0].Sets.Should().Equal(
             new SetPrescription(5, new SetTarget.Reps(5)),
             new SetPrescription(2, new SetTarget.MaxReps()));
     }
@@ -101,7 +98,7 @@ public class WorkoutMapperTests
         var restored = RoundTrip(AFullyLoadedWorkout());
 
         // Assert
-        restored.Exercises.Keys.Should().ContainInOrder(Sentadilla, Plancha);
+        restored.Exercises.Select(entry => entry.ExerciseId).Should().Equal(SentadillaId, PlanchaId);
     }
 
     [Theory]
@@ -109,15 +106,13 @@ public class WorkoutMapperTests
     public void RoundTrip_ShouldPreserveEverySetTargetVariant(SetTarget target)
     {
         // Arrange
-        var workout = Workout.Rehydrate(
-            Id.New(), Id.New(), null, WorkoutDate,
-            new() { [Sentadilla] = [new SetPrescription(4, target)] });
+        var workout = AWorkoutWithOneSet(target);
 
         // Act
         var restored = RoundTrip(workout);
 
         // Assert
-        restored.Exercises[Sentadilla].Single().target.Should().Be(target);
+        restored.Exercises.Single().Sets.Single().target.Should().Be(target);
     }
 
     public static TheoryData<SetTarget> EverySetTargetVariant() =>
@@ -128,12 +123,24 @@ public class WorkoutMapperTests
     ];
 
     [Fact]
+    public void MapToEntity_ShouldUseTheEntryIdAsRowIdAndStoreTheEffort()
+    {
+        // Arrange
+        var workout = AFullyLoadedWorkout();
+
+        // Act
+        var entity = WorkoutMapper.MapToEntity(workout);
+
+        // Assert
+        entity.WorkoutExercises.Select(item => item.Id).Should().Equal(workout.Exercises.Select(entry => entry.Id.Value));
+        entity.WorkoutExercises.Select(item => item.Effort).Should().Equal((int)Effort.MIDHIGH, (int)Effort.LOW);
+    }
+
+    [Fact]
     public void MapToEntity_ShouldLeaveMaxRepsWithoutAValue()
     {
         // Arrange
-        var workout = Workout.Rehydrate(
-            Id.New(), Id.New(), null, WorkoutDate,
-            new() { [Sentadilla] = [new SetPrescription(3, new SetTarget.MaxReps())] });
+        var workout = AWorkoutWithOneSet(new SetTarget.MaxReps());
 
         // Act
         var set = WorkoutMapper.MapToEntity(workout).WorkoutExercises.Single().Sets.Single();
@@ -164,23 +171,40 @@ public class WorkoutMapperTests
             workoutExercise.Sets.Reverse();
 
         // Act
-        var restored = WorkoutMapper.MapToDomain(entity, KnownExercises());
+        var restored = WorkoutMapper.MapToDomain(entity);
 
         // Assert
-        restored.Exercises.Keys.Should().ContainInOrder(Sentadilla, Plancha);
-        restored.Exercises[Sentadilla].Should().ContainInOrder(
+        restored.Exercises.Select(entry => entry.ExerciseId).Should().Equal(SentadillaId, PlanchaId);
+        restored.Exercises[0].Sets.Should().Equal(
             new SetPrescription(5, new SetTarget.Reps(5)),
             new SetPrescription(2, new SetTarget.MaxReps()));
     }
 
-    [Fact]
-    public void MapToDomain_ShouldRejectAWorkoutReferencingAnUnknownExercise()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(6)]
+    public void MapToDomain_ShouldRejectAnUnknownStoredEffort(int effort)
     {
         // Arrange
         var entity = WorkoutMapper.MapToEntity(AFullyLoadedWorkout());
+        entity.WorkoutExercises.First().Effort = effort;
 
         // Act
-        var act = () => WorkoutMapper.MapToDomain(entity, new Dictionary<Guid, ExerciseEntity>());
+        var act = () => WorkoutMapper.MapToDomain(entity);
+
+        // Assert
+        act.Should().Throw<PersistenceMappingException>();
+    }
+
+    [Fact]
+    public void MapToDomain_ShouldRejectTheSameExerciseStoredTwice()
+    {
+        // Arrange
+        var entity = WorkoutMapper.MapToEntity(AFullyLoadedWorkout());
+        entity.WorkoutExercises.Last().ExerciseId = entity.WorkoutExercises.First().ExerciseId;
+
+        // Act
+        var act = () => WorkoutMapper.MapToDomain(entity);
 
         // Assert
         act.Should().Throw<PersistenceMappingException>();
@@ -194,7 +218,7 @@ public class WorkoutMapperTests
         entity.WorkoutExercises.First().Sets.First().TargetType = "Furlongs";
 
         // Act
-        var act = () => WorkoutMapper.MapToDomain(entity, KnownExercises());
+        var act = () => WorkoutMapper.MapToDomain(entity);
 
         // Assert
         act.Should().Throw<PersistenceMappingException>();
@@ -209,7 +233,7 @@ public class WorkoutMapperTests
         set.TargetValue = null;
 
         // Act
-        var act = () => WorkoutMapper.MapToDomain(entity, KnownExercises());
+        var act = () => WorkoutMapper.MapToDomain(entity);
 
         // Assert
         act.Should().Throw<PersistenceMappingException>();

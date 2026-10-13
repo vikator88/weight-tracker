@@ -1,6 +1,5 @@
 using WeightTracker.Domain.Common;
 using WeightTracker.Domain.Exceptions;
-using WeightTracker.Domain.Exercises;
 using WeightTracker.Domain.Workouts;
 using WeightTracker.Infra.Entities;
 using WeightTracker.Infra.Exceptions;
@@ -29,19 +28,20 @@ public static class WorkoutMapper
 
         var exercisePosition = 0;
 
-        foreach (var (exercise, prescriptions) in workout.Exercises)
+        foreach (var entry in workout.Exercises)
         {
             var workoutExercise = new WorkoutExerciseEntity
             {
-                Id = Id.New().Value,
+                Id = entry.Id.Value,
                 WorkoutId = entity.Id,
-                ExerciseId = exercise.Id.Value,
+                ExerciseId = entry.ExerciseId.Value,
                 Position = exercisePosition++,
+                Effort = (int)entry.Effort,
             };
 
             var setPosition = 0;
 
-            foreach (var prescription in prescriptions)
+            foreach (var prescription in entry.Sets)
             {
                 var (targetType, targetValue) = MapTargetToColumns(prescription.target);
 
@@ -66,36 +66,27 @@ public static class WorkoutMapper
     /// Restores the aggregate.
     /// </summary>
     /// <param name="entity">Workout rows, with its exercises and sets loaded.</param>
-    /// <param name="exercises">
-    /// Exercises referenced by the workout, keyed by identifier. They are loaded separately
-    /// because Exercise is its own aggregate root and is referenced here by identifier only.
-    /// </param>
-    public static Workout MapToDomain(WorkoutEntity entity, IReadOnlyDictionary<Guid, ExerciseEntity> exercises)
+    public static Workout MapToDomain(WorkoutEntity entity)
     {
-        var prescriptions = new Dictionary<Exercise, List<SetPrescription>>();
-
-        foreach (var workoutExercise in entity.WorkoutExercises.OrderBy(item => item.Position))
-        {
-            if (exercises.TryGetValue(workoutExercise.ExerciseId, out var exerciseEntity) == false)
-                throw new PersistenceMappingException(
-                    $"Workout '{entity.Id}' references unknown exercise '{workoutExercise.ExerciseId}'");
-
-            var sets = workoutExercise.Sets
-                .OrderBy(set => set.Position)
-                .Select(set => new SetPrescription(set.Count, MapTargetToDomain(set.TargetType, set.TargetValue)))
-                .ToList();
-
-            prescriptions.Add(ExerciseMapper.MapToDomain(exerciseEntity), sets);
-        }
-
         try
         {
+            var exercises = entity.WorkoutExercises
+                .OrderBy(item => item.Position)
+                .Select(item => WorkoutExercise.Rehydrate(
+                    Id.From(item.Id),
+                    Id.From(item.ExerciseId),
+                    MapEffort(item.Effort),
+                    item.Sets
+                        .OrderBy(set => set.Position)
+                        .Select(set => new SetPrescription(set.Count, MapTargetToDomain(set.TargetType, set.TargetValue)))))
+                .ToList();
+
             return Workout.Rehydrate(
                 Id.From(entity.Id),
                 Id.From(entity.UserId),
                 entity.TrainerId is null ? null : Id.From(entity.TrainerId.Value),
                 entity.WorkoutDate.ToDateTime(TimeOnly.MinValue),
-                prescriptions);
+                exercises);
         }
         catch (DomainException exception)
         {
@@ -119,6 +110,14 @@ public static class WorkoutMapper
         MaxRepsTarget => new SetTarget.MaxReps(),
         _ => throw new PersistenceMappingException($"'{targetType}' is not a known set target"),
     };
+
+    private static Effort MapEffort(int effort)
+    {
+        if (Enum.IsDefined(typeof(Effort), effort) == false)
+            throw new PersistenceMappingException($"'{effort}' is not a known effort");
+
+        return (Effort)effort;
+    }
 
     private static int RequireValue(string targetType, int? targetValue)
         => targetValue ?? throw new PersistenceMappingException($"Set target '{targetType}' requires a value");
