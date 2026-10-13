@@ -18,6 +18,9 @@ public class MigrationsTests : IAsyncLifetime
 {
     private const string DatabaseName = "weight-tracker-migrations-test";
 
+    /// <summary>Last migration before <c>AddEffortToWorkoutExercises_202610131437</c> that it depends on.</summary>
+    private const long BeforeEffortVersion = 202610080944;
+
     private static readonly string[] ExpectedTables =
     [
         "users",
@@ -85,6 +88,70 @@ public class MigrationsTests : IAsyncLifetime
         // Assert
         foreach (var table in ExpectedTables)
             TableExists(table).Should().BeFalse($"rollback should have dropped '{table}'");
+    }
+
+    [Fact]
+    public async Task AddEffort_ShouldBackfillExistingRowsWithMid()
+    {
+        // Arrange
+        DatabaseMigrator.MigrateUp(_connectionString, BeforeEffortVersion);
+        await Execute(_connectionString, """
+            INSERT INTO users (id, email, name, surname, date_birth, role, password_hash, created_at)
+            VALUES ('00000000-0000-0000-0000-0000000000a1', 'legacy@weighttracker.test', 'Legacy', 'User',
+                    '1990-01-01', 1, 'hash', now());
+            INSERT INTO exercises (id, name, video_url, body_part)
+            VALUES ('00000000-0000-0000-0000-0000000000a2', 'Press Banca', NULL, 3);
+            INSERT INTO workouts (id, user_id, trainer_id, workout_date)
+            VALUES ('00000000-0000-0000-0000-0000000000a3', '00000000-0000-0000-0000-0000000000a1', NULL, '2026-10-01');
+            INSERT INTO workout_exercises (id, workout_id, exercise_id, position)
+            VALUES ('00000000-0000-0000-0000-0000000000a4', '00000000-0000-0000-0000-0000000000a3',
+                    '00000000-0000-0000-0000-0000000000a2', 0);
+            """);
+
+        // Act
+        DatabaseMigrator.MigrateUp(_connectionString);
+
+        // Assert
+        (await Scalar<int>("SELECT effort FROM workout_exercises")).Should().Be(3);
+    }
+
+    [Fact]
+    public async Task AddEffort_ShouldLeaveNoDefaultForNewRows()
+    {
+        // Arrange & Act
+        DatabaseMigrator.MigrateUp(_connectionString);
+
+        // Assert
+        (await Scalar<bool>("""
+            SELECT column_default IS NULL FROM information_schema.columns
+            WHERE table_name = 'workout_exercises' AND column_name = 'effort'
+            """)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AddEffort_Down_ShouldRemoveTheColumn()
+    {
+        // Arrange
+        DatabaseMigrator.MigrateUp(_connectionString);
+
+        // Act
+        DatabaseMigrator.MigrateDown(_connectionString, BeforeEffortVersion);
+
+        // Assert
+        (await Scalar<bool>("""
+            SELECT EXISTS (SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'workout_exercises' AND column_name = 'effort')
+            """)).Should().BeFalse();
+    }
+
+    private async Task<T> Scalar<T>(string sql)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new NpgsqlCommand(sql, connection);
+
+        return (T)(await command.ExecuteScalarAsync())!;
     }
 
     private bool TableExists(string table)

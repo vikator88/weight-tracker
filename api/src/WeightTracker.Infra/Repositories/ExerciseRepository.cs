@@ -23,6 +23,21 @@ public class ExerciseRepository : IExerciseRepository
         return entities.Select(ExerciseMapper.MapToDomain).ToList();
     }
 
+    public async Task<IEnumerable<Exercise>> GetAllByIds(IEnumerable<Id> exerciseIds, CancellationToken cancellationToken)
+    {
+        var ids = exerciseIds.Select(id => id.Value).Distinct().ToList();
+
+        if (ids.Count == 0)
+            return [];
+
+        var entities = await _context.Exercises
+            .AsNoTracking()
+            .Where(exercise => ids.Contains(exercise.Id))
+            .ToListAsync(cancellationToken);
+
+        return entities.Select(ExerciseMapper.MapToDomain).ToList();
+    }
+
     public async Task<Exercise?> GetById(Id exerciseId, CancellationToken cancellationToken)
     {
         var entity = await _context.Exercises.FirstOrDefaultAsync(exercise => exercise.Id == exerciseId.Value, cancellationToken);

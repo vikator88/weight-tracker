@@ -67,6 +67,38 @@ public class WorkoutResponseShapeTests : IntegrationTest
         set.GetProperty("count").GetInt32().Should().Be(4);
         set.GetProperty("target").GetProperty("type").GetString().Should().Be("Reps");
         set.GetProperty("target").GetProperty("value").GetInt32().Should().Be(10);
+        exercise.GetProperty("effort").GetString().Should().Be("HIGH");
+    }
+
+    [Theory]
+    [InlineData("00000000-0000-0000-0000-000000000021", "00000000-0000-0000-0000-000000000011", "HIGH")]
+    [InlineData("00000000-0000-0000-0000-000000000022", "00000000-0000-0000-0000-000000000012", "MIDHIGH")]
+    [InlineData("00000000-0000-0000-0000-000000000022", "00000000-0000-0000-0000-000000000013", "LOW")]
+    [InlineData("00000000-0000-0000-0000-000000000023", "00000000-0000-0000-0000-000000000011", "MID")]
+    public async Task Exercise_ShouldCarryItsEffort(string workoutId, string exerciseId, string effort)
+    {
+        // Arrange
+        var workouts = await WorkoutsSeenByAdmin();
+
+        // Act
+        var exercise = WorkoutWithId(workouts, Guid.Parse(workoutId))
+            .GetProperty("exercises").EnumerateArray()
+            .Single(item => item.GetProperty("exerciseId").GetGuid() == Guid.Parse(exerciseId));
+
+        // Assert
+        exercise.GetProperty("effort").GetString().Should().Be(effort);
+    }
+
+    [Fact]
+    public async Task WorkoutWithSeveralExercises_ShouldKeepTheirOrder()
+    {
+        // Arrange & Act
+        var workout = WorkoutWithId(await WorkoutsSeenByAdmin(), SeedData.TrainedWorkoutId);
+
+        // Assert
+        workout.GetProperty("exercises").EnumerateArray()
+            .Select(exercise => exercise.GetProperty("name").GetString())
+            .Should().Equal("Sentadilla", "Plancha");
     }
 
     [Fact]

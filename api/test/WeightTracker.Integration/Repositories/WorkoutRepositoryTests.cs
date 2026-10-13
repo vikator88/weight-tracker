@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using WeightTracker.Application.Common;
 using WeightTracker.Application.Interfaces;
 using WeightTracker.Domain.Common;
-using WeightTracker.Domain.Exercises;
 using WeightTracker.Domain.Workouts;
 using WeightTracker.Infra.Seed;
 using WeightTracker.Integration.Bootstrap;
@@ -20,11 +19,12 @@ public class WorkoutRepositoryTests : IntegrationTest
     public WorkoutRepositoryTests(ApiFactory factory) : base(factory)
     { }
 
-    private static Exercise PressBanca()
-        => Exercise.Rehydrate(Id.From(SeedData.PressBancaId), ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
+    private static readonly Id PressBanca = Id.From(SeedData.PressBancaId);
 
-    private static Exercise Sentadilla()
-        => Exercise.Rehydrate(Id.From(SeedData.SentadillaId), ExerciseName.From("Sentadilla"), null, BodyParts.LEGS);
+    private static readonly Id Sentadilla = Id.From(SeedData.SentadillaId);
+
+    private static WorkoutExercise EntryFor(Workout workout, Id exerciseId)
+        => workout.Exercises.Single(entry => entry.ExerciseId == exerciseId);
 
     private Task<Workout?> Read(Id workoutId)
         => Factory.WithScope(services =>
@@ -60,7 +60,7 @@ public class WorkoutRepositoryTests : IntegrationTest
         // Arrange
         var workout = Workout.Create(
             Id.From(SeedData.UserId), Id.From(SeedData.TrainerId), new DateTime(2026, 11, 2));
-        workout.AddExercise(PressBanca(),
+        workout.AddExercise(PressBanca, Effort.HIGH,
         [
             new SetPrescription(4, new SetTarget.Reps(10)),
             new SetPrescription(1, new SetTarget.MaxReps()),
@@ -77,7 +77,7 @@ public class WorkoutRepositoryTests : IntegrationTest
         stored.TrainerId.Should().Be(Id.From(SeedData.TrainerId));
         stored.WorkoutDate.Should().Be(new DateTime(2026, 11, 2));
         stored.IsNew.Should().BeFalse();
-        stored.Exercises[PressBanca()].Should().ContainInOrder(
+        EntryFor(stored, PressBanca).Sets.Should().Equal(
             new SetPrescription(4, new SetTarget.Reps(10)),
             new SetPrescription(1, new SetTarget.MaxReps()));
     }
@@ -87,7 +87,7 @@ public class WorkoutRepositoryTests : IntegrationTest
     {
         // Arrange
         var workout = Workout.Create(Id.From(SeedData.UserId), null, new DateTime(2026, 11, 3));
-        workout.AddExercise(Sentadilla(), [new SetPrescription(5, new SetTarget.Duration(30))]);
+        workout.AddExercise(Sentadilla, Effort.MID, [new SetPrescription(5, new SetTarget.Duration(30))]);
 
         await Write(repository => repository.Save(workout, CancellationToken.None));
 
@@ -96,7 +96,7 @@ public class WorkoutRepositoryTests : IntegrationTest
 
         // Assert
         stored!.TrainerId.Should().BeNull();
-        stored.Exercises[Sentadilla()].Single().target.Should().Be(new SetTarget.Duration(30));
+        EntryFor(stored, Sentadilla).Sets.Single().target.Should().Be(new SetTarget.Duration(30));
     }
 
     [Fact]
@@ -104,8 +104,8 @@ public class WorkoutRepositoryTests : IntegrationTest
     {
         // Arrange
         var stored = await Read(Id.From(SeedData.OwnedWorkoutId));
-        stored!.RemoveExercise(PressBanca());
-        stored.AddExercise(Sentadilla(), [new SetPrescription(3, new SetTarget.Reps(12))]);
+        stored!.RemoveExercise(PressBanca);
+        stored.AddExercise(Sentadilla, Effort.LOW, [new SetPrescription(3, new SetTarget.Reps(12))]);
 
         await Write(repository => repository.Save(stored, CancellationToken.None));
 
@@ -113,9 +113,65 @@ public class WorkoutRepositoryTests : IntegrationTest
         var reloaded = await Read(Id.From(SeedData.OwnedWorkoutId));
 
         // Assert
-        reloaded!.Exercises.Should().HaveCount(1);
-        reloaded.Exercises.Should().NotContainKey(PressBanca());
-        reloaded.Exercises[Sentadilla()].Single().Should().Be(new SetPrescription(3, new SetTarget.Reps(12)));
+        var entry = reloaded!.Exercises.Should().ContainSingle().Subject;
+        entry.ExerciseId.Should().Be(Sentadilla);
+        entry.Sets.Single().Should().Be(new SetPrescription(3, new SetTarget.Reps(12)));
+    }
+
+    [Fact]
+    public async Task Save_ShouldPersistTheEffortOfEachExercise()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.From(SeedData.UserId), null, new DateTime(2026, 11, 4));
+        workout.AddExercise(PressBanca, Effort.MIDLOW, [new SetPrescription(4, new SetTarget.Reps(10))]);
+        workout.AddExercise(Sentadilla, Effort.HIGH, [new SetPrescription(5, new SetTarget.Reps(5))]);
+
+        await Write(repository => repository.Save(workout, CancellationToken.None));
+
+        // Act
+        var stored = await Read(workout.Id);
+
+        // Assert
+        stored!.Exercises.Select(entry => (entry.ExerciseId, entry.Effort)).Should().Equal(
+            (PressBanca, Effort.MIDLOW),
+            (Sentadilla, Effort.HIGH));
+    }
+
+    [Fact]
+    public async Task Save_ShouldKeepTheRowIdOfASurvivingExercise()
+    {
+        // Arrange
+        var stored = await Read(Id.From(SeedData.OwnedWorkoutId));
+        stored!.AddExercise(Sentadilla, Effort.MID, [new SetPrescription(2, new SetTarget.Reps(20))]);
+
+        await Write(repository => repository.Save(stored, CancellationToken.None));
+
+        // Act
+        var reloaded = await Read(Id.From(SeedData.OwnedWorkoutId));
+
+        // Assert
+        EntryFor(reloaded!, PressBanca).Id.Should().Be(Id.From(SeedData.OwnedPressBancaEntryId));
+        EntryFor(reloaded!, Sentadilla).Id.Should().Be(EntryFor(stored, Sentadilla).Id);
+    }
+
+    [Fact]
+    public async Task Save_ShouldAllowRemovingAndReaddingTheSameExerciseInOneSave()
+    {
+        // Arrange
+        var stored = await Read(Id.From(SeedData.OwnedWorkoutId));
+        stored!.RemoveExercise(PressBanca);
+        stored.AddExercise(PressBanca, Effort.LOW, [new SetPrescription(2, new SetTarget.Reps(15))]);
+
+        await Write(repository => repository.Save(stored, CancellationToken.None));
+
+        // Act
+        var reloaded = await Read(Id.From(SeedData.OwnedWorkoutId));
+
+        // Assert
+        var entry = reloaded!.Exercises.Should().ContainSingle().Subject;
+        entry.Id.Should().NotBe(Id.From(SeedData.OwnedPressBancaEntryId));
+        entry.Effort.Should().Be(Effort.LOW);
+        entry.Sets.Should().Equal(new SetPrescription(2, new SetTarget.Reps(15)));
     }
 
     [Fact]
@@ -123,7 +179,7 @@ public class WorkoutRepositoryTests : IntegrationTest
     {
         // Arrange
         var stored = await Read(Id.From(SeedData.OwnedWorkoutId));
-        stored!.AddExercise(Sentadilla(), [new SetPrescription(2, new SetTarget.Reps(20))]);
+        stored!.AddExercise(Sentadilla, Effort.MID, [new SetPrescription(2, new SetTarget.Reps(20))]);
 
         await Write(repository => repository.Save(stored, CancellationToken.None));
 

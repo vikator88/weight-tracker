@@ -21,14 +21,27 @@ public static class DatabaseMigrator
     }
 
     /// <summary>
-    /// Rolls every migration back. Used by the migration round-trip verification.
+    /// Applies migrations up to and including <paramref name="targetVersion"/>. Used to verify
+    /// how a migration treats rows that already exist.
     /// </summary>
-    public static void MigrateDown(string connectionString)
+    public static void MigrateUp(string connectionString, long targetVersion)
     {
         using var serviceProvider = BuildServiceProvider(connectionString);
         using var scope = serviceProvider.CreateScope();
 
-        scope.ServiceProvider.GetRequiredService<IMigrationRunner>().MigrateDown(0);
+        scope.ServiceProvider.GetRequiredService<IMigrationRunner>().MigrateUp(targetVersion);
+    }
+
+    /// <summary>
+    /// Rolls migrations back down to <paramref name="targetVersion"/>; every migration by default.
+    /// Used by the migration round-trip verification.
+    /// </summary>
+    public static void MigrateDown(string connectionString, long targetVersion = 0)
+    {
+        using var serviceProvider = BuildServiceProvider(connectionString);
+        using var scope = serviceProvider.CreateScope();
+
+        scope.ServiceProvider.GetRequiredService<IMigrationRunner>().MigrateDown(targetVersion);
     }
 
     private static ServiceProvider BuildServiceProvider(string connectionString)

@@ -35,9 +35,7 @@ public class WorkoutRepository : IWorkoutRepository
         if (entity is null)
             return null;
 
-        var exercises = await LoadReferencedExercises([entity], cancellationToken);
-
-        return WorkoutMapper.MapToDomain(entity, exercises);
+        return WorkoutMapper.MapToDomain(entity);
     }
 
     public async Task Save(Workout workout, CancellationToken cancellationToken)
@@ -75,18 +73,20 @@ public class WorkoutRepository : IWorkoutRepository
     /// Brings the persisted children of the aggregate in line with the incoming state.
     /// </summary>
     /// <remarks>
-    /// The children are reconciled rather than replaced wholesale. A workout exercise that
-    /// survives the update keeps its row, which matters because <c>(workout_id, exercise_id)</c>
-    /// is unique: deleting and reinserting the same pair in one transaction would collide.
+    /// The children are reconciled by the identity of the <c>WorkoutExercise</c> entity rather
+    /// than replaced wholesale, so an entry that survives the update keeps its row. An entry
+    /// removed and added again for the same exercise is a new entity: its old row is deleted
+    /// and a new one inserted. <c>(workout_id, exercise_id)</c> is a unique index in the EF
+    /// model, so EF orders that delete before the insert within the same commit.
     /// Removals are expressed by detaching from the navigation so EF cascades them as
     /// orphans, instead of mixing explicit deletes with collection reassignment.
     /// </remarks>
     private static void Reconcile(WorkoutEntity tracked, WorkoutEntity incoming)
     {
-        var incomingByExercise = incoming.WorkoutExercises.ToDictionary(item => item.ExerciseId);
+        var incomingById = incoming.WorkoutExercises.ToDictionary(item => item.Id);
 
         var dropped = tracked.WorkoutExercises
-            .Where(item => incomingByExercise.ContainsKey(item.ExerciseId) == false)
+            .Where(item => incomingById.ContainsKey(item.Id) == false)
             .ToList();
 
         foreach (var item in dropped)
@@ -95,7 +95,7 @@ public class WorkoutRepository : IWorkoutRepository
         foreach (var incomingItem in incoming.WorkoutExercises)
         {
             var existing = tracked.WorkoutExercises
-                .FirstOrDefault(item => item.ExerciseId == incomingItem.ExerciseId);
+                .FirstOrDefault(item => item.Id == incomingItem.Id);
 
             if (existing is null)
             {
@@ -104,6 +104,7 @@ public class WorkoutRepository : IWorkoutRepository
             }
 
             existing.Position = incomingItem.Position;
+            existing.Effort = incomingItem.Effort;
 
             // Sets carry no identity outside the aggregate, so they are always replaced
             existing.Sets.Clear();
@@ -124,41 +125,11 @@ public class WorkoutRepository : IWorkoutRepository
             .OrderBy(workout => workout.WorkoutDate)
             .ToListAsync(cancellationToken);
 
-        var exercises = await LoadReferencedExercises(entities, cancellationToken);
-
-        return entities.Select(entity => WorkoutMapper.MapToDomain(entity, exercises)).ToList();
+        return entities.Select(WorkoutMapper.MapToDomain).ToList();
     }
 
     private static IQueryable<WorkoutEntity> WithAggregateTables(IQueryable<WorkoutEntity> workouts)
         => workouts
             .Include(workout => workout.WorkoutExercises)
             .ThenInclude(workoutExercise => workoutExercise.Sets);
-
-    /// <summary>
-    /// Loads the exercises referenced by the given workouts.
-    /// </summary>
-    /// <remarks>
-    /// Exercise is its own aggregate root, so the Workout tables reference it by identifier
-    /// and never navigate into it. The rows are fetched in a single extra query instead.
-    /// </remarks>
-    private async Task<IReadOnlyDictionary<Guid, ExerciseEntity>> LoadReferencedExercises(
-        IReadOnlyCollection<WorkoutEntity> workouts,
-        CancellationToken cancellationToken)
-    {
-        var exerciseIds = workouts
-            .SelectMany(workout => workout.WorkoutExercises)
-            .Select(workoutExercise => workoutExercise.ExerciseId)
-            .Distinct()
-            .ToList();
-
-        if (exerciseIds.Count == 0)
-            return new Dictionary<Guid, ExerciseEntity>();
-
-        var exercises = await _context.Exercises
-            .AsNoTracking()
-            .Where(exercise => exerciseIds.Contains(exercise.Id))
-            .ToListAsync(cancellationToken);
-
-        return exercises.ToDictionary(exercise => exercise.Id);
-    }
 }

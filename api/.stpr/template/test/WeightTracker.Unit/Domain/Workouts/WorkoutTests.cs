@@ -1,7 +1,6 @@
 using FluentAssertions;
 using WeightTracker.Domain.Common;
 using WeightTracker.Domain.Exceptions;
-using WeightTracker.Domain.Exercises;
 using WeightTracker.Domain.Workouts;
 using Xunit;
 
@@ -10,6 +9,8 @@ namespace WeightTracker.Unit.Domain.Workouts;
 public class WorkoutTests
 {
     private static readonly DateTime WorkoutDate = new(2026, 10, 1, 18, 30, 0, DateTimeKind.Utc);
+
+    private static readonly SetPrescription FourByTen = new(4, new SetTarget.Reps(10));
 
     [Fact]
     public void Create_ShouldRejectATrainerWhoIsTheOwner()
@@ -77,53 +78,70 @@ public class WorkoutTests
     }
 
     [Fact]
-    public void AddExercise_ShouldRegisterTheExerciseWithItsSets()
-    {
-        // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
-        var exercise = Exercise.Create(ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
-
-        // Act
-        workout.AddExercise(exercise, [new SetPrescription(4, new SetTarget.Reps(10))]);
-
-        // Assert
-        workout.Exercises.Should().ContainKey(exercise);
-        workout.Exercises[exercise].Should().HaveCount(1);
-    }
-
-    [Fact]
-    public void AddExercise_ShouldMergeIntoAnEquivalentExerciseInstance()
+    public void AddExercise_ShouldRegisterTheExerciseWithItsEffortAndSets()
     {
         // Arrange
         var workout = Workout.Create(Id.New(), null, WorkoutDate);
         var exerciseId = Id.New();
-
-        var stored = Exercise.Rehydrate(exerciseId, ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
-        var equivalent = Exercise.Rehydrate(exerciseId, ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
-
-        workout.AddExercise(stored, [new SetPrescription(4, new SetTarget.Reps(10))]);
+        var twoByEight = new SetPrescription(2, new SetTarget.Reps(8));
 
         // Act
-        workout.AddExercise(equivalent, [new SetPrescription(3, new SetTarget.MaxReps())]);
+        workout.AddExercise(exerciseId, Effort.HIGH, [FourByTen, twoByEight]);
 
         // Assert
-        workout.Exercises.Should().HaveCount(1);
-        workout.Exercises[stored].Should().HaveCount(2);
+        var entry = workout.Exercises.Should().ContainSingle().Subject;
+        entry.ExerciseId.Should().Be(exerciseId);
+        entry.Effort.Should().Be(Effort.HIGH);
+        entry.Sets.Should().ContainInOrder(FourByTen, twoByEight);
+        entry.IsNew.Should().BeTrue();
     }
 
     [Fact]
-    public void AddExercise_ShouldKeepDistinctExercisesApart()
+    public void AddExercise_ShouldAppendInInsertionOrder()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var first = Id.New();
+        var second = Id.New();
+        workout.AddExercise(first, Effort.MID, [FourByTen]);
+
+        // Act
+        workout.AddExercise(second, Effort.LOW, [new SetPrescription(5, new SetTarget.Reps(5))]);
+
+        // Assert
+        workout.Exercises.Select(entry => entry.ExerciseId).Should().Equal(first, second);
+    }
+
+    [Fact]
+    public void AddExercise_ShouldRejectAnExerciseAlreadyInTheWorkout()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var exerciseId = Id.New();
+        workout.AddExercise(exerciseId, Effort.MID, [FourByTen]);
+
+        // Act
+        var act = () => workout.AddExercise(exerciseId, Effort.HIGH, [new SetPrescription(3, new SetTarget.MaxReps())]);
+
+        // Assert
+        act.Should().Throw<ExerciseAlreadyInWorkoutException>();
+        var entry = workout.Exercises.Should().ContainSingle().Subject;
+        entry.Effort.Should().Be(Effort.MID);
+        entry.Sets.Should().Equal(FourByTen);
+    }
+
+    [Fact]
+    public void AddExercise_ShouldRejectAnUndefinedEffort()
     {
         // Arrange
         var workout = Workout.Create(Id.New(), null, WorkoutDate);
 
-        workout.AddExercise(Exercise.Create(ExerciseName.From("Press Banca"), null, BodyParts.CHEST), [new SetPrescription(4, new SetTarget.Reps(10))]);
-
         // Act
-        workout.AddExercise(Exercise.Create(ExerciseName.From("Sentadilla"), null, BodyParts.LEGS), [new SetPrescription(5, new SetTarget.Reps(5))]);
+        var act = () => workout.AddExercise(Id.New(), (Effort)0, [FourByTen]);
 
         // Assert
-        workout.Exercises.Should().HaveCount(2);
+        act.Should().Throw<InvalidEffortException>();
+        workout.Exercises.Should().BeEmpty();
     }
 
     [Fact]
@@ -131,11 +149,11 @@ public class WorkoutTests
     {
         // Arrange
         var workout = Workout.Create(Id.New(), null, WorkoutDate);
-        var exercise = Exercise.Create(ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
-        workout.AddExercise(exercise, [new SetPrescription(4, new SetTarget.Reps(10))]);
+        var exerciseId = Id.New();
+        workout.AddExercise(exerciseId, Effort.MID, [FourByTen]);
 
         // Act
-        workout.RemoveExercise(exercise);
+        workout.RemoveExercise(exerciseId);
 
         // Assert
         workout.Exercises.Should().BeEmpty();
@@ -148,60 +166,57 @@ public class WorkoutTests
         var workout = Workout.Create(Id.New(), null, WorkoutDate);
 
         // Act
-        var act = () => workout.RemoveExercise(Exercise.Create(ExerciseName.From("Peso Muerto"), null, BodyParts.BACK));
+        var act = () => workout.RemoveExercise(Id.New());
 
         // Assert
         act.Should().Throw<ExerciseNotInWorkoutException>();
     }
 
     [Fact]
-    public void RemoveExercise_ShouldAcceptAnEquivalentExerciseInstance()
-    {
-        // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
-        var exerciseId = Id.New();
-        workout.AddExercise(
-            Exercise.Rehydrate(exerciseId, ExerciseName.From("Press Banca"), null, BodyParts.CHEST),
-            [new SetPrescription(4, new SetTarget.Reps(10))]);
-
-        // Act
-        workout.RemoveExercise(Exercise.Rehydrate(exerciseId, ExerciseName.From("Press Banca"), null, BodyParts.CHEST));
-
-        // Assert
-        workout.Exercises.Should().BeEmpty();
-    }
-
-    [Fact]
     public void Rehydrate_ShouldNotMarkTheWorkoutAsNew()
     {
         // Arrange & Act
-        var workout = Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, new());
+        var workout = Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, []);
 
         // Assert
         workout.IsNew.Should().BeFalse();
     }
 
     [Fact]
-    public void Rehydrate_ShouldRestoreOwnershipAndPrescriptions()
+    public void Rehydrate_ShouldRestoreOwnershipAndOrderedExercises()
     {
         // Arrange
         var id = Id.New();
         var userId = Id.New();
         var trainerId = Id.New();
-        var exercise = Exercise.Rehydrate(Id.New(), ExerciseName.From("Plancha"), null, BodyParts.BACK);
+        var sentadilla = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MIDHIGH, [new SetPrescription(5, new SetTarget.Reps(5))]);
+        var plancha = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.LOW, [new SetPrescription(3, new SetTarget.Duration(40))]);
 
         // Act
-        var workout = Workout.Rehydrate(id, userId, trainerId, WorkoutDate, new()
-        {
-            [exercise] = [new SetPrescription(3, new SetTarget.Duration(40))],
-        });
+        var workout = Workout.Rehydrate(id, userId, trainerId, WorkoutDate, [sentadilla, plancha]);
 
         // Assert
         workout.Id.Should().Be(id);
         workout.UserId.Should().Be(userId);
         workout.TrainerId.Should().Be(trainerId);
         workout.WorkoutDate.Should().Be(WorkoutDate.Date);
-        workout.Exercises[exercise].Single().target.Should().Be(new SetTarget.Duration(40));
+        workout.Exercises.Should().Equal(sentadilla, plancha);
+        workout.Exercises[1].Sets.Single().target.Should().Be(new SetTarget.Duration(40));
+    }
+
+    [Fact]
+    public void Rehydrate_ShouldRejectTheSameExerciseTwice()
+    {
+        // Arrange
+        var exerciseId = Id.New();
+        var first = WorkoutExercise.Rehydrate(Id.New(), exerciseId, Effort.MID, [FourByTen]);
+        var second = WorkoutExercise.Rehydrate(Id.New(), exerciseId, Effort.HIGH, [FourByTen]);
+
+        // Act
+        var act = () => Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, [first, second]);
+
+        // Assert
+        act.Should().Throw<ExerciseAlreadyInWorkoutException>();
     }
 
     [Fact]
@@ -209,16 +224,15 @@ public class WorkoutTests
     {
         // Arrange
         var workout = Workout.Create(Id.New(), null, WorkoutDate);
-        var exercise = Exercise.Create(ExerciseName.From("Press Banca"), null, BodyParts.CHEST);
-        workout.AddExercise(exercise, [new SetPrescription(4, new SetTarget.Reps(10))]);
+        workout.AddExercise(Id.New(), Effort.MID, [FourByTen]);
 
         var snapshot = workout.Exercises;
 
         // Act
-        workout.AddExercise(exercise, [new SetPrescription(2, new SetTarget.Reps(8))]);
+        workout.AddExercise(Id.New(), Effort.LOW, [new SetPrescription(2, new SetTarget.Reps(8))]);
 
         // Assert
-        snapshot[exercise].Should().HaveCount(1);
-        workout.Exercises[exercise].Should().HaveCount(2);
+        snapshot.Should().HaveCount(1);
+        workout.Exercises.Should().HaveCount(2);
     }
 }

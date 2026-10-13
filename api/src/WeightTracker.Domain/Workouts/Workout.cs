@@ -1,6 +1,5 @@
 using WeightTracker.Domain.Common;
 using WeightTracker.Domain.Exceptions;
-using WeightTracker.Domain.Exercises;
 
 namespace WeightTracker.Domain.Workouts;
 
@@ -9,7 +8,7 @@ public sealed class Workout : AggregateRoot
 
     private DateTime _workoutDate;
 
-    private Dictionary<Exercise, List<SetPrescription>> _exercises;
+    private List<WorkoutExercise> _exercises;
 
     /// <summary>
     /// Owner of the workout. Immutable once the workout exists.
@@ -24,11 +23,10 @@ public sealed class Workout : AggregateRoot
     public DateTime WorkoutDate => _workoutDate;
 
     /// <summary>
-    /// Snapshot of the prescriptions of this workout. Both the dictionary and the
-    /// set lists are copied so callers cannot mutate the aggregate through it.
+    /// Snapshot of the exercises of this workout, in the order they must be performed.
+    /// The list is copied so callers cannot mutate the aggregate through it.
     /// </summary>
-    public IReadOnlyDictionary<Exercise, IReadOnlyList<SetPrescription>> Exercises
-        => _exercises.ToDictionary(entry => entry.Key, entry => (IReadOnlyList<SetPrescription>)entry.Value.ToList());
+    public IReadOnlyList<WorkoutExercise> Exercises => _exercises.ToList();
 
     private Workout(Id userId, Id? trainerId, DateTime workoutDate)
     {
@@ -36,7 +34,7 @@ public sealed class Workout : AggregateRoot
         UserId = userId;
         TrainerId = trainerId;
         _workoutDate = workoutDate.Date;
-        _exercises = new Dictionary<Exercise, List<SetPrescription>>();
+        _exercises = new List<WorkoutExercise>();
     }
 
     /// <summary>
@@ -54,40 +52,54 @@ public sealed class Workout : AggregateRoot
         };
     }
 
+    /// <exception cref="ExerciseAlreadyInWorkoutException">When two entries share the same exercise.</exception>
     public static Workout Rehydrate(
         Id id,
         Id userId,
         Id? trainerId,
         DateTime workoutdate,
-        Dictionary<Exercise, List<SetPrescription>> exercises
+        IEnumerable<WorkoutExercise> exercises
     )
     {
+        var entries = exercises.ToList();
+
+        var duplicate = entries
+            .GroupBy(entry => entry.ExerciseId)
+            .FirstOrDefault(group => group.Count() > 1);
+
+        if (duplicate is not null)
+            throw new ExerciseAlreadyInWorkoutException(duplicate.Key, id);
+
         return new Workout(userId, trainerId, workoutdate)
         {
             Id = id,
             IsNew = false,
-            _exercises = exercises,
+            _exercises = entries,
         };
     }
 
     /// <summary>
-    /// Add a exercise to the workout with a given config of sets
+    /// Appends an exercise to the end of the workout with a given effort and ordered sets.
     /// </summary>
-    /// <param name="exercise">Exercise to include into the workout</param>
-    /// <param name="prescription">Config of number of sets x reps (time, max)</param>
-    public void AddExercise(Exercise exercise, IEnumerable<SetPrescription> prescription)
+    /// <param name="exerciseId">Exercise to include into the workout</param>
+    /// <param name="effort">How hard the exercise must be performed</param>
+    /// <param name="sets">Ordered config of number of sets x reps (time, max)</param>
+    /// <exception cref="ExerciseAlreadyInWorkoutException">When the exercise is already in the workout.</exception>
+    /// <exception cref="InvalidEffortException">When the effort is not a defined value.</exception>
+    public void AddExercise(Id exerciseId, Effort effort, IEnumerable<SetPrescription> sets)
     {
-        if (_exercises.ContainsKey(exercise))
-            _exercises[exercise].AddRange(prescription);
-        else
-            _exercises.Add(exercise, prescription.ToList());
+        if (_exercises.Any(entry => entry.ExerciseId == exerciseId))
+            throw new ExerciseAlreadyInWorkoutException(exerciseId, this.Id);
+
+        _exercises.Add(WorkoutExercise.Create(exerciseId, effort, sets));
     }
 
-    public void RemoveExercise(Exercise exercise)
+    /// <exception cref="ExerciseNotInWorkoutException">When the exercise is not in the workout.</exception>
+    public void RemoveExercise(Id exerciseId)
     {
-        if (_exercises.ContainsKey(exercise) == false)
-            throw new ExerciseNotInWorkoutException(exercise.Name.Value, this.Id);
+        var entry = _exercises.FirstOrDefault(item => item.ExerciseId == exerciseId)
+            ?? throw new ExerciseNotInWorkoutException(exerciseId, this.Id);
 
-        _exercises.Remove(exercise);
+        _exercises.Remove(entry);
     }
 }
