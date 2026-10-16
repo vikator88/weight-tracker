@@ -251,4 +251,57 @@ public class WorkoutMapperTests
         // Assert
         restored.IsNew.Should().BeFalse();
     }
+
+    private static Workout AWorkoutWithASuperSeries()
+    {
+        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        workout.AddExercise(SentadillaId, Effort.MID, [new SetPrescription(3, new SetTarget.Reps(8))]);
+        workout.AddExercise(PlanchaId, Effort.LOW, [new SetPrescription(3, new SetTarget.Duration(40))]);
+        workout.AddExercise(Id.New(), Effort.HIGH, [new SetPrescription(4, new SetTarget.MaxReps())]);
+        workout.CreateSuperSeries([SentadillaId, PlanchaId]);
+
+        return WorkoutMapper.MapToDomain(WorkoutMapper.MapToEntity(workout));
+    }
+
+    [Fact]
+    public void RoundTrip_ShouldPreserveTheSuperSeriesOfEachExercise()
+    {
+        // Arrange
+        var original = AWorkoutWithASuperSeries();
+
+        // Act
+        var restored = RoundTrip(original);
+
+        // Assert
+        restored.Exercises.Select(entry => entry.SuperSeriesId)
+            .Should().Equal(original.Exercises.Select(entry => entry.SuperSeriesId));
+        restored.Exercises.Count(entry => entry.SuperSeriesId is not null).Should().Be(2);
+    }
+
+    [Fact]
+    public void RoundTrip_ShouldPreserveExercisesWithoutASuperSeries()
+    {
+        // Arrange
+        var original = AFullyLoadedWorkout();
+
+        // Act
+        var restored = RoundTrip(original);
+
+        // Assert
+        restored.Exercises.Should().OnlyContain(entry => entry.SuperSeriesId == null);
+    }
+
+    [Fact]
+    public void MapToDomain_ShouldRejectAStoredSuperSeriesWithASingleMember()
+    {
+        // Arrange
+        var entity = WorkoutMapper.MapToEntity(AFullyLoadedWorkout());
+        entity.WorkoutExercises.First().SuperSeriesId = 1;
+
+        // Act
+        var act = () => WorkoutMapper.MapToDomain(entity);
+
+        // Assert
+        act.Should().Throw<PersistenceMappingException>();
+    }
 }

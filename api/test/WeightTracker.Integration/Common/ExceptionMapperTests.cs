@@ -6,6 +6,7 @@ using WeightTracker.Api.Common;
 using WeightTracker.Application.Exceptions;
 using WeightTracker.Domain.Common;
 using WeightTracker.Domain.Exceptions;
+using WeightTracker.Domain.Workouts;
 using Xunit;
 
 namespace WeightTracker.Integration.Common;
@@ -126,5 +127,83 @@ public class ExceptionMapperTests
 
         // Assert
         status.Should().Be(StatusCodes.Status404NotFound);
+    }
+
+    [Fact]
+    public void Map_ShouldReturnBadRequestForAnInvalidSuperSeriesId()
+    {
+        // Arrange
+        var exception = new InvalidSuperSeriesIdException(0);
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public void Map_ShouldReturnBadRequestForASuperSeriesWithTooFewExercises()
+    {
+        // Arrange
+        var exception = new SuperSeriesRequiresTwoExercisesException(1);
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public void Map_ShouldReturnBadRequestForADuplicateExerciseInASuperSeries()
+    {
+        // Arrange
+        var exception = new DuplicateExerciseInSuperSeriesException(Id.New());
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public void Map_ShouldReturnBadRequestForASuperSeriesSetCountMismatch()
+    {
+        // Arrange
+        var exception = new SuperSeriesSetCountMismatchException(Id.New());
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public void Map_ShouldReturnNotFoundForAnUnknownSuperSeries()
+    {
+        // Arrange
+        var exception = new SuperSeriesNotFoundException(SuperSeriesId.From(1), Id.New());
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status404NotFound);
+    }
+
+    [Fact]
+    public void Map_ShouldReturnConflictForAnExerciseAlreadyInASuperSeries()
+    {
+        // Arrange
+        var exception = new ExerciseAlreadyInSuperSeriesException(Id.New(), Id.New());
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status409Conflict);
     }
 }

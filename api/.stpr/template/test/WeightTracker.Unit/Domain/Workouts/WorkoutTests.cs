@@ -235,4 +235,274 @@ public class WorkoutTests
         snapshot.Should().HaveCount(1);
         workout.Exercises.Should().HaveCount(2);
     }
+
+    private static readonly SetPrescription ThreeByTen = new(3, new SetTarget.Reps(10));
+
+    private static Workout WorkoutWithExercises(out Id[] exerciseIds, int count = 3)
+    {
+        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        exerciseIds = Enumerable.Range(0, count).Select(_ => Id.New()).ToArray();
+
+        foreach (var exerciseId in exerciseIds)
+            workout.AddExercise(exerciseId, Effort.MID, [FourByTen]);
+
+        return workout;
+    }
+
+    private static SuperSeriesId? SuperSeriesOf(Workout workout, Id exerciseId)
+        => workout.Exercises.Single(entry => entry.ExerciseId == exerciseId).SuperSeriesId;
+
+    [Fact]
+    public void CreateSuperSeries_ShouldGroupTheGivenExercisesAndLeaveTheOthersAlone()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids);
+
+        // Act
+        var superSeriesId = workout.CreateSuperSeries([ids[0], ids[1]]);
+
+        // Assert
+        SuperSeriesOf(workout, ids[0]).Should().Be(superSeriesId);
+        SuperSeriesOf(workout, ids[1]).Should().Be(superSeriesId);
+        SuperSeriesOf(workout, ids[2]).Should().BeNull();
+    }
+
+    [Fact]
+    public void CreateSuperSeries_ShouldAssignADifferentIdToEachSuperSeriesOfTheWorkout()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids, 4);
+        var first = workout.CreateSuperSeries([ids[0], ids[1]]);
+
+        // Act
+        var second = workout.CreateSuperSeries([ids[2], ids[3]]);
+
+        // Assert
+        second.Should().NotBe(first);
+    }
+
+    [Fact]
+    public void CreateSuperSeries_ShouldAllowTheSameIdInDifferentWorkouts()
+    {
+        // Arrange
+        var firstWorkout = WorkoutWithExercises(out var firstIds, 2);
+        var secondWorkout = WorkoutWithExercises(out var secondIds, 2);
+
+        // Act
+        var firstSuperSeries = firstWorkout.CreateSuperSeries(firstIds);
+        var secondSuperSeries = secondWorkout.CreateSuperSeries(secondIds);
+
+        // Assert
+        secondSuperSeries.Should().Be(firstSuperSeries);
+    }
+
+    [Fact]
+    public void CreateSuperSeries_ShouldAcceptDifferentPrescriptionsWithTheSameTotalOfSets()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var first = Id.New();
+        var second = Id.New();
+        workout.AddExercise(first, Effort.MID, [ThreeByTen]);
+        workout.AddExercise(second, Effort.MID, [new SetPrescription(2, new SetTarget.Reps(8)), new SetPrescription(1, new SetTarget.MaxReps())]);
+
+        // Act
+        var superSeriesId = workout.CreateSuperSeries([first, second]);
+
+        // Assert
+        SuperSeriesOf(workout, first).Should().Be(superSeriesId);
+        SuperSeriesOf(workout, second).Should().Be(superSeriesId);
+    }
+
+    [Fact]
+    public void CreateSuperSeries_ShouldRejectExercisesWithDifferentNumberOfSetsAndGroupNothing()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var first = Id.New();
+        var second = Id.New();
+        workout.AddExercise(first, Effort.MID, [ThreeByTen]);
+        workout.AddExercise(second, Effort.MID, [FourByTen]);
+
+        // Act
+        var act = () => workout.CreateSuperSeries([first, second]);
+
+        // Assert
+        act.Should().Throw<SuperSeriesSetCountMismatchException>();
+        SuperSeriesOf(workout, first).Should().BeNull();
+        SuperSeriesOf(workout, second).Should().BeNull();
+    }
+
+    [Fact]
+    public void CreateSuperSeries_ShouldRejectASingleExercise()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids);
+
+        // Act
+        var act = () => workout.CreateSuperSeries([ids[0]]);
+
+        // Assert
+        act.Should().Throw<SuperSeriesRequiresTwoExercisesException>();
+    }
+
+    [Fact]
+    public void CreateSuperSeries_ShouldRejectTheSameExerciseTwice()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids);
+
+        // Act
+        var act = () => workout.CreateSuperSeries([ids[0], ids[0]]);
+
+        // Assert
+        act.Should().Throw<DuplicateExerciseInSuperSeriesException>();
+    }
+
+    [Fact]
+    public void CreateSuperSeries_ShouldRejectAnExerciseNotInTheWorkoutAndGroupNothing()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids);
+
+        // Act
+        var act = () => workout.CreateSuperSeries([ids[0], Id.New()]);
+
+        // Assert
+        act.Should().Throw<ExerciseNotInWorkoutException>();
+        SuperSeriesOf(workout, ids[0]).Should().BeNull();
+    }
+
+    [Fact]
+    public void CreateSuperSeries_ShouldRejectAnExerciseAlreadyInASuperSeries()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids);
+        var existing = workout.CreateSuperSeries([ids[0], ids[1]]);
+
+        // Act
+        var act = () => workout.CreateSuperSeries([ids[1], ids[2]]);
+
+        // Assert
+        act.Should().Throw<ExerciseAlreadyInSuperSeriesException>();
+        SuperSeriesOf(workout, ids[1]).Should().Be(existing);
+        SuperSeriesOf(workout, ids[2]).Should().BeNull();
+    }
+
+    [Fact]
+    public void BreakSuperSeries_ShouldUngroupTheExercisesAndKeepThemInTheWorkout()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids);
+        var superSeriesId = workout.CreateSuperSeries([ids[0], ids[1]]);
+
+        // Act
+        workout.BreakSuperSeries(superSeriesId);
+
+        // Assert
+        workout.Exercises.Select(entry => entry.ExerciseId).Should().Equal(ids);
+        workout.Exercises.Should().OnlyContain(entry => entry.SuperSeriesId == null);
+    }
+
+    [Fact]
+    public void BreakSuperSeries_ShouldLeaveOtherSuperSeriesUntouched()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids, 4);
+        var first = workout.CreateSuperSeries([ids[0], ids[1]]);
+        var second = workout.CreateSuperSeries([ids[2], ids[3]]);
+
+        // Act
+        workout.BreakSuperSeries(first);
+
+        // Assert
+        SuperSeriesOf(workout, ids[0]).Should().BeNull();
+        SuperSeriesOf(workout, ids[2]).Should().Be(second);
+        SuperSeriesOf(workout, ids[3]).Should().Be(second);
+    }
+
+    [Fact]
+    public void BreakSuperSeries_ShouldRejectAnUnknownSuperSeries()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out _);
+
+        // Act
+        var act = () => workout.BreakSuperSeries(SuperSeriesId.From(1));
+
+        // Assert
+        act.Should().Throw<SuperSeriesNotFoundException>();
+    }
+
+    [Fact]
+    public void RemoveExercise_ShouldUngroupTheRemainingExerciseOfAPair()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids, 2);
+        workout.CreateSuperSeries(ids);
+
+        // Act
+        workout.RemoveExercise(ids[0]);
+
+        // Assert
+        workout.Exercises.Should().ContainSingle().Which.SuperSeriesId.Should().BeNull();
+    }
+
+    [Fact]
+    public void RemoveExercise_ShouldKeepTheRestOfALargerSuperSeriesGrouped()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids);
+        var superSeriesId = workout.CreateSuperSeries(ids);
+
+        // Act
+        workout.RemoveExercise(ids[0]);
+
+        // Assert
+        SuperSeriesOf(workout, ids[1]).Should().Be(superSeriesId);
+        SuperSeriesOf(workout, ids[2]).Should().Be(superSeriesId);
+    }
+
+    [Fact]
+    public void Rehydrate_ShouldRestoreStoredSuperSeries()
+    {
+        // Arrange
+        var superSeriesId = SuperSeriesId.From(1);
+        var first = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [FourByTen], superSeriesId);
+        var second = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [FourByTen], superSeriesId);
+
+        // Act
+        var workout = Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, [first, second]);
+
+        // Assert
+        workout.Exercises.Should().OnlyContain(entry => entry.SuperSeriesId == superSeriesId);
+    }
+
+    [Fact]
+    public void Rehydrate_ShouldRejectASuperSeriesWithASingleMember()
+    {
+        // Arrange
+        var alone = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [FourByTen], SuperSeriesId.From(1));
+
+        // Act
+        var act = () => Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, [alone]);
+
+        // Assert
+        act.Should().Throw<SuperSeriesRequiresTwoExercisesException>();
+    }
+
+    [Fact]
+    public void Rehydrate_ShouldRejectASuperSeriesWithDifferentNumberOfSets()
+    {
+        // Arrange
+        var superSeriesId = SuperSeriesId.From(1);
+        var first = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [ThreeByTen], superSeriesId);
+        var second = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [FourByTen], superSeriesId);
+
+        // Act
+        var act = () => Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, [first, second]);
+
+        // Assert
+        act.Should().Throw<SuperSeriesSetCountMismatchException>();
+    }
 }

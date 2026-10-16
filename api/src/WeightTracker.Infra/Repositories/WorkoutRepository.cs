@@ -105,6 +105,7 @@ public class WorkoutRepository : IWorkoutRepository
 
             existing.Position = incomingItem.Position;
             existing.Effort = incomingItem.Effort;
+            existing.SuperSeriesId = incomingItem.SuperSeriesId;
 
             // Sets carry no identity outside the aggregate, so they are always replaced
             existing.Sets.Clear();

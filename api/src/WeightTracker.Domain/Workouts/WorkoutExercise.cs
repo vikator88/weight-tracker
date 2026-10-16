@@ -26,7 +26,18 @@ public sealed class WorkoutExercise : Entity
     /// </summary>
     public IReadOnlyList<SetPrescription> Sets => _sets.ToList();
 
-    private WorkoutExercise(Id id, Id exerciseId, Effort effort, IEnumerable<SetPrescription> sets, bool isNew)
+    /// <summary>
+    /// Total number of sets to perform: the sum of the counts of every prescription.
+    /// </summary>
+    public int TotalSets => _sets.Sum(set => set.count);
+
+    /// <summary>
+    /// Superseries this entry belongs to, null when it is performed on its own.
+    /// Only <see cref="Workout"/> changes it, because the grouping rules span several entries.
+    /// </summary>
+    public SuperSeriesId? SuperSeriesId { get; private set; }
+
+    private WorkoutExercise(Id id, Id exerciseId, Effort effort, IEnumerable<SetPrescription> sets, SuperSeriesId? superSeriesId, bool isNew)
     {
         if (Enum.IsDefined(effort) == false)
             throw new InvalidEffortException((int)effort);
@@ -36,6 +47,7 @@ public sealed class WorkoutExercise : Entity
         ExerciseId = exerciseId;
         Effort = effort;
         _sets = sets.ToList();
+        SuperSeriesId = superSeriesId;
     }
 
     /// <summary>
@@ -43,12 +55,21 @@ public sealed class WorkoutExercise : Entity
     /// </summary>
     /// <exception cref="InvalidEffortException">When the effort is not a defined value.</exception>
     public static WorkoutExercise Create(Id exerciseId, Effort effort, IEnumerable<SetPrescription> sets)
-        => new(Id.New(), exerciseId, effort, sets, isNew: true);
+        => new(Id.New(), exerciseId, effort, sets, superSeriesId: null, isNew: true);
 
     /// <summary>
     /// Restores an entry already stored in the system.
     /// </summary>
     /// <exception cref="InvalidEffortException">When the effort is not a defined value.</exception>
-    public static WorkoutExercise Rehydrate(Id id, Id exerciseId, Effort effort, IEnumerable<SetPrescription> sets)
-        => new(id, exerciseId, effort, sets, isNew: false);
+    public static WorkoutExercise Rehydrate(
+        Id id,
+        Id exerciseId,
+        Effort effort,
+        IEnumerable<SetPrescription> sets,
+        SuperSeriesId? superSeriesId = null)
+        => new(id, exerciseId, effort, sets, superSeriesId, isNew: false);
+
+    internal void JoinSuperSeries(SuperSeriesId superSeriesId) => SuperSeriesId = superSeriesId;
+
+    internal void LeaveSuperSeries() => SuperSeriesId = null;
 }
