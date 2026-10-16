@@ -125,4 +125,40 @@ public class WorkoutExerciseTests
         // Assert
         act.Should().Throw<InvalidEffortException>();
     }
+
+    [Fact]
+    public void TotalSets_ShouldSumTheCountOfEveryPrescription()
+    {
+        // Arrange
+        var entry = WorkoutExercise.Create(Id.New(), Effort.MID, [TwoByTen, new SetPrescription(1, new SetTarget.MaxReps())]);
+
+        // Act
+        var total = entry.TotalSets;
+
+        // Assert
+        total.Should().Be(3);
+    }
+
+    [Fact]
+    public void Create_ShouldStartWithoutASuperSeries()
+    {
+        // Arrange & Act
+        var entry = WorkoutExercise.Create(Id.New(), Effort.MID, [TwoByTen]);
+
+        // Assert
+        entry.SuperSeriesId.Should().BeNull();
+    }
+
+    [Fact]
+    public void Rehydrate_ShouldKeepTheSuperSeriesId()
+    {
+        // Arrange
+        var superSeriesId = SuperSeriesId.From(2);
+
+        // Act
+        var entry = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [TwoByTen], superSeriesId);
+
+        // Assert
+        entry.SuperSeriesId.Should().Be(superSeriesId);
+    }
 }

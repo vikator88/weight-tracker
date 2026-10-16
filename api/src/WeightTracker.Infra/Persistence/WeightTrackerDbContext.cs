@@ -91,6 +91,7 @@ public class WeightTrackerDbContext : DbContext
             entity.Property(workoutExercise => workoutExercise.ExerciseId).HasColumnName("exercise_id");
             entity.Property(workoutExercise => workoutExercise.Position).HasColumnName("position");
             entity.Property(workoutExercise => workoutExercise.Effort).HasColumnName("effort");
+            entity.Property(workoutExercise => workoutExercise.SuperSeriesId).HasColumnName("super_series_id");
 
             entity.HasIndex(workoutExercise => new { workoutExercise.WorkoutId, workoutExercise.ExerciseId }).IsUnique();
 

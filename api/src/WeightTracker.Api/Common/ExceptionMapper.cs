@@ -35,6 +35,10 @@ public class ExceptionMapper
             or InvalidPasswordException
             or InvalidPasswordHashException
             or TrainerCannotBeWorkoutOwnerException
+            or InvalidSuperSeriesIdException
+            or SuperSeriesRequiresTwoExercisesException
+            or DuplicateExerciseInSuperSeriesException
+            or SuperSeriesSetCountMismatchException
             or PasswordNotStrongEnoughException => Problem(
                 StatusCodes.Status400BadRequest,
                 exception.Message
@@ -50,13 +54,14 @@ public class ExceptionMapper
                 exception.Message
             ),
 
-            UserNotFoundException or ExerciseNotInWorkoutException or ExerciseNotFoundException => Problem(
+            UserNotFoundException or ExerciseNotInWorkoutException or ExerciseNotFoundException
+                or SuperSeriesNotFoundException => Problem(
                 StatusCodes.Status404NotFound,
                 exception.Message
             ),
 
             RefreshTokenAlreadyRevokedException or EmailAlreadyExistException or ExerciseInUseException
-                or ExerciseAlreadyInWorkoutException => Problem(
+                or ExerciseAlreadyInWorkoutException or ExerciseAlreadyInSuperSeriesException => Problem(
                 StatusCodes.Status409Conflict,
                 exception.Message
             ),

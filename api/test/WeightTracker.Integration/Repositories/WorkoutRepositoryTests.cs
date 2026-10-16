@@ -23,6 +23,8 @@ public class WorkoutRepositoryTests : IntegrationTest
 
     private static readonly Id Sentadilla = Id.From(SeedData.SentadillaId);
 
+    private static readonly Id Plancha = Id.From(SeedData.PlanchaId);
+
     private static WorkoutExercise EntryFor(Workout workout, Id exerciseId)
         => workout.Exercises.Single(entry => entry.ExerciseId == exerciseId);
 
@@ -172,6 +174,94 @@ public class WorkoutRepositoryTests : IntegrationTest
         entry.Id.Should().NotBe(Id.From(SeedData.OwnedPressBancaEntryId));
         entry.Effort.Should().Be(Effort.LOW);
         entry.Sets.Should().Equal(new SetPrescription(2, new SetTarget.Reps(15)));
+    }
+
+    [Fact]
+    public async Task Save_ShouldPersistTheSuperSeriesOfANewAggregate()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.From(SeedData.UserId), null, new DateTime(2026, 11, 5));
+        workout.AddExercise(PressBanca, Effort.MID, [new SetPrescription(4, new SetTarget.Reps(10))]);
+        workout.AddExercise(Sentadilla, Effort.MID, [new SetPrescription(4, new SetTarget.Reps(8))]);
+        workout.AddExercise(Plancha, Effort.LOW, [new SetPrescription(3, new SetTarget.Duration(40))]);
+        var superSeriesId = workout.CreateSuperSeries([PressBanca, Sentadilla]);
+
+        await Write(repository => repository.Save(workout, CancellationToken.None));
+
+        // Act
+        var stored = await Read(workout.Id);
+
+        // Assert
+        EntryFor(stored!, PressBanca).SuperSeriesId.Should().Be(superSeriesId);
+        EntryFor(stored!, Sentadilla).SuperSeriesId.Should().Be(superSeriesId);
+        EntryFor(stored!, Plancha).SuperSeriesId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Save_ShouldPersistASuperSeriesCreatedOnAStoredAggregate()
+    {
+        // Arrange
+        var workoutId = Id.From(SeedData.OwnedWorkoutId);
+        var withTwoExercises = await Read(workoutId);
+        withTwoExercises!.AddExercise(Sentadilla, Effort.MID, [new SetPrescription(4, new SetTarget.Reps(8))]);
+        await Write(repository => repository.Save(withTwoExercises, CancellationToken.None));
+
+        var stored = await Read(workoutId);
+        var superSeriesId = stored!.CreateSuperSeries([PressBanca, Sentadilla]);
+        await Write(repository => repository.Save(stored, CancellationToken.None));
+
+        // Act
+        var reloaded = await Read(workoutId);
+
+        // Assert
+        EntryFor(reloaded!, PressBanca).SuperSeriesId.Should().Be(superSeriesId);
+        EntryFor(reloaded!, Sentadilla).SuperSeriesId.Should().Be(superSeriesId);
+        EntryFor(reloaded!, PressBanca).Id.Should().Be(Id.From(SeedData.OwnedPressBancaEntryId));
+    }
+
+    [Fact]
+    public async Task Save_ShouldPersistTheBreakingOfAStoredSuperSeries()
+    {
+        // Arrange
+        var workoutId = Id.From(SeedData.OwnedWorkoutId);
+        var stored = await Read(workoutId);
+        stored!.AddExercise(Sentadilla, Effort.MID, [new SetPrescription(4, new SetTarget.Reps(8))]);
+        var superSeriesId = stored.CreateSuperSeries([PressBanca, Sentadilla]);
+        await Write(repository => repository.Save(stored, CancellationToken.None));
+
+        var grouped = await Read(workoutId);
+        grouped!.BreakSuperSeries(superSeriesId);
+        await Write(repository => repository.Save(grouped, CancellationToken.None));
+
+        // Act
+        var reloaded = await Read(workoutId);
+
+        // Assert
+        reloaded!.Exercises.Select(entry => entry.ExerciseId).Should().BeEquivalentTo([PressBanca, Sentadilla]);
+        reloaded.Exercises.Should().OnlyContain(entry => entry.SuperSeriesId == null);
+    }
+
+    [Fact]
+    public async Task Save_ShouldUngroupTheRemainingExerciseWhenOneOfAPairIsRemoved()
+    {
+        // Arrange
+        var workoutId = Id.From(SeedData.OwnedWorkoutId);
+        var stored = await Read(workoutId);
+        stored!.AddExercise(Sentadilla, Effort.MID, [new SetPrescription(4, new SetTarget.Reps(8))]);
+        stored.CreateSuperSeries([PressBanca, Sentadilla]);
+        await Write(repository => repository.Save(stored, CancellationToken.None));
+
+        var grouped = await Read(workoutId);
+        grouped!.RemoveExercise(Sentadilla);
+        await Write(repository => repository.Save(grouped, CancellationToken.None));
+
+        // Act
+        var reloaded = await Read(workoutId);
+
+        // Assert
+        var entry = reloaded!.Exercises.Should().ContainSingle().Subject;
+        entry.ExerciseId.Should().Be(PressBanca);
+        entry.SuperSeriesId.Should().BeNull();
     }
 
     [Fact]

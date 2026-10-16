@@ -37,6 +37,7 @@ public static class WorkoutMapper
                 ExerciseId = entry.ExerciseId.Value,
                 Position = exercisePosition++,
                 Effort = (int)entry.Effort,
+                SuperSeriesId = entry.SuperSeriesId?.Value,
             };
 
             var setPosition = 0;
@@ -78,7 +79,8 @@ public static class WorkoutMapper
                     MapEffort(item.Effort),
                     item.Sets
                         .OrderBy(set => set.Position)
-                        .Select(set => new SetPrescription(set.Count, MapTargetToDomain(set.TargetType, set.TargetValue)))))
+                        .Select(set => new SetPrescription(set.Count, MapTargetToDomain(set.TargetType, set.TargetValue))),
+                    item.SuperSeriesId is null ? null : SuperSeriesId.From(item.SuperSeriesId.Value)))
                 .ToList();
 
             return Workout.Rehydrate(

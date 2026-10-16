@@ -53,6 +53,8 @@ public sealed class Workout : AggregateRoot
     }
 
     /// <exception cref="ExerciseAlreadyInWorkoutException">When two entries share the same exercise.</exception>
+    /// <exception cref="SuperSeriesRequiresTwoExercisesException">When a stored superseries has a single member.</exception>
+    /// <exception cref="SuperSeriesSetCountMismatchException">When the members of a stored superseries have different set totals.</exception>
     public static Workout Rehydrate(
         Id id,
         Id userId,
@@ -69,6 +71,9 @@ public sealed class Workout : AggregateRoot
 
         if (duplicate is not null)
             throw new ExerciseAlreadyInWorkoutException(duplicate.Key, id);
+
+        foreach (var group in entries.Where(entry => entry.SuperSeriesId is not null).GroupBy(entry => entry.SuperSeriesId))
+            EnsureValidSuperSeries(id, group.ToList());
 
         return new Workout(userId, trainerId, workoutdate)
         {
@@ -101,5 +106,83 @@ public sealed class Workout : AggregateRoot
             ?? throw new ExerciseNotInWorkoutException(exerciseId, this.Id);
 
         _exercises.Remove(entry);
+
+        // A superseries cannot be left with a single exercise
+        if (entry.SuperSeriesId is not null)
+        {
+            var remaining = _exercises.Where(item => item.SuperSeriesId == entry.SuperSeriesId).ToList();
+
+            if (remaining.Count == 1)
+                remaining[0].LeaveSuperSeries();
+        }
+    }
+
+    /// <summary>
+    /// Groups exercises of this workout into a superseries: the first set of every exercise is done
+    /// back to back, then rest, then the next set of every exercise.
+    /// </summary>
+    /// <param name="exerciseIds">Exercises of this workout to group</param>
+    /// <returns>The identifier of the new superseries, unique inside this workout.</returns>
+    /// <exception cref="SuperSeriesRequiresTwoExercisesException">When fewer than two exercises are given.</exception>
+    /// <exception cref="DuplicateExerciseInSuperSeriesException">When the same exercise is given twice.</exception>
+    /// <exception cref="ExerciseNotInWorkoutException">When an exercise is not in the workout.</exception>
+    /// <exception cref="ExerciseAlreadyInSuperSeriesException">When an exercise already belongs to a superseries.</exception>
+    /// <exception cref="SuperSeriesSetCountMismatchException">When the exercises have different numbers of sets.</exception>
+    public SuperSeriesId CreateSuperSeries(IEnumerable<Id> exerciseIds)
+    {
+        var requested = exerciseIds.ToList();
+
+        if (requested.Count < 2)
+            throw new SuperSeriesRequiresTwoExercisesException(requested.Count);
+
+        var duplicate = requested.GroupBy(exerciseId => exerciseId).FirstOrDefault(group => group.Count() > 1);
+
+        if (duplicate is not null)
+            throw new DuplicateExerciseInSuperSeriesException(duplicate.Key);
+
+        var members = requested
+            .Select(exerciseId => _exercises.FirstOrDefault(item => item.ExerciseId == exerciseId)
+                ?? throw new ExerciseNotInWorkoutException(exerciseId, this.Id))
+            .ToList();
+
+        var alreadyGrouped = members.FirstOrDefault(member => member.SuperSeriesId is not null);
+
+        if (alreadyGrouped is not null)
+            throw new ExerciseAlreadyInSuperSeriesException(alreadyGrouped.ExerciseId, this.Id);
+
+        if (members.Select(member => member.TotalSets).Distinct().Count() > 1)
+            throw new SuperSeriesSetCountMismatchException(this.Id);
+
+        var nextValue = _exercises.Where(item => item.SuperSeriesId is not null).Select(item => item.SuperSeriesId!.Value).DefaultIfEmpty(0).Max() + 1;
+        var superSeriesId = SuperSeriesId.From(nextValue);
+
+        foreach (var member in members)
+            member.JoinSuperSeries(superSeriesId);
+
+        return superSeriesId;
+    }
+
+    /// <summary>
+    /// Ungroups a superseries. Its exercises stay in the workout.
+    /// </summary>
+    /// <exception cref="SuperSeriesNotFoundException">When no exercise of the workout belongs to it.</exception>
+    public void BreakSuperSeries(SuperSeriesId superSeriesId)
+    {
+        var members = _exercises.Where(item => item.SuperSeriesId == superSeriesId).ToList();
+
+        if (members.Count == 0)
+            throw new SuperSeriesNotFoundException(superSeriesId, this.Id);
+
+        foreach (var member in members)
+            member.LeaveSuperSeries();
+    }
+
+    private static void EnsureValidSuperSeries(Id workoutId, IReadOnlyList<WorkoutExercise> members)
+    {
+        if (members.Count < 2)
+            throw new SuperSeriesRequiresTwoExercisesException(members.Count);
+
+        if (members.Select(member => member.TotalSets).Distinct().Count() > 1)
+            throw new SuperSeriesSetCountMismatchException(workoutId);
     }
 }
