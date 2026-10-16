@@ -153,6 +153,7 @@ When adding entities, endpoints, or making architectural changes:
 - [ ] Aggregate mappers round-trip, and mapping stays inside repositories.
 - [ ] New use cases, repositories and services are registered in `Program.cs`.
 - [ ] Every controller catch delegates to `ExceptionMapper.Map(exception)`, and new custom exceptions have explicit status mappings.
+- [ ] Every use case that edits a workout enforces the workout edit rule from `.stpr/template/STPR_INVARIANTS.md` (admin always; prescribing trainer if any, otherwise the owner).
 - [ ] `.stpr/template/src` is still byte-identical to its `src` counterparts (see the parity check below).
 - [ ] New or changed behavior is covered by the relevant tests and the affected suites pass.
 - [ ] If the change touched endpoints, persistence, auth, mappers or seed, the full `dotnet test WeightTracker.slnx` was run with Docker running.

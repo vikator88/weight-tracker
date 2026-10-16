@@ -46,5 +46,47 @@ public static class SeedData
     /// <summary>Press Banca in the trainer's own workout, effort MID.</summary>
     public static readonly Guid TrainerOwnPressBancaEntryId = new("00000000-0000-0000-0000-000000000034");
 
+    /// <summary>Owned by the user, prescribed by the trainer. Two ungrouped entries of 3 sets, so they can be grouped.</summary>
+    public static readonly Guid PrescribedPairWorkoutId = new("00000000-0000-0000-0000-000000000024");
+
+    /// <summary>Owned by the user, prescribed by the trainer. Press Banca and Sentadilla in superseries 1, Plancha alone.</summary>
+    public static readonly Guid PrescribedSuperSeriesWorkoutId = new("00000000-0000-0000-0000-000000000025");
+
+    /// <summary>Owned by the user, no trainer. Two ungrouped entries of 4 sets, so they can be grouped.</summary>
+    public static readonly Guid SelfCreatedPairWorkoutId = new("00000000-0000-0000-0000-000000000026");
+
+    /// <summary>Owned by the user, no trainer. Press Banca and Plancha in superseries 1.</summary>
+    public static readonly Guid SelfCreatedSuperSeriesWorkoutId = new("00000000-0000-0000-0000-000000000027");
+
+    /// <summary>Press Banca in the prescribed pair workout, 3 x 10 reps.</summary>
+    public static readonly Guid PrescribedPairPressBancaEntryId = new("00000000-0000-0000-0000-000000000035");
+
+    /// <summary>Sentadilla in the prescribed pair workout, 3 x 8 reps.</summary>
+    public static readonly Guid PrescribedPairSentadillaEntryId = new("00000000-0000-0000-0000-000000000036");
+
+    /// <summary>Press Banca in the prescribed superseries workout, superseries 1.</summary>
+    public static readonly Guid PrescribedSuperSeriesPressBancaEntryId = new("00000000-0000-0000-0000-000000000037");
+
+    /// <summary>Sentadilla in the prescribed superseries workout, superseries 1.</summary>
+    public static readonly Guid PrescribedSuperSeriesSentadillaEntryId = new("00000000-0000-0000-0000-000000000038");
+
+    /// <summary>Plancha in the prescribed superseries workout, not grouped.</summary>
+    public static readonly Guid PrescribedSuperSeriesPlanchaEntryId = new("00000000-0000-0000-0000-000000000039");
+
+    /// <summary>Sentadilla in the self-created pair workout, 4 x 6 reps.</summary>
+    public static readonly Guid SelfCreatedPairSentadillaEntryId = new("00000000-0000-0000-0000-000000000040");
+
+    /// <summary>Plancha in the self-created pair workout, 4 x 45 s.</summary>
+    public static readonly Guid SelfCreatedPairPlanchaEntryId = new("00000000-0000-0000-0000-000000000041");
+
+    /// <summary>Press Banca in the self-created superseries workout, superseries 1.</summary>
+    public static readonly Guid SelfCreatedSuperSeriesPressBancaEntryId = new("00000000-0000-0000-0000-000000000042");
+
+    /// <summary>Plancha in the self-created superseries workout, superseries 1.</summary>
+    public static readonly Guid SelfCreatedSuperSeriesPlanchaEntryId = new("00000000-0000-0000-0000-000000000043");
+
+    /// <summary>Identifier of the superseries seeded in the superseries workouts.</summary>
+    public const int SeededSuperSeries = 1;
+
     public static readonly DateTime CreatedAt = new(2026, 10, 1, 8, 0, 0, DateTimeKind.Utc);
 }

@@ -10,8 +10,8 @@ namespace WeightTracker.Integration.Workouts;
 
 /// <summary>
 /// Covers the role-aware scoping rule of <c>GET /workouts</c> against the seeded dataset:
-/// one workout owned by the user, one owned by the user and prescribed by the trainer,
-/// and one owned by the trainer themselves.
+/// workouts owned by the user on their own, workouts owned by the user and prescribed by the
+/// trainer, and one owned by the trainer themselves.
 /// </summary>
 public class WorkoutScopingTests : IntegrationTest
 {
@@ -39,7 +39,15 @@ public class WorkoutScopingTests : IntegrationTest
         var visible = await WorkoutIdsVisibleTo(SeedCredentials.User);
 
         // Assert
-        visible.Should().BeEquivalentTo(new[] { SeedData.OwnedWorkoutId, SeedData.TrainedWorkoutId });
+        visible.Should().BeEquivalentTo(new[]
+        {
+            SeedData.OwnedWorkoutId,
+            SeedData.TrainedWorkoutId,
+            SeedData.PrescribedPairWorkoutId,
+            SeedData.PrescribedSuperSeriesWorkoutId,
+            SeedData.SelfCreatedPairWorkoutId,
+            SeedData.SelfCreatedSuperSeriesWorkoutId,
+        });
     }
 
     [Fact]
@@ -59,7 +67,13 @@ public class WorkoutScopingTests : IntegrationTest
         var visible = await WorkoutIdsVisibleTo(SeedCredentials.Trainer);
 
         // Assert
-        visible.Should().BeEquivalentTo(new[] { SeedData.TrainedWorkoutId, SeedData.TrainerOwnWorkoutId });
+        visible.Should().BeEquivalentTo(new[]
+        {
+            SeedData.TrainedWorkoutId,
+            SeedData.TrainerOwnWorkoutId,
+            SeedData.PrescribedPairWorkoutId,
+            SeedData.PrescribedSuperSeriesWorkoutId,
+        });
     }
 
     [Fact]
@@ -69,7 +83,12 @@ public class WorkoutScopingTests : IntegrationTest
         var visible = await WorkoutIdsVisibleTo(SeedCredentials.Trainer);
 
         // Assert
-        visible.Should().NotContain(SeedData.OwnedWorkoutId);
+        visible.Should().NotContain(new[]
+        {
+            SeedData.OwnedWorkoutId,
+            SeedData.SelfCreatedPairWorkoutId,
+            SeedData.SelfCreatedSuperSeriesWorkoutId,
+        });
     }
 
     [Fact]
@@ -84,6 +103,10 @@ public class WorkoutScopingTests : IntegrationTest
             SeedData.OwnedWorkoutId,
             SeedData.TrainedWorkoutId,
             SeedData.TrainerOwnWorkoutId,
+            SeedData.PrescribedPairWorkoutId,
+            SeedData.PrescribedSuperSeriesWorkoutId,
+            SeedData.SelfCreatedPairWorkoutId,
+            SeedData.SelfCreatedSuperSeriesWorkoutId,
         });
     }
 }

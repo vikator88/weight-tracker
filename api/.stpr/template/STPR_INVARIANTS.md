@@ -161,7 +161,9 @@ but **no dispatcher exists**. Events raised today would never be delivered.
    - Prefer REST shape for endpoints
    - One folder in Endpoints folder per resource
 - Error handling:
-   - Domain and Application must throw only custom-exceptions. We want to catch all possible exceptions in Domain/Application. This catch should: 1- log. 2- rethrown a custom exception
+   - Every failure that Domain or Application detects is raised as a custom exception (`DomainException` / `ApplicationLayerException`), never as a framework exception.
+   - Use cases do not catch unexpected exceptions (infrastructure, framework, bugs) to log or wrap them. They let them reach `ExceptionMapper`, which logs them and returns a 500.
+   - A use case catches a specific custom exception only to translate it into a different custom exception when the meaning changes for the caller (for example, `LoginUseCase` reports a malformed email as invalid credentials). It never catches a custom exception just to rethrow the same meaning.
    - Validation lives in the layer that owns the rule. See the Validations section below
    - In API layer create a ExceptionMapper that transform all custom-exceptions to http responses with the status code that better fits. If exception mapper gets an exception not defined as custom in the previous layers, it should return a 500
 - Validations: Do not validate everything everywhere. Validate only where it makes sense (i.e. GetAll should not validate anything but auth stuff)
@@ -174,6 +176,21 @@ but **no dispatcher exists**. Events raised today would never be delivered.
      - Timestamp is the id of the migration
        - try to use random times, not just 1200. If everybody uses the same time, migrations created the same day will conflict
    - Entities and Aggregates Id must be Guids. Other stuff can be auto-increments (i.e. logs, histories, etc...) 
+
+### Business authorization rules
+
+These rules decide who may perform an operation. They are permissions, so they live in Application
+(see Validations above), and every use case covered by a rule must enforce it, not only the first one written.
+
+- **Editing a workout.** Any operation that changes a workout after it exists (its exercises, sets, effort,
+  superseries, or any other part of it) is allowed only to:
+  - an `ADMIN`, always;
+  - the workout's prescribing trainer (`TrainerId`), when the workout has one. The owner (`UserId`) may
+    **not** edit a prescribed workout;
+  - the workout's owner (`UserId`), when the workout has no prescribing trainer, whatever the owner's role.
+  - Anyone else is rejected with `UnauthorizedOperationException` (403).
+  - The rule lives in a single Application service shared by every workout-editing use case; use cases must not
+    restate it inline.
 
 ## 3. Testing Invariants
 
@@ -297,8 +314,11 @@ Only aggregate roots get a repository. Keep these shapes so every repository rea
 ### Tests
 
 - `test/WeightTracker.Unit`: domain, application and mapper tests. No database, no HTTP, no framework host.
-- `test/WeightTracker.Integration`: real Postgres from `infra/docker-compose.yml`, API driven through `WebApplicationFactory`.
+- `test/WeightTracker.Integration`: real Postgres 17 in a disposable Testcontainers container, API driven through `WebApplicationFactory`.
+  The bootstrap starts the container once per run, migrates it once, and removes it when the run ends.
+  Integration tests never use the `infra/docker-compose.yml` database, which is for local development only.
 - The integration bootstrap owns its own database and must create, migrate, truncate and reseed it without manual setup.
+  Running the suite requires Docker, not a running compose container.
 
 #### Arrange / Act / Assert
 

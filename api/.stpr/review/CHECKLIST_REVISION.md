@@ -19,7 +19,7 @@ This checklist is a guide for human review. AI may help inspect the codebase, co
 
 - [ ] Module folders exist per layer: `WeightTracker.Domain/<Module>`, `WeightTracker.Application/UseCases/<Module>`, `WeightTracker.Infra/Repositories`, and `WeightTracker.Api/Endpoints/<Resource>`.
 - [ ] Repository contracts live in `WeightTracker.Application/Interfaces`; implementations live in `WeightTracker.Infra/Repositories`.
-- [ ] Tests live in `test/WeightTracker.Unit` (no infrastructure) and `test/WeightTracker.Integration` (real Postgres).
+- [ ] Tests live in `test/WeightTracker.Unit` (no infrastructure) and `test/WeightTracker.Integration` (real Postgres in a disposable Testcontainers container, never the compose database).
 
 ## Domain
 
@@ -55,6 +55,7 @@ This checklist is a guide for human review. AI may help inspect the codebase, co
 - [ ] Every custom exception introduced by the change has an explicit status mapping in `ExceptionMapper`.
 - [ ] New use cases, repositories and services are registered in `Program.cs`.
 - [ ] Endpoint visibility matches the matrix approved in the plan.
+- [ ] Every use case that edits a workout enforces the workout edit rule (`STPR_INVARIANTS.md`, "Business authorization rules") through the shared Application service, never inline.
 - [ ] No domain object crosses the HTTP boundary; responses are DTOs from `Endpoints/<Resource>/Dtos`.
 - [ ] Every new or changed action declares its responses with `[ProducesResponseType]`, including the failure codes.
 - [ ] Protected endpoints appear in the OpenAPI document with a resolved `Bearer` security requirement.
@@ -85,7 +86,7 @@ This checklist is a guide for human review. AI may help inspect the codebase, co
 ## Verification
 
 - [ ] `dotnet build WeightTracker.slnx` passes with no warnings.
-- [ ] `dotnet test WeightTracker.slnx` passes with Postgres running.
+- [ ] `dotnet test WeightTracker.slnx` passes with Docker running (the suite starts its own Testcontainers Postgres).
 
 ---
 

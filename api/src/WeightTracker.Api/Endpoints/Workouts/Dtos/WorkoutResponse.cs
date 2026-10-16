@@ -25,20 +25,27 @@ public sealed record WorkoutResponse(
                 .ToList());
 }
 
+/// <param name="Id">Identifier of this entry of the workout, used to address it (for example to group it in a superseries).</param>
+/// <param name="ExerciseId">Identifier of the catalog exercise performed in this entry.</param>
+/// <param name="SuperSeriesId">Superseries this entry belongs to, <c>null</c> when it is performed on its own.</param>
 public sealed record WorkoutExerciseResponse(
+    Guid Id,
     Guid ExerciseId,
     string Name,
     string BodyPart,
     string Effort,
-    IReadOnlyList<SetResponse> Sets)
+    IReadOnlyList<SetResponse> Sets,
+    int? SuperSeriesId)
 {
     public static WorkoutExerciseResponse From(WorkoutExercise entry, Exercise exercise)
         => new(
+            entry.Id.Value,
             exercise.Id.Value,
             exercise.Name.Value,
             exercise.BodyPart.ToString(),
             entry.Effort.ToString(),
-            entry.Sets.Select(SetResponse.From).ToList());
+            entry.Sets.Select(SetResponse.From).ToList(),
+            entry.SuperSeriesId?.Value);
 }
 
 public sealed record SetResponse(int Count, SetTargetResponse Target)

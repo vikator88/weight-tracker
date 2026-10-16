@@ -258,7 +258,7 @@ public class WorkoutMapperTests
         workout.AddExercise(SentadillaId, Effort.MID, [new SetPrescription(3, new SetTarget.Reps(8))]);
         workout.AddExercise(PlanchaId, Effort.LOW, [new SetPrescription(3, new SetTarget.Duration(40))]);
         workout.AddExercise(Id.New(), Effort.HIGH, [new SetPrescription(4, new SetTarget.MaxReps())]);
-        workout.CreateSuperSeries([SentadillaId, PlanchaId]);
+        workout.CreateSuperSeries(workout.Exercises.Take(2).Select(entry => entry.Id));
 
         return WorkoutMapper.MapToDomain(WorkoutMapper.MapToEntity(workout));
     }

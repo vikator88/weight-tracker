@@ -53,7 +53,8 @@ The `skeleton` is the reusable project base:
 
 - the five projects (`Domain`, `Application`, `Infra`, `Api`, `Migrations`) and their dependency direction
 - the two test projects (`WeightTracker.Unit`, `WeightTracker.Integration`)
-- Postgres through `infra/docker-compose.yml`, schema owned by FluentMigrator
+- Postgres through `infra/docker-compose.yml` for local development, schema owned by FluentMigrator
+- integration tests against a disposable Testcontainers Postgres started, migrated and removed per run
 - local execution and verification commands
 
 This project already exists, so **the project itself is the operating skeleton**. `src/` and `test/` are
@@ -171,9 +172,8 @@ Resources:
 Verification for any non-trivial change:
 
 ```bash
-docker compose -f ../infra/docker-compose.yml up -d
 dotnet build WeightTracker.slnx
-dotnet test WeightTracker.slnx
+dotnet test WeightTracker.slnx   # needs Docker running; starts its own Testcontainers Postgres
 ```
 
 ## Golden rule

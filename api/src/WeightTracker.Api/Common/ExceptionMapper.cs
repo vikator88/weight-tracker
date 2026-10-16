@@ -55,7 +55,8 @@ public class ExceptionMapper
             ),
 
             UserNotFoundException or ExerciseNotInWorkoutException or ExerciseNotFoundException
-                or SuperSeriesNotFoundException => Problem(
+                or SuperSeriesNotFoundException or WorkoutNotFoundException
+                or WorkoutExerciseNotInWorkoutException => Problem(
                 StatusCodes.Status404NotFound,
                 exception.Message
             ),

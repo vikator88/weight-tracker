@@ -144,6 +144,35 @@ public class WorkoutResponseShapeTests : IntegrationTest
     }
 
     [Fact]
+    public async Task UngroupedExercise_ShouldCarryItsEntryIdAndAnExplicitNullSuperSeriesId()
+    {
+        // Arrange & Act
+        var workout = WorkoutWithId(await WorkoutsSeenByAdmin(), SeedData.OwnedWorkoutId);
+
+        // Assert
+        var exercise = workout.GetProperty("exercises").EnumerateArray().Single();
+        exercise.GetProperty("id").GetGuid().Should().Be(SeedData.OwnedPressBancaEntryId);
+        exercise.TryGetProperty("superSeriesId", out var superSeriesId).Should().BeTrue();
+        superSeriesId.ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task GroupedExercises_ShouldCarryTheirEntryIdAndSharedSuperSeriesId()
+    {
+        // Arrange & Act
+        var workout = WorkoutWithId(await WorkoutsSeenByAdmin(), SeedData.PrescribedSuperSeriesWorkoutId);
+
+        // Assert
+        var superSeriesByEntry = workout.GetProperty("exercises").EnumerateArray().ToDictionary(
+            exercise => exercise.GetProperty("id").GetGuid(),
+            exercise => exercise.GetProperty("superSeriesId"));
+
+        superSeriesByEntry[SeedData.PrescribedSuperSeriesPressBancaEntryId].GetInt32().Should().Be(SeedData.SeededSuperSeries);
+        superSeriesByEntry[SeedData.PrescribedSuperSeriesSentadillaEntryId].GetInt32().Should().Be(SeedData.SeededSuperSeries);
+        superSeriesByEntry[SeedData.PrescribedSuperSeriesPlanchaEntryId].ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
     public async Task Response_ShouldNeverLeakCredentialFields()
     {
         // Arrange & Act
