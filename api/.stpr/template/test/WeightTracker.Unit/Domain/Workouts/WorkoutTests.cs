@@ -238,19 +238,27 @@ public class WorkoutTests
 
     private static readonly SetPrescription ThreeByTen = new(3, new SetTarget.Reps(10));
 
-    private static Workout WorkoutWithExercises(out Id[] exerciseIds, int count = 3)
+    /// <param name="entryIds">Identifiers of the workout exercise entries, not of the catalog exercises.</param>
+    private static Workout WorkoutWithExercises(out Id[] entryIds, int count = 3)
     {
         var workout = Workout.Create(Id.New(), null, WorkoutDate);
-        exerciseIds = Enumerable.Range(0, count).Select(_ => Id.New()).ToArray();
 
-        foreach (var exerciseId in exerciseIds)
-            workout.AddExercise(exerciseId, Effort.MID, [FourByTen]);
+        for (var index = 0; index < count; index++)
+            workout.AddExercise(Id.New(), Effort.MID, [FourByTen]);
+
+        entryIds = workout.Exercises.Select(entry => entry.Id).ToArray();
 
         return workout;
     }
 
-    private static SuperSeriesId? SuperSeriesOf(Workout workout, Id exerciseId)
-        => workout.Exercises.Single(entry => entry.ExerciseId == exerciseId).SuperSeriesId;
+    private static Id EntryOf(Workout workout, Id exerciseId)
+        => workout.Exercises.Single(entry => entry.ExerciseId == exerciseId).Id;
+
+    private static Id ExerciseOf(Workout workout, Id entryId)
+        => workout.Exercises.Single(entry => entry.Id == entryId).ExerciseId;
+
+    private static SuperSeriesId? SuperSeriesOf(Workout workout, Id entryId)
+        => workout.Exercises.Single(entry => entry.Id == entryId).SuperSeriesId;
 
     [Fact]
     public void CreateSuperSeries_ShouldGroupTheGivenExercisesAndLeaveTheOthersAlone()
@@ -305,13 +313,15 @@ public class WorkoutTests
         var second = Id.New();
         workout.AddExercise(first, Effort.MID, [ThreeByTen]);
         workout.AddExercise(second, Effort.MID, [new SetPrescription(2, new SetTarget.Reps(8)), new SetPrescription(1, new SetTarget.MaxReps())]);
+        var firstEntry = EntryOf(workout, first);
+        var secondEntry = EntryOf(workout, second);
 
         // Act
-        var superSeriesId = workout.CreateSuperSeries([first, second]);
+        var superSeriesId = workout.CreateSuperSeries([firstEntry, secondEntry]);
 
         // Assert
-        SuperSeriesOf(workout, first).Should().Be(superSeriesId);
-        SuperSeriesOf(workout, second).Should().Be(superSeriesId);
+        SuperSeriesOf(workout, firstEntry).Should().Be(superSeriesId);
+        SuperSeriesOf(workout, secondEntry).Should().Be(superSeriesId);
     }
 
     [Fact]
@@ -323,14 +333,16 @@ public class WorkoutTests
         var second = Id.New();
         workout.AddExercise(first, Effort.MID, [ThreeByTen]);
         workout.AddExercise(second, Effort.MID, [FourByTen]);
+        var firstEntry = EntryOf(workout, first);
+        var secondEntry = EntryOf(workout, second);
 
         // Act
-        var act = () => workout.CreateSuperSeries([first, second]);
+        var act = () => workout.CreateSuperSeries([firstEntry, secondEntry]);
 
         // Assert
         act.Should().Throw<SuperSeriesSetCountMismatchException>();
-        SuperSeriesOf(workout, first).Should().BeNull();
-        SuperSeriesOf(workout, second).Should().BeNull();
+        SuperSeriesOf(workout, firstEntry).Should().BeNull();
+        SuperSeriesOf(workout, secondEntry).Should().BeNull();
     }
 
     [Fact]
@@ -369,8 +381,23 @@ public class WorkoutTests
         var act = () => workout.CreateSuperSeries([ids[0], Id.New()]);
 
         // Assert
-        act.Should().Throw<ExerciseNotInWorkoutException>();
+        act.Should().Throw<WorkoutExerciseNotInWorkoutException>();
         SuperSeriesOf(workout, ids[0]).Should().BeNull();
+    }
+
+    [Fact]
+    public void CreateSuperSeries_ShouldRejectCatalogExerciseIdsAndGroupNothing()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids);
+        var catalogIds = new[] { ExerciseOf(workout, ids[0]), ExerciseOf(workout, ids[1]) };
+
+        // Act
+        var act = () => workout.CreateSuperSeries(catalogIds);
+
+        // Assert
+        act.Should().Throw<WorkoutExerciseNotInWorkoutException>();
+        workout.Exercises.Should().OnlyContain(entry => entry.SuperSeriesId == null);
     }
 
     [Fact]
@@ -400,7 +427,7 @@ public class WorkoutTests
         workout.BreakSuperSeries(superSeriesId);
 
         // Assert
-        workout.Exercises.Select(entry => entry.ExerciseId).Should().Equal(ids);
+        workout.Exercises.Select(entry => entry.Id).Should().Equal(ids);
         workout.Exercises.Should().OnlyContain(entry => entry.SuperSeriesId == null);
     }
 
@@ -440,9 +467,10 @@ public class WorkoutTests
         // Arrange
         var workout = WorkoutWithExercises(out var ids, 2);
         workout.CreateSuperSeries(ids);
+        var removed = ExerciseOf(workout, ids[0]);
 
         // Act
-        workout.RemoveExercise(ids[0]);
+        workout.RemoveExercise(removed);
 
         // Assert
         workout.Exercises.Should().ContainSingle().Which.SuperSeriesId.Should().BeNull();
@@ -454,9 +482,10 @@ public class WorkoutTests
         // Arrange
         var workout = WorkoutWithExercises(out var ids);
         var superSeriesId = workout.CreateSuperSeries(ids);
+        var removed = ExerciseOf(workout, ids[0]);
 
         // Act
-        workout.RemoveExercise(ids[0]);
+        workout.RemoveExercise(removed);
 
         // Assert
         SuperSeriesOf(workout, ids[1]).Should().Be(superSeriesId);

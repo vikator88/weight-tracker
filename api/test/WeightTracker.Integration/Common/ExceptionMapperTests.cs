@@ -195,6 +195,32 @@ public class ExceptionMapperTests
     }
 
     [Fact]
+    public void Map_ShouldReturnNotFoundForAnUnknownWorkout()
+    {
+        // Arrange
+        var exception = new WorkoutNotFoundException(Id.New());
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status404NotFound);
+    }
+
+    [Fact]
+    public void Map_ShouldReturnNotFoundForAWorkoutExerciseNotInTheWorkout()
+    {
+        // Arrange
+        var exception = new WorkoutExerciseNotInWorkoutException(Id.New(), Id.New());
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status404NotFound);
+    }
+
+    [Fact]
     public void Map_ShouldReturnConflictForAnExerciseAlreadyInASuperSeries()
     {
         // Arrange

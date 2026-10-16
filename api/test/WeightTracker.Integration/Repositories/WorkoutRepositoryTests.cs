@@ -184,7 +184,7 @@ public class WorkoutRepositoryTests : IntegrationTest
         workout.AddExercise(PressBanca, Effort.MID, [new SetPrescription(4, new SetTarget.Reps(10))]);
         workout.AddExercise(Sentadilla, Effort.MID, [new SetPrescription(4, new SetTarget.Reps(8))]);
         workout.AddExercise(Plancha, Effort.LOW, [new SetPrescription(3, new SetTarget.Duration(40))]);
-        var superSeriesId = workout.CreateSuperSeries([PressBanca, Sentadilla]);
+        var superSeriesId = workout.CreateSuperSeries([EntryFor(workout, PressBanca).Id, EntryFor(workout, Sentadilla).Id]);
 
         await Write(repository => repository.Save(workout, CancellationToken.None));
 
@@ -207,7 +207,7 @@ public class WorkoutRepositoryTests : IntegrationTest
         await Write(repository => repository.Save(withTwoExercises, CancellationToken.None));
 
         var stored = await Read(workoutId);
-        var superSeriesId = stored!.CreateSuperSeries([PressBanca, Sentadilla]);
+        var superSeriesId = stored!.CreateSuperSeries([EntryFor(stored, PressBanca).Id, EntryFor(stored, Sentadilla).Id]);
         await Write(repository => repository.Save(stored, CancellationToken.None));
 
         // Act
@@ -226,7 +226,7 @@ public class WorkoutRepositoryTests : IntegrationTest
         var workoutId = Id.From(SeedData.OwnedWorkoutId);
         var stored = await Read(workoutId);
         stored!.AddExercise(Sentadilla, Effort.MID, [new SetPrescription(4, new SetTarget.Reps(8))]);
-        var superSeriesId = stored.CreateSuperSeries([PressBanca, Sentadilla]);
+        var superSeriesId = stored.CreateSuperSeries([EntryFor(stored, PressBanca).Id, EntryFor(stored, Sentadilla).Id]);
         await Write(repository => repository.Save(stored, CancellationToken.None));
 
         var grouped = await Read(workoutId);
@@ -248,7 +248,7 @@ public class WorkoutRepositoryTests : IntegrationTest
         var workoutId = Id.From(SeedData.OwnedWorkoutId);
         var stored = await Read(workoutId);
         stored!.AddExercise(Sentadilla, Effort.MID, [new SetPrescription(4, new SetTarget.Reps(8))]);
-        stored.CreateSuperSeries([PressBanca, Sentadilla]);
+        stored.CreateSuperSeries([EntryFor(stored, PressBanca).Id, EntryFor(stored, Sentadilla).Id]);
         await Write(repository => repository.Save(stored, CancellationToken.None));
 
         var grouped = await Read(workoutId);
@@ -278,7 +278,7 @@ public class WorkoutRepositoryTests : IntegrationTest
             services.GetRequiredService<IWorkoutRepository>().GetAll(CancellationToken.None));
 
         // Assert
-        all.Should().HaveCount(3);
+        all.Should().HaveCount(7);
         all.Count(workout => workout.Id == Id.From(SeedData.OwnedWorkoutId)).Should().Be(1);
     }
 
@@ -321,6 +321,8 @@ public class WorkoutRepositoryTests : IntegrationTest
         {
             Id.From(SeedData.TrainedWorkoutId),
             Id.From(SeedData.TrainerOwnWorkoutId),
+            Id.From(SeedData.PrescribedPairWorkoutId),
+            Id.From(SeedData.PrescribedSuperSeriesWorkoutId),
         });
     }
 }

@@ -4,7 +4,7 @@ namespace WeightTracker.Domain.Exceptions;
 
 public sealed class ExerciseAlreadyInSuperSeriesException : DomainException
 {
-    public ExerciseAlreadyInSuperSeriesException(Id exerciseId, Id workoutId)
-        : base($"Exercise '{exerciseId}' of workout '{workoutId}' already belongs to a superseries")
+    public ExerciseAlreadyInSuperSeriesException(Id workoutExerciseId, Id workoutId)
+        : base($"Workout exercise '{workoutExerciseId}' of workout '{workoutId}' already belongs to a superseries")
     { }
 }
