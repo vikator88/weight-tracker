@@ -45,7 +45,7 @@ public class ExceptionMapper
                 exception.Message
             ),
 
-            InvalidCredentialsException or InvalidRefreshTokenException => Problem(
+            InvalidCredentialsException or InvalidRefreshTokenException or AuthenticatedUserNotFoundException => Problem(
                 StatusCodes.Status401Unauthorized,
                 exception.Message
             ),

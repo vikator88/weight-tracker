@@ -72,6 +72,20 @@ public class SuperSeriesCreateEndpointTests : IntegrationTest
     }
 
     [Fact]
+    public async Task Post_ShouldRejectATokenWhoseUserNoLongerExists()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+        await Factory.RemoveUser(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.PostAsJsonAsync(Route(SeedData.PrescribedPairWorkoutId), PrescribedPairBody);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
     public async Task Post_ShouldGroupTheEntriesForThePrescribingTrainer()
     {
         // Arrange

@@ -224,6 +224,8 @@ The rules in this section apply to the current reference implementation in DOTNE
 
 - Controllers inject use cases only. Never ORM repositories, database entities, or infrastructure services.
 - All controller handlers catch domain and application errors and delegate to `ExceptionMapper.Map(exception)`.
+- Controllers with protected routes inherit `AuthorizedController` and read the caller from `CurrentUser`. They never parse claims or look users up themselves.
+- Role requirements on actions of an `AuthorizedController` use `[RequireRole(...)]`, never `[Authorize(Roles = ...)]`, so a token of a user that no longer exists is answered `401` before any role is checked (`403`).
 - Endpoint visibility must be explicit in the plan whenever API behavior is introduced or changed.
 - Domain objects never cross the HTTP boundary. Every response is a DTO declared in
   `Endpoints/<Resource>/Dtos`, built by a `static From(...)` factory on the DTO itself.

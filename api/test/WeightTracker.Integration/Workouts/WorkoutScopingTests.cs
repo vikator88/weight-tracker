@@ -33,6 +33,20 @@ public class WorkoutScopingTests : IntegrationTest
     }
 
     [Fact]
+    public async Task GetAll_ShouldRejectATokenWhoseUserNoLongerExists()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.User);
+        await Factory.RemoveUser(SeedCredentials.User);
+
+        // Act
+        var response = await client.GetAsync("/workouts");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
     public async Task User_ShouldOnlySeeTheirOwnWorkouts()
     {
         // Arrange & Act

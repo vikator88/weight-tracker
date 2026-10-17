@@ -63,6 +63,20 @@ public class SuperSeriesBreakEndpointTests : IntegrationTest
     }
 
     [Fact]
+    public async Task Delete_ShouldRejectATokenWhoseUserNoLongerExists()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+        await Factory.RemoveUser(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.DeleteAsync(Route(SeedData.PrescribedSuperSeriesWorkoutId));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
     public async Task Delete_ShouldUngroupTheEntriesAndKeepThemInOrderForThePrescribingTrainer()
     {
         // Arrange

@@ -1,38 +1,34 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WeightTracker.Api.Common;
 using WeightTracker.Api.Endpoints.Workouts.Dtos;
+using WeightTracker.Application.UseCases.Auth;
 using WeightTracker.Application.UseCases.Workouts;
 using WeightTracker.Domain.Common;
 using WeightTracker.Domain.Exercises;
-using WeightTracker.Domain.Users;
 
 namespace WeightTracker.Api.Endpoints.Workouts;
 
 [ApiController]
 [Route("workouts")]
-[Authorize]
-public class WorkoutsController : ControllerBase
+public class WorkoutsController : AuthorizedController
 {
     private readonly GetAllWorkoutsUseCase _getAllWorkouts;
     private readonly CreateWorkoutUseCase _createWorkout;
     private readonly CreateSuperSeriesUseCase _createSuperSeries;
     private readonly BreakSuperSeriesUseCase _breakSuperSeries;
-    private readonly ExceptionMapper _exceptionMapper;
 
     public WorkoutsController(
         GetAllWorkoutsUseCase getAllWorkouts,
         CreateWorkoutUseCase createWorkout,
         CreateSuperSeriesUseCase createSuperSeries,
         BreakSuperSeriesUseCase breakSuperSeries,
-        ExceptionMapper exceptionMapper)
+        GetAuthenticatedUserUseCase getAuthenticatedUser,
+        ExceptionMapper exceptionMapper) : base(getAuthenticatedUser, exceptionMapper)
     {
         _getAllWorkouts = getAllWorkouts;
         _createWorkout = createWorkout;
         _createSuperSeries = createSuperSeries;
         _breakSuperSeries = breakSuperSeries;
-        _exceptionMapper = exceptionMapper;
     }
 
     /// <summary>
@@ -45,18 +41,15 @@ public class WorkoutsController : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        if (TryReadCaller(out var callerId, out var callerRole) == false)
-            return Unauthorized();
-
         try
         {
-            var result = await _getAllWorkouts.Execute(callerId!, callerRole, cancellationToken);
+            var result = await _getAllWorkouts.Execute(CurrentUser!.Id, CurrentUser.Role, cancellationToken);
 
             return Ok(result.Workouts.Select(workout => WorkoutResponse.From(workout, result.Exercises)).ToList());
         }
         catch (Exception exception)
         {
-            return _exceptionMapper.Map(exception);
+            return ExceptionMapper.Map(exception);
         }
     }
 
@@ -76,14 +69,11 @@ public class WorkoutsController : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Create([FromBody] CreateWorkoutRequest request, CancellationToken cancellationToken)
     {
-        if (TryReadCaller(out var callerId, out var callerRole) == false)
-            return Unauthorized();
-
         try
         {
             var workout = await _createWorkout.Execute(
-                callerId!,
-                callerRole,
+                CurrentUser!.Id,
+                CurrentUser.Role,
                 request.UserId is null ? null : Id.From(request.UserId.Value),
                 request.TrainerId is null ? null : Id.From(request.TrainerId.Value),
                 request.WorkoutDate!.Value.ToDateTime(TimeOnly.MinValue),
@@ -93,7 +83,7 @@ public class WorkoutsController : ControllerBase
         }
         catch (Exception exception)
         {
-            return _exceptionMapper.Map(exception);
+            return ExceptionMapper.Map(exception);
         }
     }
 
@@ -114,14 +104,11 @@ public class WorkoutsController : ControllerBase
     public async Task<IActionResult> CreateSuperSeries(
         Guid workoutId, [FromBody] CreateSuperSeriesRequest request, CancellationToken cancellationToken)
     {
-        if (TryReadCaller(out var callerId, out var callerRole) == false)
-            return Unauthorized();
-
         try
         {
             var superSeriesId = await _createSuperSeries.Execute(
-                callerId!,
-                callerRole,
+                CurrentUser!.Id,
+                CurrentUser.Role,
                 Id.From(workoutId),
                 request.ExerciseIds!.Select(Id.From).ToList(),
                 cancellationToken);
@@ -130,7 +117,7 @@ public class WorkoutsController : ControllerBase
         }
         catch (Exception exception)
         {
-            return _exceptionMapper.Map(exception);
+            return ExceptionMapper.Map(exception);
         }
     }
 
@@ -146,33 +133,15 @@ public class WorkoutsController : ControllerBase
     public async Task<IActionResult> BreakSuperSeries(
         Guid workoutId, int superSeriesId, CancellationToken cancellationToken)
     {
-        if (TryReadCaller(out var callerId, out var callerRole) == false)
-            return Unauthorized();
-
         try
         {
-            await _breakSuperSeries.Execute(callerId!, callerRole, Id.From(workoutId), superSeriesId, cancellationToken);
+            await _breakSuperSeries.Execute(CurrentUser!.Id, CurrentUser.Role, Id.From(workoutId), superSeriesId, cancellationToken);
 
             return NoContent();
         }
         catch (Exception exception)
         {
-            return _exceptionMapper.Map(exception);
+            return ExceptionMapper.Map(exception);
         }
-    }
-
-    /// <summary>
-    /// Reads the caller identity out of the validated token. A token without a usable
-    /// subject or role is an authentication failure, not a domain error.
-    /// </summary>
-    private bool TryReadCaller(out Id? callerId, out Role callerRole)
-    {
-        callerRole = default;
-
-        if (Id.TryFrom(User.FindFirstValue("sub"), out callerId) == false)
-            return false;
-
-        return Enum.TryParse(User.FindFirstValue(ClaimTypes.Role), ignoreCase: false, out callerRole)
-            && Enum.IsDefined(callerRole);
     }
 }

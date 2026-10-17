@@ -38,6 +38,37 @@ public class ExerciseCreateEndpointTests : IntegrationTest
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task Post_ShouldRejectATokenWhoseAdminNoLongerExistsAndCreateNothing()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Admin);
+        await Factory.RemoveUser(SeedCredentials.Admin);
+        var before = (await Client.GetFromJsonAsync<JsonElement>("/exercises", JsonOptions)).GetArrayLength();
+
+        // Act
+        var response = await client.PostAsJsonAsync("/exercises", ValidBody);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var after = (await Client.GetFromJsonAsync<JsonElement>("/exercises", JsonOptions)).GetArrayLength();
+        after.Should().Be(before);
+    }
+
+    [Fact]
+    public async Task Post_ShouldRejectATokenWhoseNonAdminUserNoLongerExistsAsUnauthorizedNotForbidden()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+        await Factory.RemoveUser(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/exercises", ValidBody);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
     [Theory]
     [InlineData(SeedCredentials.User)]
     [InlineData(SeedCredentials.Trainer)]
