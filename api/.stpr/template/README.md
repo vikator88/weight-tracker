@@ -34,7 +34,8 @@ When selecting a reference, first decide whether it is:
 | `Id` / `Email`          | `Shared value objects`                        | Shared identifier and business identifier used across modules             |
 | `WorkoutRepository`     | `Repository implementation`                   | Multi-table aggregate load, cross-aggregate reference by id               |
 | `WorkoutMapper`         | `Aggregate mapper`                            | MapToEntity / MapToDomain across three tables, discriminated value object  |
-| `WorkoutsController`    | `REST controller`                             | Authenticated endpoint, claims to use case, ExceptionMapper in catch      |
+| `WorkoutsController`    | `REST controller`                             | Authenticated endpoint, `CurrentUser` to use case, ExceptionMapper in catch |
+| `AuthorizedController`  | `Base controller`                             | Resolves the caller through a use case, 401 when the user no longer exists |
 | `ExceptionMapper`       | `Domain-to-HTTP error mapping`                | Single mapping point for custom exceptions                                |
 | `WorkoutEditAuthorizer` | `Business authorization service`              | The workout edit rule, shared by every use case that edits a workout      |
 | `Auth`                  | `Aggregate root plus use cases`               | JWT issuing plus persisted, rotating refresh tokens                       |
@@ -83,6 +84,7 @@ These are provided by the base project skeleton and should be read from the repo
 - `WorkoutMapper` -> `src/WeightTracker.Infra/Mappers/WorkoutMapper.cs`
 - `WeightTrackerDbContext` -> `src/WeightTracker.Infra/Persistence/WeightTrackerDbContext.cs`
 - `WorkoutsController` -> `src/WeightTracker.Api/Endpoints/Workouts`
+- `AuthorizedController` -> `src/WeightTracker.Api/Endpoints/AuthorizedController.cs`
 - `ExceptionMapper` -> `src/WeightTracker.Api/Common/ExceptionMapper.cs`
 - `WorkoutEditAuthorizer` -> `src/WeightTracker.Application/Services/WorkoutEditAuthorizer.cs`
 - `Auth` -> `src/WeightTracker.Domain/Auth`, `src/WeightTracker.Application/UseCases/Auth`, `src/WeightTracker.Infra/Services`
@@ -104,6 +106,7 @@ Rule:
 - If you need to create a new UseCase for read only, replicate the `ExerciseUseCase`
 - If you need a repository implementation or an aggregate mapper spanning several tables, replicate `WorkoutRepository` and `WorkoutMapper`
 - If you need a new endpoint, replicate `WorkoutsController`, and route every catch through `ExceptionMapper`
+- If a controller has protected routes, inherit `AuthorizedController` and read the caller from `CurrentUser`; never parse claims in the controller
 - If a use case edits an existing workout, call `WorkoutEditAuthorizer.EnsureCanEdit` before touching the aggregate, as `CreateSuperSeriesUseCase` does
 - If you need a new identifier or business identifier, reuse `Id` and `Email` from `Domain/Common` instead of adding a per-module value object
 - If you need a new table, replicate the migration shape in `src/WeightTracker.Migrations/Migrations`

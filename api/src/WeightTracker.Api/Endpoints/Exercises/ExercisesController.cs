@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WeightTracker.Api.Common;
 using WeightTracker.Api.Endpoints.Exercises.Dtos;
+using WeightTracker.Application.UseCases.Auth;
 using WeightTracker.Application.UseCases.Exercises;
 using WeightTracker.Domain.Common;
 using WeightTracker.Domain.Users;
@@ -12,19 +13,19 @@ namespace WeightTracker.Api.Endpoints.Exercises;
 /// Reading exercises is public. Creating, replacing and deleting them is reserved to admins.
 /// </summary>
 /// <remarks>
-/// Authorization is declared per action rather than on the class: an <c>[AllowAnonymous]</c>
-/// on the class would override the role requirement of the write actions.
+/// <see cref="AuthorizedController"/> requires authentication by default, so the public reads opt
+/// out with <c>[AllowAnonymous]</c> per action rather than on the class: an <c>[AllowAnonymous]</c>
+/// on the class would also skip the caller lookup and the <c>[RequireRole]</c> of the write actions.
 /// </remarks>
 [ApiController]
 [Route("exercises")]
-public class ExercisesController : ControllerBase
+public class ExercisesController : AuthorizedController
 {
     private readonly GetAllExercisesUseCase _getAll;
     private readonly GetExerciseByIdUseCase _getById;
     private readonly CreateExerciseUseCase _create;
     private readonly UpdateExerciseUseCase _update;
     private readonly DeleteExerciseUseCase _delete;
-    private readonly ExceptionMapper _exceptionMapper;
 
     public ExercisesController(
         GetAllExercisesUseCase getAll,
@@ -32,14 +33,14 @@ public class ExercisesController : ControllerBase
         CreateExerciseUseCase create,
         UpdateExerciseUseCase update,
         DeleteExerciseUseCase delete,
-        ExceptionMapper exceptionMapper)
+        GetAuthenticatedUserUseCase getAuthenticatedUser,
+        ExceptionMapper exceptionMapper) : base(getAuthenticatedUser, exceptionMapper)
     {
         _getAll = getAll;
         _getById = getById;
         _create = create;
         _update = update;
         _delete = delete;
-        _exceptionMapper = exceptionMapper;
     }
 
     [HttpGet]
@@ -55,7 +56,7 @@ public class ExercisesController : ControllerBase
         }
         catch (Exception exception)
         {
-            return _exceptionMapper.Map(exception);
+            return ExceptionMapper.Map(exception);
         }
     }
 
@@ -73,12 +74,12 @@ public class ExercisesController : ControllerBase
         }
         catch (Exception exception)
         {
-            return _exceptionMapper.Map(exception);
+            return ExceptionMapper.Map(exception);
         }
     }
 
     [HttpPost]
-    [Authorize(Roles = nameof(Role.ADMIN))]
+    [RequireRole(Role.ADMIN)]
     [ProducesResponseType<ExerciseResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -95,7 +96,7 @@ public class ExercisesController : ControllerBase
         }
         catch (Exception exception)
         {
-            return _exceptionMapper.Map(exception);
+            return ExceptionMapper.Map(exception);
         }
     }
 
@@ -103,7 +104,7 @@ public class ExercisesController : ControllerBase
     /// Replaces every attribute of an existing exercise. It never creates one.
     /// </summary>
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = nameof(Role.ADMIN))]
+    [RequireRole(Role.ADMIN)]
     [ProducesResponseType<ExerciseResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -120,12 +121,12 @@ public class ExercisesController : ControllerBase
         }
         catch (Exception exception)
         {
-            return _exceptionMapper.Map(exception);
+            return ExceptionMapper.Map(exception);
         }
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = nameof(Role.ADMIN))]
+    [RequireRole(Role.ADMIN)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -141,7 +142,7 @@ public class ExercisesController : ControllerBase
         }
         catch (Exception exception)
         {
-            return _exceptionMapper.Map(exception);
+            return ExceptionMapper.Map(exception);
         }
     }
 }

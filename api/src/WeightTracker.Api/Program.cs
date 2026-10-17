@@ -66,6 +66,7 @@ builder.Services.AddScoped<BreakSuperSeriesUseCase>();
 builder.Services.AddScoped<LoginUseCase>();
 builder.Services.AddScoped<SignupUseCase>();
 builder.Services.AddScoped<RefreshTokenUseCase>();
+builder.Services.AddScoped<GetAuthenticatedUserUseCase>();
 
 builder.Services.AddScoped<DatabaseSeeder>();
 builder.Services.AddScoped<ExceptionMapper>();

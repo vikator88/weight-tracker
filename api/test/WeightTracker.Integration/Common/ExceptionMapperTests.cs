@@ -26,6 +26,19 @@ public class ExceptionMapperTests
     }
 
     [Fact]
+    public void Map_ShouldReturnUnauthorizedWhenTheAuthenticatedUserNoLongerExists()
+    {
+        // Arrange
+        var exception = new AuthenticatedUserNotFoundException();
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status401Unauthorized);
+    }
+
+    [Fact]
     public void Map_ShouldReturnBadRequestForAnInvalidExerciseName()
     {
         // Arrange

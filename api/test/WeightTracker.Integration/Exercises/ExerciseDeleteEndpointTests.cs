@@ -37,6 +37,37 @@ public class ExerciseDeleteEndpointTests : IntegrationTest
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task Delete_ShouldRejectATokenWhoseAdminNoLongerExistsAndDeleteNothing()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Admin);
+        await Factory.RemoveUser(SeedCredentials.Admin);
+
+        // Act
+        var response = await client.DeleteAsync(Route(SeedData.CurlBicepsId));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        var stored = await Client.GetAsync(Route(SeedData.CurlBicepsId));
+        stored.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Delete_ShouldRejectATokenWhoseNonAdminUserNoLongerExistsAsUnauthorizedNotForbidden()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+        await Factory.RemoveUser(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.DeleteAsync(Route(SeedData.CurlBicepsId));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
     [Theory]
     [InlineData(SeedCredentials.User)]
     [InlineData(SeedCredentials.Trainer)]

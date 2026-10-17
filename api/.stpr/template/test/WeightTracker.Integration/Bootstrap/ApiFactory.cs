@@ -114,6 +114,28 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await scope.ServiceProvider.GetRequiredService<DatabaseSeeder>().Seed(CancellationToken.None);
     }
 
+    /// <summary>
+    /// Deletes a seeded user, and the workouts they own or prescribe, so a test can exercise a
+    /// token whose user no longer exists. No endpoint removes users. The next
+    /// <see cref="ResetDatabase"/> restores the baseline.
+    /// </summary>
+    public async Task RemoveUser(string email)
+    {
+        using var scope = Services.CreateScope();
+
+        var context = scope.ServiceProvider.GetRequiredService<WeightTrackerDbContext>();
+
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            DELETE FROM workouts
+            WHERE user_id IN (SELECT id FROM users WHERE email = {email.ToLowerInvariant()})
+               OR trainer_id IN (SELECT id FROM users WHERE email = {email.ToLowerInvariant()})
+            """);
+
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"DELETE FROM users WHERE email = {email.ToLowerInvariant()}");
+    }
+
     // Removing the container drops the database with it, so the next run starts fresh
     async Task IAsyncLifetime.DisposeAsync() => await _postgres.DisposeAsync();
 }

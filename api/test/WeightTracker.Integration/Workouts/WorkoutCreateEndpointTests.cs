@@ -77,6 +77,24 @@ public class WorkoutCreateEndpointTests : IntegrationTest
     }
 
     [Fact]
+    public async Task Post_ShouldRejectATokenWhoseUserNoLongerExistsAndCreateNothing()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.User);
+        await Factory.RemoveUser(SeedCredentials.User);
+        var admin = await AuthenticatedClientFor(SeedCredentials.Admin);
+        var before = (await admin.GetFromJsonAsync<JsonElement>("/workouts", JsonOptions)).GetArrayLength();
+
+        // Act
+        var response = await client.PostAsJsonAsync("/workouts", new { workoutDate = Date });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var after = (await admin.GetFromJsonAsync<JsonElement>("/workouts", JsonOptions)).GetArrayLength();
+        after.Should().Be(before);
+    }
+
+    [Fact]
     public async Task Post_ShouldCreateTheWorkoutForTheCallerWhenAUserSendsOnlyTheDate()
     {
         // Arrange

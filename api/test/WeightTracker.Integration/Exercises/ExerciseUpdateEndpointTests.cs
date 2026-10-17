@@ -42,6 +42,37 @@ public class ExerciseUpdateEndpointTests : IntegrationTest
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task Put_ShouldRejectATokenWhoseAdminNoLongerExistsAndChangeNothing()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Admin);
+        await Factory.RemoveUser(SeedCredentials.Admin);
+
+        // Act
+        var response = await client.PutAsJsonAsync(Route(SeedData.SentadillaId), ValidBody);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        var stored = await Client.GetFromJsonAsync<JsonElement>(Route(SeedData.SentadillaId), JsonOptions);
+        stored.GetProperty("name").GetString().Should().Be("Sentadilla");
+    }
+
+    [Fact]
+    public async Task Put_ShouldRejectATokenWhoseNonAdminUserNoLongerExistsAsUnauthorizedNotForbidden()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+        await Factory.RemoveUser(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.PutAsJsonAsync(Route(SeedData.SentadillaId), ValidBody);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
     [Theory]
     [InlineData(SeedCredentials.User)]
     [InlineData(SeedCredentials.Trainer)]
