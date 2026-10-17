@@ -5,6 +5,7 @@ using WeightTracker.Api.Common;
 using WeightTracker.Api.Endpoints.Workouts.Dtos;
 using WeightTracker.Application.UseCases.Workouts;
 using WeightTracker.Domain.Common;
+using WeightTracker.Domain.Exercises;
 using WeightTracker.Domain.Users;
 
 namespace WeightTracker.Api.Endpoints.Workouts;
@@ -15,17 +16,20 @@ namespace WeightTracker.Api.Endpoints.Workouts;
 public class WorkoutsController : ControllerBase
 {
     private readonly GetAllWorkoutsUseCase _getAllWorkouts;
+    private readonly CreateWorkoutUseCase _createWorkout;
     private readonly CreateSuperSeriesUseCase _createSuperSeries;
     private readonly BreakSuperSeriesUseCase _breakSuperSeries;
     private readonly ExceptionMapper _exceptionMapper;
 
     public WorkoutsController(
         GetAllWorkoutsUseCase getAllWorkouts,
+        CreateWorkoutUseCase createWorkout,
         CreateSuperSeriesUseCase createSuperSeries,
         BreakSuperSeriesUseCase breakSuperSeries,
         ExceptionMapper exceptionMapper)
     {
         _getAllWorkouts = getAllWorkouts;
+        _createWorkout = createWorkout;
         _createSuperSeries = createSuperSeries;
         _breakSuperSeries = breakSuperSeries;
         _exceptionMapper = exceptionMapper;
@@ -49,6 +53,43 @@ public class WorkoutsController : ControllerBase
             var result = await _getAllWorkouts.Execute(callerId!, callerRole, cancellationToken);
 
             return Ok(result.Workouts.Select(workout => WorkoutResponse.From(workout, result.Exercises)).ToList());
+        }
+        catch (Exception exception)
+        {
+            return _exceptionMapper.Map(exception);
+        }
+    }
+
+    /// <summary>
+    /// Creates a workout. A user creates it for themselves, a trainer prescribes it to a user
+    /// (<c>userId</c> required) and an admin creates it for another user (<c>userId</c> required)
+    /// and may set <c>trainerId</c>.
+    /// </summary>
+    /// <remarks>
+    /// There is no route that reads a single workout, so the response carries no <c>Location</c>.
+    /// </remarks>
+    [HttpPost]
+    [ProducesResponseType<WorkoutResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Create([FromBody] CreateWorkoutRequest request, CancellationToken cancellationToken)
+    {
+        if (TryReadCaller(out var callerId, out var callerRole) == false)
+            return Unauthorized();
+
+        try
+        {
+            var workout = await _createWorkout.Execute(
+                callerId!,
+                callerRole,
+                request.UserId is null ? null : Id.From(request.UserId.Value),
+                request.TrainerId is null ? null : Id.From(request.TrainerId.Value),
+                request.WorkoutDate!.Value.ToDateTime(TimeOnly.MinValue),
+                cancellationToken);
+
+            return StatusCode(StatusCodes.Status201Created, WorkoutResponse.From(workout, new Dictionary<Id, Exercise>()));
         }
         catch (Exception exception)
         {
