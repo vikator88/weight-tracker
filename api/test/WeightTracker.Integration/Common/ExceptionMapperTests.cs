@@ -182,6 +182,19 @@ public class ExceptionMapperTests
     }
 
     [Fact]
+    public void Map_ShouldReturnBadRequestForAnInvalidWorkoutAssignment()
+    {
+        // Arrange
+        var exception = new InvalidWorkoutAssignmentException("Only an admin can set the trainer of a workout");
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
     public void Map_ShouldReturnNotFoundForAnUnknownSuperSeries()
     {
         // Arrange

@@ -39,6 +39,7 @@ public class ExceptionMapper
             or SuperSeriesRequiresTwoExercisesException
             or DuplicateExerciseInSuperSeriesException
             or SuperSeriesSetCountMismatchException
+            or InvalidWorkoutAssignmentException
             or PasswordNotStrongEnoughException => Problem(
                 StatusCodes.Status400BadRequest,
                 exception.Message

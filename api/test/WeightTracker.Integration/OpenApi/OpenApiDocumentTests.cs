@@ -147,6 +147,20 @@ public class OpenApiDocumentTests : IntegrationTest
     }
 
     [Fact]
+    public async Task CreateWorkout_ShouldDocumentItsSecurityAndResponses()
+    {
+        // Arrange & Act
+        var document = await Document();
+
+        // Assert
+        var operation = Operation(document, "/workouts", "post");
+
+        operation.GetProperty("security")[0].TryGetProperty("Bearer", out _).Should().BeTrue();
+        operation.GetProperty("responses").EnumerateObject().Select(property => property.Name)
+            .Should().Contain(["201", "400", "401", "403", "404"]);
+    }
+
+    [Fact]
     public async Task Login_ShouldDocumentItsResponses()
     {
         // Arrange & Act
