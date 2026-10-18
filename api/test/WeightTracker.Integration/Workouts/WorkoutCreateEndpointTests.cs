@@ -114,6 +114,24 @@ public class WorkoutCreateEndpointTests : IntegrationTest
     }
 
     [Fact]
+    public async Task Post_ShouldPointLocationAtTheNewWorkout()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/workouts", new { workoutDate = Date });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var id = (await BodyOf(response)).GetProperty("id").GetGuid();
+        response.Headers.Location!.AbsolutePath.Should().Be($"/workouts/{id}");
+        var followed = await client.GetAsync(response.Headers.Location);
+        followed.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await BodyOf(followed)).GetProperty("id").GetGuid().Should().Be(id);
+    }
+
+    [Fact]
     public async Task Post_ShouldAcceptTheCallersOwnIdWhenAUserSendsIt()
     {
         // Arrange

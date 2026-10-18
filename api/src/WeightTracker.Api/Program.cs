@@ -60,6 +60,7 @@ builder.Services.AddScoped<CreateExerciseUseCase>();
 builder.Services.AddScoped<UpdateExerciseUseCase>();
 builder.Services.AddScoped<DeleteExerciseUseCase>();
 builder.Services.AddScoped<GetAllWorkoutsUseCase>();
+builder.Services.AddScoped<GetWorkoutByIdUseCase>();
 builder.Services.AddScoped<CreateWorkoutUseCase>();
 builder.Services.AddScoped<CreateSuperSeriesUseCase>();
 builder.Services.AddScoped<BreakSuperSeriesUseCase>();

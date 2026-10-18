@@ -13,12 +13,14 @@ namespace WeightTracker.Api.Endpoints.Workouts;
 public class WorkoutsController : AuthorizedController
 {
     private readonly GetAllWorkoutsUseCase _getAllWorkouts;
+    private readonly GetWorkoutByIdUseCase _getWorkoutById;
     private readonly CreateWorkoutUseCase _createWorkout;
     private readonly CreateSuperSeriesUseCase _createSuperSeries;
     private readonly BreakSuperSeriesUseCase _breakSuperSeries;
 
     public WorkoutsController(
         GetAllWorkoutsUseCase getAllWorkouts,
+        GetWorkoutByIdUseCase getWorkoutById,
         CreateWorkoutUseCase createWorkout,
         CreateSuperSeriesUseCase createSuperSeries,
         BreakSuperSeriesUseCase breakSuperSeries,
@@ -26,6 +28,7 @@ public class WorkoutsController : AuthorizedController
         ExceptionMapper exceptionMapper) : base(getAuthenticatedUser, exceptionMapper)
     {
         _getAllWorkouts = getAllWorkouts;
+        _getWorkoutById = getWorkoutById;
         _createWorkout = createWorkout;
         _createSuperSeries = createSuperSeries;
         _breakSuperSeries = breakSuperSeries;
@@ -54,12 +57,35 @@ public class WorkoutsController : AuthorizedController
     }
 
     /// <summary>
+    /// Reads one workout the caller is entitled to see. Catalog exercise data is not embedded:
+    /// entries carry the catalog <c>exerciseId</c> only.
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType<WorkoutDetailResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var workout = await _getWorkoutById.Execute(CurrentUser!.Id, CurrentUser.Role, Id.From(id), cancellationToken);
+
+            return Ok(WorkoutDetailResponse.From(workout));
+        }
+        catch (Exception exception)
+        {
+            return ExceptionMapper.Map(exception);
+        }
+    }
+
+    /// <summary>
     /// Creates a workout. A user creates it for themselves, a trainer prescribes it to a user
     /// (<c>userId</c> required) and an admin creates it for another user (<c>userId</c> required)
     /// and may set <c>trainerId</c>.
     /// </summary>
     /// <remarks>
-    /// There is no route that reads a single workout, so the response carries no <c>Location</c>.
+    /// The <c>Location</c> header points at <c>GET /workouts/{id}</c>.
     /// </remarks>
     [HttpPost]
     [ProducesResponseType<WorkoutResponse>(StatusCodes.Status201Created)]
@@ -79,7 +105,8 @@ public class WorkoutsController : AuthorizedController
                 request.WorkoutDate!.Value.ToDateTime(TimeOnly.MinValue),
                 cancellationToken);
 
-            return StatusCode(StatusCodes.Status201Created, WorkoutResponse.From(workout, new Dictionary<Id, Exercise>()));
+            return CreatedAtAction(
+                nameof(GetById), new { id = workout.Id.Value }, WorkoutResponse.From(workout, new Dictionary<Id, Exercise>()));
         }
         catch (Exception exception)
         {
