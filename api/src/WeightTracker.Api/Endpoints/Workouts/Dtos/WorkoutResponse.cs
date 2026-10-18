@@ -25,6 +25,45 @@ public sealed record WorkoutResponse(
                 .ToList());
 }
 
+/// <summary>
+/// A single workout as read by id. Entries reference the catalog exercise by <c>ExerciseId</c> only:
+/// the client already holds the catalog, so no exercise data is embedded.
+/// </summary>
+public sealed record WorkoutDetailResponse(
+    Guid Id,
+    DateOnly WorkoutDate,
+    Guid UserId,
+    Guid? TrainerId,
+    IReadOnlyList<WorkoutExerciseDetailResponse> Exercises)
+{
+    public static WorkoutDetailResponse From(Workout workout)
+        => new(
+            workout.Id.Value,
+            DateOnly.FromDateTime(workout.WorkoutDate),
+            workout.UserId.Value,
+            workout.TrainerId?.Value,
+            workout.Exercises.Select(WorkoutExerciseDetailResponse.From).ToList());
+}
+
+/// <param name="Id">Identifier of this entry of the workout.</param>
+/// <param name="ExerciseId">Identifier of the catalog exercise performed in this entry.</param>
+/// <param name="SuperSeriesId">Superseries this entry belongs to, <c>null</c> when it is performed on its own.</param>
+public sealed record WorkoutExerciseDetailResponse(
+    Guid Id,
+    Guid ExerciseId,
+    string Effort,
+    IReadOnlyList<SetResponse> Sets,
+    int? SuperSeriesId)
+{
+    public static WorkoutExerciseDetailResponse From(WorkoutExercise entry)
+        => new(
+            entry.Id.Value,
+            entry.ExerciseId.Value,
+            entry.Effort.ToString(),
+            entry.Sets.Select(SetResponse.From).ToList(),
+            entry.SuperSeriesId?.Value);
+}
+
 /// <param name="Id">Identifier of this entry of the workout, used to address it (for example to group it in a superseries).</param>
 /// <param name="ExerciseId">Identifier of the catalog exercise performed in this entry.</param>
 /// <param name="SuperSeriesId">Superseries this entry belongs to, <c>null</c> when it is performed on its own.</param>
