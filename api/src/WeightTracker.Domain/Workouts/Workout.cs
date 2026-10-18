@@ -99,6 +99,33 @@ public sealed class Workout : AggregateRoot
         _exercises.Add(WorkoutExercise.Create(exerciseId, effort, sets));
     }
 
+    /// <summary>
+    /// Replaces the effort and every set prescription of an exercise. The entry keeps its identifier,
+    /// position and superseries.
+    /// </summary>
+    /// <exception cref="ExerciseNotInWorkoutException">When the exercise is not in the workout.</exception>
+    /// <exception cref="SuperSeriesSetCountMismatchException">When the entry is in a superseries and the new total of sets differs from the other members.</exception>
+    /// <exception cref="InvalidEffortException">When the effort is not a defined value.</exception>
+    /// <exception cref="WorkoutExerciseRequiresSetsException">When no set prescription is given.</exception>
+    public void UpdateExercise(Id exerciseId, Effort effort, IEnumerable<SetPrescription> sets)
+    {
+        var entry = _exercises.FirstOrDefault(item => item.ExerciseId == exerciseId)
+            ?? throw new ExerciseNotInWorkoutException(exerciseId, this.Id);
+
+        var prescriptions = sets.ToList();
+
+        if (entry.SuperSeriesId is not null)
+        {
+            var newTotal = prescriptions.Sum(set => set.count);
+            var others = _exercises.Where(item => item.SuperSeriesId == entry.SuperSeriesId && item != entry);
+
+            if (others.Any(other => other.TotalSets != newTotal))
+                throw new SuperSeriesSetCountMismatchException(this.Id);
+        }
+
+        entry.Replace(effort, prescriptions);
+    }
+
     /// <exception cref="ExerciseNotInWorkoutException">When the exercise is not in the workout.</exception>
     public void RemoveExercise(Id exerciseId)
     {

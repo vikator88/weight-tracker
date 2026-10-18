@@ -32,12 +32,17 @@ The request SHALL carry `workoutDate` as a calendar date. A request without it, 
 - **THEN** the response body's `workoutDate` is `2026-10-20`
 
 ### Requirement: Creation returns the new workout
-A successful creation SHALL respond `201 Created` with the new workout: a server-generated `id`, `workoutDate`, `userId`, `trainerId` (or `null`) and an empty `exercises` list. The new workout SHALL be visible through `GET /workouts` to its owner, its trainer when set, and admins.
+A successful creation SHALL respond `201 Created` with the new workout: a server-generated `id`, `workoutDate`, `userId`, `trainerId` (or `null`) and an empty `exercises` list. The response SHALL carry a `Location` header with the URL of `GET /workouts/{id}` for the new workout. The new workout SHALL be visible through `GET /workouts` to its owner, its trainer when set, and admins.
 
 #### Scenario: Created workout is readable
 - **WHEN** a caller creates a workout successfully
 - **THEN** the response is `201 Created` with the workout and an empty `exercises` list
 - **AND** `GET /workouts` by the owner includes a workout with that `id`
+
+#### Scenario: Location points at the new workout
+- **WHEN** a caller creates a workout successfully
+- **THEN** the `Location` header ends with `/workouts/{id}` of the created workout
+- **AND** following it as the same caller returns `200 OK` with that workout
 
 ### Requirement: A regular user creates only their own workout
 When the caller has the `USER` role, the system SHALL make the caller the owner and leave the trainer empty. `userId` MAY be omitted or equal to the caller. A different `userId` or any `trainerId` SHALL be rejected with `400 Bad Request`.

@@ -17,6 +17,9 @@ public class WorkoutsController : AuthorizedController
     private readonly CreateWorkoutUseCase _createWorkout;
     private readonly CreateSuperSeriesUseCase _createSuperSeries;
     private readonly BreakSuperSeriesUseCase _breakSuperSeries;
+    private readonly AddWorkoutExerciseUseCase _addExercise;
+    private readonly UpdateWorkoutExerciseUseCase _updateExercise;
+    private readonly RemoveWorkoutExerciseUseCase _removeExercise;
 
     public WorkoutsController(
         GetAllWorkoutsUseCase getAllWorkouts,
@@ -24,6 +27,9 @@ public class WorkoutsController : AuthorizedController
         CreateWorkoutUseCase createWorkout,
         CreateSuperSeriesUseCase createSuperSeries,
         BreakSuperSeriesUseCase breakSuperSeries,
+        AddWorkoutExerciseUseCase addExercise,
+        UpdateWorkoutExerciseUseCase updateExercise,
+        RemoveWorkoutExerciseUseCase removeExercise,
         GetAuthenticatedUserUseCase getAuthenticatedUser,
         ExceptionMapper exceptionMapper) : base(getAuthenticatedUser, exceptionMapper)
     {
@@ -32,6 +38,9 @@ public class WorkoutsController : AuthorizedController
         _createWorkout = createWorkout;
         _createSuperSeries = createSuperSeries;
         _breakSuperSeries = breakSuperSeries;
+        _addExercise = addExercise;
+        _updateExercise = updateExercise;
+        _removeExercise = removeExercise;
     }
 
     /// <summary>
@@ -163,6 +172,100 @@ public class WorkoutsController : AuthorizedController
         try
         {
             await _breakSuperSeries.Execute(CurrentUser!.Id, CurrentUser.Role, Id.From(workoutId), superSeriesId, cancellationToken);
+
+            return NoContent();
+        }
+        catch (Exception exception)
+        {
+            return ExceptionMapper.Map(exception);
+        }
+    }
+
+    /// <summary>
+    /// Appends a catalog exercise to the workout with an effort and its set prescriptions.
+    /// A catalog exercise can appear once per workout.
+    /// </summary>
+    /// <remarks>
+    /// The <c>Location</c> header points at <c>GET /workouts/{id}</c>, since entries have no route of their own.
+    /// </remarks>
+    [HttpPost("{workoutId:guid}/exercises")]
+    [ProducesResponseType<WorkoutExerciseDetailResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AddExercise(
+        Guid workoutId, [FromBody] AddOrUpdateExerciseRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var entry = await _addExercise.Execute(
+                CurrentUser!.Id,
+                CurrentUser.Role,
+                Id.From(workoutId),
+                Id.From(request.ExerciseId!.Value),
+                request.Effort!.Value,
+                request.Sets!.Select(set => set.ToDomain()).ToList(),
+                cancellationToken);
+
+            return CreatedAtAction(nameof(GetById), new { id = workoutId }, WorkoutExerciseDetailResponse.From(entry));
+        }
+        catch (Exception exception)
+        {
+            return ExceptionMapper.Map(exception);
+        }
+    }
+
+    /// <summary>
+    /// Replaces the effort and every set prescription of an exercise of the workout. <c>exerciseId</c> is the
+    /// catalog exercise, not the workout entry id, and the body must name the same one.
+    /// </summary>
+    [HttpPut("{workoutId:guid}/exercises/{exerciseId:guid}")]
+    [ProducesResponseType<WorkoutExerciseDetailResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateExercise(
+        Guid workoutId, Guid exerciseId, [FromBody] AddOrUpdateExerciseRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var entry = await _updateExercise.Execute(
+                CurrentUser!.Id,
+                CurrentUser.Role,
+                Id.From(workoutId),
+                Id.From(exerciseId),
+                Id.From(request.ExerciseId!.Value),
+                request.Effort!.Value,
+                request.Sets!.Select(set => set.ToDomain()).ToList(),
+                cancellationToken);
+
+            return Ok(WorkoutExerciseDetailResponse.From(entry));
+        }
+        catch (Exception exception)
+        {
+            return ExceptionMapper.Map(exception);
+        }
+    }
+
+    /// <summary>
+    /// Removes an exercise, and its set prescriptions, from the workout. <c>exerciseId</c> is the catalog
+    /// exercise, not the workout entry id.
+    /// </summary>
+    [HttpDelete("{workoutId:guid}/exercises/{exerciseId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemoveExercise(
+        Guid workoutId, Guid exerciseId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _removeExercise.Execute(CurrentUser!.Id, CurrentUser.Role, Id.From(workoutId), Id.From(exerciseId), cancellationToken);
 
             return NoContent();
         }

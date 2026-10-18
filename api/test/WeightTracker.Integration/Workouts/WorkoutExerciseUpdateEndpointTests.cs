@@ -1,0 +1,293 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using FluentAssertions;
+using WeightTracker.Infra.Seed;
+using WeightTracker.Integration.Bootstrap;
+using Xunit;
+
+namespace WeightTracker.Integration.Workouts;
+
+/// <summary>
+/// Covers <c>PUT /workouts/{workoutId}/exercises/{exerciseId}</c>, including every branch of the
+/// workout edit rule reachable with the seeded users. A second trainer on a prescribed workout is covered by unit tests.
+/// </summary>
+public class WorkoutExerciseUpdateEndpointTests : WorkoutExerciseEndpointTest
+{
+    public WorkoutExerciseUpdateEndpointTests(ApiFactory factory) : base(factory)
+    { }
+
+    /// <summary>Sentadilla in the trained workout is seeded as 5 x 5 reps, MIDHIGH, in first position.</summary>
+    private static object ASentadillaUpdate() => Body(SeedData.SentadillaId, "HIGH", Reps(2, 12), Sets(1, "MaxReps"));
+
+    [Fact]
+    public async Task Put_ShouldRejectAnonymousCallers()
+    {
+        // Arrange & Act
+        var response = await Client.PutAsJsonAsync(ExerciseRoute(SeedData.TrainedWorkoutId, SeedData.SentadillaId), ASentadillaUpdate());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Put_ShouldRejectAGarbageToken()
+    {
+        // Arrange
+        Client.DefaultRequestHeaders.Add("Authorization", "Bearer not-a-real-token");
+
+        // Act
+        var response = await Client.PutAsJsonAsync(ExerciseRoute(SeedData.TrainedWorkoutId, SeedData.SentadillaId), ASentadillaUpdate());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Put_ShouldRejectATokenWhoseUserNoLongerExists()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+        await Factory.RemoveUser(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.PutAsJsonAsync(ExerciseRoute(SeedData.TrainedWorkoutId, SeedData.SentadillaId), ASentadillaUpdate());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Put_ShouldReplaceEffortAndEverySetKeepingTheEntryIdAndPositionForThePrescribingTrainer()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.PutAsJsonAsync(ExerciseRoute(SeedData.TrainedWorkoutId, SeedData.SentadillaId), ASentadillaUpdate());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var updated = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        updated.GetProperty("id").GetGuid().Should().Be(SeedData.TrainedSentadillaEntryId);
+        updated.GetProperty("effort").GetString().Should().Be("HIGH");
+        var entries = await EntriesOf(SeedData.TrainedWorkoutId);
+        ExerciseIds(entries).Should().Equal(SeedData.SentadillaId, SeedData.PlanchaId);
+        entries[0].GetProperty("id").GetGuid().Should().Be(SeedData.TrainedSentadillaEntryId);
+        entries[0].GetProperty("effort").GetString().Should().Be("HIGH");
+        SetsOf(entries[0]).Should().Equal((2, "Reps", (int?)12), (1, "MaxReps", (int?)null));
+        SetsOf(entries[1]).Should().Equal((3, "Duration", (int?)40));
+    }
+
+    [Fact]
+    public async Task Put_ShouldReplaceTheStoredSetRowsEvenWhenOnlyTheEffortChanges()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+        var before = await StoredSetRowIds(SeedData.TrainedSentadillaEntryId);
+
+        // Act
+        var response = await client.PutAsJsonAsync(
+            ExerciseRoute(SeedData.TrainedWorkoutId, SeedData.SentadillaId), Body(SeedData.SentadillaId, "LOW", Reps(5, 5)));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await StoredSetRowIds(SeedData.TrainedSentadillaEntryId);
+        before.Should().ContainSingle();
+        after.Should().ContainSingle();
+        after.Should().NotIntersectWith(before);
+        var entry = (await EntriesOf(SeedData.TrainedWorkoutId))[0];
+        entry.GetProperty("effort").GetString().Should().Be("LOW");
+        SetsOf(entry).Should().Equal((5, "Reps", (int?)5));
+    }
+
+    [Fact]
+    public async Task Put_ShouldLeaveExactlyTheNewSetRowsWhenThereAreMoreOfThemThanBefore()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+        var before = await StoredSetRowIds(SeedData.TrainedSentadillaEntryId);
+
+        // Act
+        var response = await client.PutAsJsonAsync(
+            ExerciseRoute(SeedData.TrainedWorkoutId, SeedData.SentadillaId), Body(SeedData.SentadillaId, "MID", Reps(2, 8), Reps(2, 6), Sets(1, "MaxReps")));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await StoredSetRowIds(SeedData.TrainedSentadillaEntryId);
+        after.Should().HaveCount(3);
+        after.Should().NotIntersectWith(before);
+    }
+
+    [Fact]
+    public async Task Put_ShouldUpdateTheExerciseForTheOwnerOfASelfCreatedWorkout()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await client.PutAsJsonAsync(
+            ExerciseRoute(SeedData.OwnedWorkoutId, SeedData.PressBancaId), Body(SeedData.PressBancaId, "LOW", Reps(3, 15)));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        SetsOf((await EntriesOf(SeedData.OwnedWorkoutId))[0]).Should().Equal((3, "Reps", (int?)15));
+    }
+
+    [Fact]
+    public async Task Put_ShouldUpdateTheExerciseForAnAdmin()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Admin);
+
+        // Act
+        var response = await client.PutAsJsonAsync(ExerciseRoute(SeedData.TrainedWorkoutId, SeedData.SentadillaId), ASentadillaUpdate());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Put_ShouldForbidTheOwnerOfAPrescribedWorkoutAndChangeNothing()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await client.PutAsJsonAsync(ExerciseRoute(SeedData.TrainedWorkoutId, SeedData.SentadillaId), ASentadillaUpdate());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        var entry = (await EntriesOf(SeedData.TrainedWorkoutId))[0];
+        entry.GetProperty("effort").GetString().Should().Be("MIDHIGH");
+        SetsOf(entry).Should().Equal((5, "Reps", (int?)5));
+    }
+
+    [Fact]
+    public async Task Put_ShouldForbidATrainerOnASelfCreatedWorkoutTheyDoNotOwnAndChangeNothing()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.PutAsJsonAsync(
+            ExerciseRoute(SeedData.OwnedWorkoutId, SeedData.PressBancaId), Body(SeedData.PressBancaId, "LOW", Reps(3, 15)));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        SetsOf((await EntriesOf(SeedData.OwnedWorkoutId))[0]).Should().Equal((4, "Reps", (int?)10));
+    }
+
+    [Fact]
+    public async Task Put_ShouldReturnNotFoundForAnUnknownWorkout()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Admin);
+
+        // Act
+        var response = await client.PutAsJsonAsync(ExerciseRoute(Guid.NewGuid(), SeedData.SentadillaId), ASentadillaUpdate());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Put_ShouldReturnNotFoundForAnExerciseNotInTheWorkout()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.PutAsJsonAsync(
+            ExerciseRoute(SeedData.TrainedWorkoutId, SeedData.CurlBicepsId), Body(SeedData.CurlBicepsId, "MID", Reps(3, 10)));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        ExerciseIds(await EntriesOf(SeedData.TrainedWorkoutId)).Should().Equal(SeedData.SentadillaId, SeedData.PlanchaId);
+    }
+
+    [Fact]
+    public async Task Put_ShouldRejectABodyThatNamesAnotherExerciseThanTheRouteAndChangeNothing()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.PutAsJsonAsync(
+            ExerciseRoute(SeedData.TrainedWorkoutId, SeedData.SentadillaId), Body(SeedData.PlanchaId, "LOW", Reps(3, 10)));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var entries = await EntriesOf(SeedData.TrainedWorkoutId);
+        ExerciseIds(entries).Should().Equal(SeedData.SentadillaId, SeedData.PlanchaId);
+        SetsOf(entries[0]).Should().Equal((5, "Reps", (int?)5));
+        SetsOf(entries[1]).Should().Equal((3, "Duration", (int?)40));
+    }
+
+    [Fact]
+    public async Task Put_ShouldRejectAMalformedBodyAndChangeNothing()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+        var before = await StoredSetRowIds(SeedData.TrainedSentadillaEntryId);
+
+        // Act
+        var response = await client.PutAsJsonAsync(
+            ExerciseRoute(SeedData.TrainedWorkoutId, SeedData.SentadillaId), Body(SeedData.SentadillaId, "HIGH"));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await StoredSetRowIds(SeedData.TrainedSentadillaEntryId)).Should().Equal(before);
+    }
+
+    [Fact]
+    public async Task Put_ShouldRejectAnUndefinedEffortAndChangeNothing()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.PutAsJsonAsync(
+            ExerciseRoute(SeedData.TrainedWorkoutId, SeedData.SentadillaId), Body(SeedData.SentadillaId, 9, Reps(5, 5)));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await EntriesOf(SeedData.TrainedWorkoutId))[0].GetProperty("effort").GetString().Should().Be("MIDHIGH");
+    }
+
+    [Fact]
+    public async Task Put_ShouldRejectANewTotalOfSetsInsideASuperSeriesAndChangeNothing()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.PutAsJsonAsync(
+            ExerciseRoute(SeedData.PrescribedSuperSeriesWorkoutId, SeedData.PressBancaId), Body(SeedData.PressBancaId, "LOW", Reps(4, 10)));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var entry = (await EntriesOf(SeedData.PrescribedSuperSeriesWorkoutId))[0];
+        entry.GetProperty("effort").GetString().Should().Be("HIGH");
+        entry.GetProperty("superSeriesId").GetInt32().Should().Be(SeedData.SeededSuperSeries);
+        SetsOf(entry).Should().Equal((3, "Reps", (int?)10));
+    }
+
+    [Fact]
+    public async Task Put_ShouldKeepTheSuperSeriesWhenTheTotalOfSetsIsTheSame()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.PutAsJsonAsync(
+            ExerciseRoute(SeedData.PrescribedSuperSeriesWorkoutId, SeedData.PressBancaId),
+            Body(SeedData.PressBancaId, "LOW", Reps(2, 8), Sets(1, "MaxReps")));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var entry = (await EntriesOf(SeedData.PrescribedSuperSeriesWorkoutId))[0];
+        entry.GetProperty("superSeriesId").GetInt32().Should().Be(SeedData.SeededSuperSeries);
+        SetsOf(entry).Should().Equal((2, "Reps", (int?)8), (1, "MaxReps", (int?)null));
+    }
+}

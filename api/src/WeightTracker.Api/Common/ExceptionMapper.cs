@@ -40,6 +40,9 @@ public class ExceptionMapper
             or DuplicateExerciseInSuperSeriesException
             or SuperSeriesSetCountMismatchException
             or InvalidWorkoutAssignmentException
+            or InvalidSetPrescriptionException
+            or WorkoutExerciseRequiresSetsException
+            or ExerciseIdMismatchException
             or PasswordNotStrongEnoughException => Problem(
                 StatusCodes.Status400BadRequest,
                 exception.Message
