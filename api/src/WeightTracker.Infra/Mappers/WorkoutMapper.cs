@@ -12,10 +12,6 @@ namespace WeightTracker.Infra.Mappers;
 /// </summary>
 public static class WorkoutMapper
 {
-    private const string RepsTarget = "Reps";
-    private const string DurationTarget = "Duration";
-    private const string MaxRepsTarget = "MaxReps";
-
     public static WorkoutEntity MapToEntity(Workout workout)
     {
         var entity = new WorkoutEntity
@@ -99,17 +95,17 @@ public static class WorkoutMapper
 
     private static (string TargetType, int? TargetValue) MapTargetToColumns(SetTarget target) => target switch
     {
-        SetTarget.Reps reps => (RepsTarget, reps.value),
-        SetTarget.Duration duration => (DurationTarget, duration.value),
-        SetTarget.MaxReps => (MaxRepsTarget, (int?)null),
+        SetTarget.Reps reps => (SetTargetTypes.Reps, reps.value),
+        SetTarget.Duration duration => (SetTargetTypes.Duration, duration.value),
+        SetTarget.MaxReps => (SetTargetTypes.MaxReps, (int?)null),
         _ => throw new PersistenceMappingException($"'{target.GetType().Name}' is not a known set target"),
     };
 
     private static SetTarget MapTargetToDomain(string targetType, int? targetValue) => targetType switch
     {
-        RepsTarget => new SetTarget.Reps(RequireValue(targetType, targetValue)),
-        DurationTarget => new SetTarget.Duration(RequireValue(targetType, targetValue)),
-        MaxRepsTarget => new SetTarget.MaxReps(),
+        SetTargetTypes.Reps => new SetTarget.Reps(RequireValue(targetType, targetValue)),
+        SetTargetTypes.Duration => new SetTarget.Duration(RequireValue(targetType, targetValue)),
+        SetTargetTypes.MaxReps => new SetTarget.MaxReps(),
         _ => throw new PersistenceMappingException($"'{targetType}' is not a known set target"),
     };
 

@@ -19,7 +19,7 @@ public sealed class WorkoutExercise : Entity
     /// </summary>
     public Id ExerciseId { get; }
 
-    public Effort Effort { get; }
+    public Effort Effort { get; private set; }
 
     /// <summary>
     /// Snapshot of the prescriptions, in the order they must be performed.
@@ -39,14 +39,13 @@ public sealed class WorkoutExercise : Entity
 
     private WorkoutExercise(Id id, Id exerciseId, Effort effort, IEnumerable<SetPrescription> sets, SuperSeriesId? superSeriesId, bool isNew)
     {
-        if (Enum.IsDefined(effort) == false)
-            throw new InvalidEffortException((int)effort);
+        var prescriptions = EnsureValid(effort, sets);
 
         this.Id = id;
         this.IsNew = isNew;
         ExerciseId = exerciseId;
         Effort = effort;
-        _sets = sets.ToList();
+        _sets = prescriptions;
         SuperSeriesId = superSeriesId;
     }
 
@@ -54,6 +53,7 @@ public sealed class WorkoutExercise : Entity
     /// Creates an entry that does not exist in the system yet.
     /// </summary>
     /// <exception cref="InvalidEffortException">When the effort is not a defined value.</exception>
+    /// <exception cref="WorkoutExerciseRequiresSetsException">When no set prescription is given.</exception>
     public static WorkoutExercise Create(Id exerciseId, Effort effort, IEnumerable<SetPrescription> sets)
         => new(Id.New(), exerciseId, effort, sets, superSeriesId: null, isNew: true);
 
@@ -68,6 +68,34 @@ public sealed class WorkoutExercise : Entity
         IEnumerable<SetPrescription> sets,
         SuperSeriesId? superSeriesId = null)
         => new(id, exerciseId, effort, sets, superSeriesId, isNew: false);
+
+    /// <summary>
+    /// Replaces the effort and every set prescription. Nothing changes when the new values are invalid.
+    /// Only <see cref="Workout"/> calls it, because changing the total of sets can break a superseries.
+    /// </summary>
+    /// <exception cref="InvalidEffortException">When the effort is not a defined value.</exception>
+    /// <exception cref="WorkoutExerciseRequiresSetsException">When no set prescription is given.</exception>
+    internal void Replace(Effort effort, IEnumerable<SetPrescription> sets)
+    {
+        var prescriptions = EnsureValid(effort, sets);
+
+        Effort = effort;
+        _sets.Clear();
+        _sets.AddRange(prescriptions);
+    }
+
+    private static List<SetPrescription> EnsureValid(Effort effort, IEnumerable<SetPrescription> sets)
+    {
+        if (Enum.IsDefined(effort) == false)
+            throw new InvalidEffortException((int)effort);
+
+        var prescriptions = sets.ToList();
+
+        if (prescriptions.Count == 0)
+            throw new WorkoutExerciseRequiresSetsException();
+
+        return prescriptions;
+    }
 
     internal void JoinSuperSeries(SuperSeriesId superSeriesId) => SuperSeriesId = superSeriesId;
 

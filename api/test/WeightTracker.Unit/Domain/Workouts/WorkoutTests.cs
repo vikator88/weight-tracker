@@ -173,6 +173,157 @@ public class WorkoutTests
     }
 
     [Fact]
+    public void RemoveExercise_ShouldNotLeaveItsSetsBehindWhenTheExerciseIsAddedAgain()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var exerciseId = Id.New();
+        workout.AddExercise(exerciseId, Effort.MID, [FourByTen, ThreeByTen]);
+        workout.RemoveExercise(exerciseId);
+
+        // Act
+        workout.AddExercise(exerciseId, Effort.LOW, [ThreeByTen]);
+
+        // Assert
+        workout.Exercises.Should().ContainSingle()
+            .Which.Sets.Should().Equal(ThreeByTen);
+    }
+
+    [Fact]
+    public void UpdateExercise_ShouldReplaceTheEffortAndEverySet()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var exerciseId = Id.New();
+        workout.AddExercise(exerciseId, Effort.MID, [FourByTen, ThreeByTen]);
+        var twoByTwelve = new SetPrescription(2, new SetTarget.Reps(12));
+        var oneMax = new SetPrescription(1, new SetTarget.MaxReps());
+
+        // Act
+        workout.UpdateExercise(exerciseId, Effort.HIGH, [twoByTwelve, oneMax]);
+
+        // Assert
+        var entry = workout.Exercises.Single();
+        entry.Effort.Should().Be(Effort.HIGH);
+        entry.Sets.Should().Equal(twoByTwelve, oneMax);
+    }
+
+    [Fact]
+    public void UpdateExercise_ShouldKeepTheEntryIdPositionAndSuperSeries()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var first = Id.New();
+        var second = Id.New();
+        var third = Id.New();
+        workout.AddExercise(first, Effort.MID, [FourByTen]);
+        workout.AddExercise(second, Effort.MID, [FourByTen]);
+        workout.AddExercise(third, Effort.MID, [FourByTen]);
+        var secondEntryId = EntryOf(workout, second);
+        var superSeriesId = workout.CreateSuperSeries([EntryOf(workout, first), secondEntryId]);
+
+        // Act
+        workout.UpdateExercise(second, Effort.LOW, [new SetPrescription(2, new SetTarget.Reps(8)), new SetPrescription(2, new SetTarget.Reps(6))]);
+
+        // Assert
+        workout.Exercises.Select(entry => entry.ExerciseId).Should().Equal(first, second, third);
+        workout.Exercises[1].Id.Should().Be(secondEntryId);
+        workout.Exercises[1].SuperSeriesId.Should().Be(superSeriesId);
+    }
+
+    [Fact]
+    public void UpdateExercise_ShouldRejectAnExerciseNotInTheWorkout()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+
+        // Act
+        var act = () => workout.UpdateExercise(Id.New(), Effort.MID, [FourByTen]);
+
+        // Assert
+        act.Should().Throw<ExerciseNotInWorkoutException>();
+    }
+
+    [Fact]
+    public void UpdateExercise_ShouldRejectANewTotalOfSetsInsideASuperSeriesAndChangeNothing()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var first = Id.New();
+        var second = Id.New();
+        workout.AddExercise(first, Effort.MID, [FourByTen]);
+        workout.AddExercise(second, Effort.MID, [FourByTen]);
+        workout.CreateSuperSeries([EntryOf(workout, first), EntryOf(workout, second)]);
+
+        // Act
+        var act = () => workout.UpdateExercise(first, Effort.HIGH, [ThreeByTen]);
+
+        // Assert
+        act.Should().Throw<SuperSeriesSetCountMismatchException>();
+        var entry = workout.Exercises.Single(item => item.ExerciseId == first);
+        entry.Effort.Should().Be(Effort.MID);
+        entry.Sets.Should().Equal(FourByTen);
+        entry.SuperSeriesId.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void UpdateExercise_ShouldAcceptADifferentPrescriptionWithTheSameTotalInsideASuperSeries()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var first = Id.New();
+        var second = Id.New();
+        workout.AddExercise(first, Effort.MID, [FourByTen]);
+        workout.AddExercise(second, Effort.MID, [FourByTen]);
+        var superSeriesId = workout.CreateSuperSeries([EntryOf(workout, first), EntryOf(workout, second)]);
+        var twoPlusTwo = new[] { new SetPrescription(2, new SetTarget.Reps(12)), new SetPrescription(2, new SetTarget.Duration(30)) };
+
+        // Act
+        workout.UpdateExercise(first, Effort.HIGH, twoPlusTwo);
+
+        // Assert
+        var entry = workout.Exercises.Single(item => item.ExerciseId == first);
+        entry.Sets.Should().Equal(twoPlusTwo);
+        entry.SuperSeriesId.Should().Be(superSeriesId);
+    }
+
+    [Fact]
+    public void UpdateExercise_ShouldRejectAnUndefinedEffortAndChangeNothing()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var exerciseId = Id.New();
+        workout.AddExercise(exerciseId, Effort.MID, [FourByTen]);
+
+        // Act
+        var act = () => workout.UpdateExercise(exerciseId, (Effort)9, [ThreeByTen]);
+
+        // Assert
+        act.Should().Throw<InvalidEffortException>();
+        var entry = workout.Exercises.Single();
+        entry.Effort.Should().Be(Effort.MID);
+        entry.Sets.Should().Equal(FourByTen);
+    }
+
+    [Fact]
+    public void UpdateExercise_ShouldRejectEmptySetsAndChangeNothing()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var exerciseId = Id.New();
+        workout.AddExercise(exerciseId, Effort.MID, [FourByTen]);
+
+        // Act
+        var act = () => workout.UpdateExercise(exerciseId, Effort.HIGH, []);
+
+        // Assert
+        act.Should().Throw<WorkoutExerciseRequiresSetsException>();
+        var entry = workout.Exercises.Single();
+        entry.Effort.Should().Be(Effort.MID);
+        entry.Sets.Should().Equal(FourByTen);
+    }
+
+    [Fact]
     public void Rehydrate_ShouldNotMarkTheWorkoutAsNew()
     {
         // Arrange & Act

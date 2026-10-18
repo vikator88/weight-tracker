@@ -104,8 +104,8 @@ public sealed record SetTargetResponse(string Type)
 
     public static SetTargetResponse From(SetTarget target) => target switch
     {
-        SetTarget.Reps reps => new SetTargetResponse("Reps") { Value = reps.value },
-        SetTarget.Duration duration => new SetTargetResponse("Duration") { Value = duration.value },
-        _ => new SetTargetResponse("MaxReps"),
+        SetTarget.Reps reps => new SetTargetResponse(SetTargetTypes.Reps) { Value = reps.value },
+        SetTarget.Duration duration => new SetTargetResponse(SetTargetTypes.Duration) { Value = duration.value },
+        _ => new SetTargetResponse(SetTargetTypes.MaxReps),
     };
 }

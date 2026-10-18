@@ -12,6 +12,19 @@ public class WorkoutExerciseTests
     private static readonly SetPrescription TwoByEight = new(2, new SetTarget.Reps(8));
 
     [Fact]
+    public void Create_ShouldRejectAnEntryWithoutSets()
+    {
+        // Arrange
+        var exerciseId = Id.New();
+
+        // Act
+        var act = () => WorkoutExercise.Create(exerciseId, Effort.MID, []);
+
+        // Assert
+        act.Should().Throw<WorkoutExerciseRequiresSetsException>();
+    }
+
+    [Fact]
     public void Create_ShouldMarkTheEntryAsNewWithAFreshId()
     {
         // Arrange
