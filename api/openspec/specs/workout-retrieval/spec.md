@@ -18,11 +18,11 @@ The system SHALL expose `GET /workouts/{id}` to authenticated callers. A request
 - **THEN** the response is `401 Unauthorized`
 
 ### Requirement: The response contains the whole workout without catalog exercise data
-A successful read SHALL respond `200 OK` with `id`, `workoutDate`, `userId`, `trainerId` (or `null`) and the `exercises` list. Each entry SHALL carry its own `id`, the catalog `exerciseId`, `effort`, its `sets` and its `superSeriesId` (or `null`). Entries SHALL NOT carry catalog fields such as `name` or `bodyPart`.
+A successful read SHALL respond `200 OK` with `id`, `workoutDate`, `userId`, `trainerId` (or `null`), `status` and the `exercises` list. Each entry SHALL carry its own `id`, the catalog `exerciseId`, `effort`, its `sets` and its `superSeriesId` (or `null`). Entries SHALL NOT carry catalog fields such as `name` or `bodyPart`.
 
 #### Scenario: Workout with exercises and sets
 - **WHEN** the owner reads a workout that has exercises with sets
-- **THEN** the response is `200 OK` with every entry, its sets and its superseries membership
+- **THEN** the response is `200 OK` with its `status`, every entry, its sets and its superseries membership
 - **AND** no entry contains `name` or `bodyPart`
 
 #### Scenario: Empty workout
@@ -30,7 +30,7 @@ A successful read SHALL respond `200 OK` with `id`, `workoutDate`, `userId`, `tr
 - **THEN** the response is `200 OK` with an empty `exercises` list
 
 ### Requirement: Visibility depends on the caller's role
-An ADMIN SHALL read any workout. A TRAINER SHALL read workouts they own and workouts where they are the trainer. A USER SHALL read only workouts they own. An existing workout outside the caller's scope SHALL be rejected with `403 Forbidden` and its content SHALL NOT be disclosed.
+An ADMIN SHALL read any workout. A TRAINER SHALL read workouts they own and workouts where they are the trainer. A USER SHALL read only workouts they own. A caller SHALL NOT read a `DRAFT` workout they own when it has a prescribing trainer. An existing workout outside the caller's scope SHALL be rejected with `403 Forbidden` and its content SHALL NOT be disclosed.
 
 #### Scenario: Admin reads any workout
 - **WHEN** an ADMIN reads a workout owned by another user with another trainer
@@ -38,6 +38,10 @@ An ADMIN SHALL read any workout. A TRAINER SHALL read workouts they own and work
 
 #### Scenario: Trainer reads a prescribed workout
 - **WHEN** a TRAINER reads a workout where they are the trainer
+- **THEN** the response is `200 OK`
+
+#### Scenario: Trainer reads a prescribed draft
+- **WHEN** a TRAINER reads a `DRAFT` workout where they are the trainer
 - **THEN** the response is `200 OK`
 
 #### Scenario: Trainer reads their own workout
@@ -50,6 +54,18 @@ An ADMIN SHALL read any workout. A TRAINER SHALL read workouts they own and work
 
 #### Scenario: User reads their own workout
 - **WHEN** a USER reads a workout they own
+- **THEN** the response is `200 OK`
+
+#### Scenario: User reads their own self-planned draft
+- **WHEN** a USER reads a `DRAFT` workout they own that has no trainer
+- **THEN** the response is `200 OK`
+
+#### Scenario: User reads a prescribed draft
+- **WHEN** a USER reads a `DRAFT` workout they own that has a prescribing trainer
+- **THEN** the response is `403 Forbidden`
+
+#### Scenario: User reads a published prescribed workout
+- **WHEN** a USER reads a `PUBLISHED`, `STARTED` or `FINISHED` workout they own that has a prescribing trainer
 - **THEN** the response is `200 OK`
 
 #### Scenario: User reads another user's workout
@@ -66,3 +82,23 @@ A well-formed id that matches no workout SHALL be rejected with `404 Not Found`.
 #### Scenario: Malformed id
 - **WHEN** an authenticated caller sends `GET /workouts/not-a-guid`
 - **THEN** the response is `404 Not Found`
+
+### Requirement: The workout list hides prescribed drafts from their owner
+`GET /workouts` SHALL apply the same draft rule as the read by id: a caller's list SHALL NOT include a `DRAFT` workout they own when it has a prescribing trainer. Every other workout in the caller's role scope SHALL still be listed, with its `status`.
+
+#### Scenario: User list excludes prescribed drafts
+- **WHEN** a USER who owns a prescribed `DRAFT` workout and a prescribed `PUBLISHED` workout lists workouts
+- **THEN** the list includes the `PUBLISHED` workout
+- **AND** the list does not include the `DRAFT` workout
+
+#### Scenario: User list includes self-planned drafts
+- **WHEN** a USER who owns a `DRAFT` workout with no trainer lists workouts
+- **THEN** the list includes that workout
+
+#### Scenario: Trainer list includes prescribed drafts
+- **WHEN** a TRAINER who prescribed a `DRAFT` workout lists workouts
+- **THEN** the list includes that workout
+
+#### Scenario: Admin list includes every draft
+- **WHEN** an ADMIN lists workouts
+- **THEN** the list includes every workout, `DRAFT` ones included

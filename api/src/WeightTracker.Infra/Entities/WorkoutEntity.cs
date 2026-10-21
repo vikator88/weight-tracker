@@ -15,6 +15,9 @@ public class WorkoutEntity
 
     public DateOnly WorkoutDate { get; set; }
 
+    /// <summary>Stored as the integer value of the domain <c>WorkoutStatus</c>.</summary>
+    public int Status { get; set; }
+
     /// <summary>Navigation inside the Workout aggregate boundary.</summary>
     public List<WorkoutExerciseEntity> WorkoutExercises { get; set; } = [];
 }

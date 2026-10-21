@@ -85,6 +85,7 @@ public class DatabaseSeeder
             Id.From(SeedData.UserId),
             null,
             new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc),
+            WorkoutStatus.DRAFT,
             [
                 WorkoutExercise.Rehydrate(
                     Id.From(SeedData.OwnedPressBancaEntryId), Id.From(SeedData.PressBancaId), Effort.HIGH,
@@ -96,6 +97,7 @@ public class DatabaseSeeder
             Id.From(SeedData.UserId),
             Id.From(SeedData.TrainerId),
             new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc),
+            WorkoutStatus.PUBLISHED,
             [
                 WorkoutExercise.Rehydrate(
                     Id.From(SeedData.TrainedSentadillaEntryId), Id.From(SeedData.SentadillaId), Effort.MIDHIGH,
@@ -110,6 +112,7 @@ public class DatabaseSeeder
             Id.From(SeedData.TrainerId),
             null,
             new DateTime(2026, 10, 5, 0, 0, 0, DateTimeKind.Utc),
+            WorkoutStatus.DRAFT,
             [
                 WorkoutExercise.Rehydrate(
                     Id.From(SeedData.TrainerOwnPressBancaEntryId), Id.From(SeedData.PressBancaId), Effort.MID,
@@ -123,6 +126,7 @@ public class DatabaseSeeder
             Id.From(SeedData.UserId),
             Id.From(SeedData.TrainerId),
             new DateTime(2026, 10, 7, 0, 0, 0, DateTimeKind.Utc),
+            WorkoutStatus.PUBLISHED,
             [
                 WorkoutExercise.Rehydrate(
                     Id.From(SeedData.PrescribedPairPressBancaEntryId), Id.From(SeedData.PressBancaId), Effort.HIGH,
@@ -137,6 +141,7 @@ public class DatabaseSeeder
             Id.From(SeedData.UserId),
             Id.From(SeedData.TrainerId),
             new DateTime(2026, 10, 9, 0, 0, 0, DateTimeKind.Utc),
+            WorkoutStatus.PUBLISHED,
             [
                 WorkoutExercise.Rehydrate(
                     Id.From(SeedData.PrescribedSuperSeriesPressBancaEntryId), Id.From(SeedData.PressBancaId), Effort.HIGH,
@@ -154,6 +159,7 @@ public class DatabaseSeeder
             Id.From(SeedData.UserId),
             null,
             new DateTime(2026, 10, 11, 0, 0, 0, DateTimeKind.Utc),
+            WorkoutStatus.DRAFT,
             [
                 WorkoutExercise.Rehydrate(
                     Id.From(SeedData.SelfCreatedPairSentadillaEntryId), Id.From(SeedData.SentadillaId), Effort.MID,
@@ -168,6 +174,7 @@ public class DatabaseSeeder
             Id.From(SeedData.UserId),
             null,
             new DateTime(2026, 10, 13, 0, 0, 0, DateTimeKind.Utc),
+            WorkoutStatus.DRAFT,
             [
                 WorkoutExercise.Rehydrate(
                     Id.From(SeedData.SelfCreatedSuperSeriesPressBancaEntryId), Id.From(SeedData.PressBancaId), Effort.MID,
@@ -177,10 +184,35 @@ public class DatabaseSeeder
                     [new SetPrescription(4, new SetTarget.Duration(30))], seededSuperSeries),
             ]);
 
+        var prescribedDraftWorkout = Workout.Rehydrate(
+            Id.From(SeedData.PrescribedDraftWorkoutId),
+            Id.From(SeedData.UserId),
+            Id.From(SeedData.TrainerId),
+            new DateTime(2026, 10, 15, 0, 0, 0, DateTimeKind.Utc),
+            WorkoutStatus.DRAFT,
+            [
+                WorkoutExercise.Rehydrate(
+                    Id.From(SeedData.PrescribedDraftPressBancaEntryId), Id.From(SeedData.PressBancaId), Effort.HIGH,
+                    [new SetPrescription(3, new SetTarget.Reps(10))]),
+            ]);
+
+        var prescribedStartedWorkout = Workout.Rehydrate(
+            Id.From(SeedData.PrescribedStartedWorkoutId),
+            Id.From(SeedData.UserId),
+            Id.From(SeedData.TrainerId),
+            new DateTime(2026, 10, 17, 0, 0, 0, DateTimeKind.Utc),
+            WorkoutStatus.STARTED,
+            [
+                WorkoutExercise.Rehydrate(
+                    Id.From(SeedData.PrescribedStartedPressBancaEntryId), Id.From(SeedData.PressBancaId), Effort.HIGH,
+                    [new SetPrescription(3, new SetTarget.Reps(10))]),
+            ]);
+
         var workouts = new[]
         {
             ownedWorkout, trainedWorkout, trainerOwnWorkout,
             prescribedPairWorkout, prescribedSuperSeriesWorkout, selfCreatedPairWorkout, selfCreatedSuperSeriesWorkout,
+            prescribedDraftWorkout, prescribedStartedWorkout,
         };
 
         await _context.Workouts.AddRangeAsync(workouts.Select(WorkoutMapper.MapToEntity), cancellationToken);

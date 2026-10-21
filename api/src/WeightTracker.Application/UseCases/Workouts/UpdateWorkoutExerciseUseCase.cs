@@ -37,6 +37,7 @@ public class UpdateWorkoutExerciseUseCase
     /// <exception cref="ExerciseIdMismatchException">When the route and body name different exercises.</exception>
     /// <exception cref="WorkoutNotFoundException">When no workout has the given id.</exception>
     /// <exception cref="UnauthorizedOperationException">When the caller may not edit the workout.</exception>
+    /// <exception cref="WorkoutLockedException">When the caller may edit the workout but it has already started.</exception>
     /// <exception cref="ExerciseNotInWorkoutException">When the exercise is not in the workout.</exception>
     /// <exception cref="SuperSeriesSetCountMismatchException">When the new total of sets breaks the entry's superseries.</exception>
     /// <exception cref="InvalidEffortException">When the effort is not a defined value.</exception>

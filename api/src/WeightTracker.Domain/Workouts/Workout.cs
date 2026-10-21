@@ -23,17 +23,28 @@ public sealed class Workout : AggregateRoot
     public DateTime WorkoutDate => _workoutDate;
 
     /// <summary>
+    /// Where the workout is in its lifecycle. A new workout is always a draft.
+    /// </summary>
+    public WorkoutStatus Status { get; private set; }
+
+    /// <summary>
+    /// A started or finished workout no longer accepts changes to its content.
+    /// </summary>
+    public bool IsLocked => Status is WorkoutStatus.STARTED or WorkoutStatus.FINISHED;
+
+    /// <summary>
     /// Snapshot of the exercises of this workout, in the order they must be performed.
     /// The list is copied so callers cannot mutate the aggregate through it.
     /// </summary>
     public IReadOnlyList<WorkoutExercise> Exercises => _exercises.ToList();
 
-    private Workout(Id userId, Id? trainerId, DateTime workoutDate)
+    private Workout(Id userId, Id? trainerId, DateTime workoutDate, WorkoutStatus status)
     {
         this.Id = Id.New();
         UserId = userId;
         TrainerId = trainerId;
         _workoutDate = workoutDate.Date;
+        Status = status;
         _exercises = new List<WorkoutExercise>();
     }
 
@@ -46,12 +57,13 @@ public sealed class Workout : AggregateRoot
         if (trainerId is not null && trainerId == userId)
             throw new TrainerCannotBeWorkoutOwnerException(userId);
 
-        return new Workout(userId, trainerId, workoutDate)
+        return new Workout(userId, trainerId, workoutDate, WorkoutStatus.DRAFT)
         {
             IsNew = true
         };
     }
 
+    /// <exception cref="InvalidWorkoutStatusException">When the status is not a defined value.</exception>
     /// <exception cref="ExerciseAlreadyInWorkoutException">When two entries share the same exercise.</exception>
     /// <exception cref="SuperSeriesRequiresTwoExercisesException">When a stored superseries has a single member.</exception>
     /// <exception cref="SuperSeriesSetCountMismatchException">When the members of a stored superseries have different set totals.</exception>
@@ -60,9 +72,12 @@ public sealed class Workout : AggregateRoot
         Id userId,
         Id? trainerId,
         DateTime workoutdate,
+        WorkoutStatus status,
         IEnumerable<WorkoutExercise> exercises
     )
     {
+        EnsureDefined(status);
+
         var entries = exercises.ToList();
 
         var duplicate = entries
@@ -75,13 +90,61 @@ public sealed class Workout : AggregateRoot
         foreach (var group in entries.Where(entry => entry.SuperSeriesId is not null).GroupBy(entry => entry.SuperSeriesId))
             EnsureValidSuperSeries(id, group.ToList());
 
-        return new Workout(userId, trainerId, workoutdate)
+        return new Workout(userId, trainerId, workoutdate, status)
         {
             Id = id,
             IsNew = false,
             _exercises = entries,
         };
     }
+
+    /// <summary>
+    /// Moves the workout along its lifecycle: draft to published, published back to draft or on to started,
+    /// and started to finished. Anything else, including staying in the same status, is refused.
+    /// </summary>
+    /// <exception cref="InvalidWorkoutStatusException">When the target is not a defined value.</exception>
+    /// <exception cref="InvalidWorkoutStatusTransitionException">When the move is not part of the lifecycle.</exception>
+    public void ChangeStatus(WorkoutStatus target)
+    {
+        EnsureDefined(target);
+
+        if (CanTransitionTo(target) == false)
+            throw new InvalidWorkoutStatusTransitionException(Status, target);
+
+        Status = target;
+    }
+
+    /// <summary>
+    /// Whether moving from the current status to the target is part of the lifecycle.
+    /// </summary>
+    public bool CanTransitionTo(WorkoutStatus target)
+        => (Status, target) switch
+        {
+            (WorkoutStatus.DRAFT, WorkoutStatus.PUBLISHED) => true,
+            (WorkoutStatus.PUBLISHED, WorkoutStatus.DRAFT) => true,
+            (WorkoutStatus.PUBLISHED, WorkoutStatus.STARTED) => true,
+            (WorkoutStatus.STARTED, WorkoutStatus.FINISHED) => true,
+            _ => false,
+        };
+
+    /// <summary>
+    /// Sets the status skipping the lifecycle. Reserved for callers that are entitled to correct a workout.
+    /// </summary>
+    /// <exception cref="InvalidWorkoutStatusException">When the target is not a defined value.</exception>
+    public void OverrideStatus(WorkoutStatus target)
+    {
+        EnsureDefined(target);
+
+        Status = target;
+    }
+
+    /// <summary>
+    /// A prescribed workout is invisible to its athlete until the trainer publishes it.
+    /// A workout without trainer is the athlete's own plan, so it is never hidden from them.
+    /// </summary>
+    /// <param name="callerId">User asking to see the workout.</param>
+    public bool IsHiddenFrom(Id callerId)
+        => Status == WorkoutStatus.DRAFT && TrainerId is not null && UserId == callerId;
 
     /// <summary>
     /// Appends an exercise to the end of the workout with a given effort and ordered sets.
@@ -202,6 +265,12 @@ public sealed class Workout : AggregateRoot
 
         foreach (var member in members)
             member.LeaveSuperSeries();
+    }
+
+    private static void EnsureDefined(WorkoutStatus status)
+    {
+        if (Enum.IsDefined(status) == false)
+            throw new InvalidWorkoutStatusException((int)status);
     }
 
     private static void EnsureValidSuperSeries(Id workoutId, IReadOnlyList<WorkoutExercise> members)

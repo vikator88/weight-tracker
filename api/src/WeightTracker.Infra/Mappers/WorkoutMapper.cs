@@ -20,6 +20,7 @@ public static class WorkoutMapper
             UserId = workout.UserId.Value,
             TrainerId = workout.TrainerId?.Value,
             WorkoutDate = DateOnly.FromDateTime(workout.WorkoutDate),
+            Status = (int)workout.Status,
         };
 
         var exercisePosition = 0;
@@ -84,6 +85,7 @@ public static class WorkoutMapper
                 Id.From(entity.UserId),
                 entity.TrainerId is null ? null : Id.From(entity.TrainerId.Value),
                 entity.WorkoutDate.ToDateTime(TimeOnly.MinValue),
+                MapStatus(entity.Status),
                 exercises);
         }
         catch (DomainException exception)
@@ -115,6 +117,14 @@ public static class WorkoutMapper
             throw new PersistenceMappingException($"'{effort}' is not a known effort");
 
         return (Effort)effort;
+    }
+
+    private static WorkoutStatus MapStatus(int status)
+    {
+        if (Enum.IsDefined(typeof(WorkoutStatus), status) == false)
+            throw new PersistenceMappingException($"'{status}' is not a known workout status");
+
+        return (WorkoutStatus)status;
     }
 
     private static int RequireValue(string targetType, int? targetValue)

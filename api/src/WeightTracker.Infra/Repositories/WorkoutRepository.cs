@@ -60,6 +60,7 @@ public class WorkoutRepository : IWorkoutRepository
         tracked.UserId = entity.UserId;
         tracked.TrainerId = entity.TrainerId;
         tracked.WorkoutDate = entity.WorkoutDate;
+        tracked.Status = entity.Status;
 
         Reconcile(tracked, entity);
     }

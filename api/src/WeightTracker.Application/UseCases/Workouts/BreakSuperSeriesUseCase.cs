@@ -34,6 +34,7 @@ public class BreakSuperSeriesUseCase
     /// <exception cref="InvalidSuperSeriesIdException">When the superseries id is not a positive integer.</exception>
     /// <exception cref="WorkoutNotFoundException">When no workout has the given id.</exception>
     /// <exception cref="UnauthorizedOperationException">When the caller may not edit the workout.</exception>
+    /// <exception cref="WorkoutLockedException">When the caller may edit the workout but it has already started.</exception>
     /// <exception cref="SuperSeriesNotFoundException">When the workout has no such superseries.</exception>
     public async Task Execute(
         Id callerId,

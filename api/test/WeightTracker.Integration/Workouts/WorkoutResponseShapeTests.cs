@@ -182,4 +182,21 @@ public class WorkoutResponseShapeTests : IntegrationTest
         raw.Should().NotContain("passwordHash");
         raw.Should().NotContain("tokenHash");
     }
+
+    [Theory]
+    [InlineData("00000000-0000-0000-0000-000000000021", "DRAFT")]
+    [InlineData("00000000-0000-0000-0000-000000000022", "PUBLISHED")]
+    [InlineData("00000000-0000-0000-0000-000000000028", "DRAFT")]
+    [InlineData("00000000-0000-0000-0000-000000000029", "STARTED")]
+    public async Task Workout_ShouldCarryItsStatusAsTheEnumName(string workoutId, string status)
+    {
+        // Arrange
+        var workouts = await WorkoutsSeenByAdmin();
+
+        // Act
+        var workout = WorkoutWithId(workouts, Guid.Parse(workoutId));
+
+        // Assert
+        workout.GetProperty("status").GetString().Should().Be(status);
+    }
 }

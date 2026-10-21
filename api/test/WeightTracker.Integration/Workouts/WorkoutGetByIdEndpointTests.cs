@@ -12,7 +12,7 @@ namespace WeightTracker.Integration.Workouts;
 /// Covers <c>GET /workouts/{id}</c>: the auth matrix, the response shape and the role-aware scope,
 /// against the seeded dataset.
 /// </summary>
-public class WorkoutGetByIdEndpointTests : IntegrationTest
+public class WorkoutGetByIdEndpointTests : WorkoutEndpointTest
 {
     public WorkoutGetByIdEndpointTests(ApiFactory factory) : base(factory)
     { }
@@ -162,5 +162,78 @@ public class WorkoutGetByIdEndpointTests : IntegrationTest
         var raw = await response.Content.ReadAsStringAsync();
         raw.Should().NotContain(SeedData.TrainerOwnPressBancaEntryId.ToString());
         raw.Should().NotContain(SeedData.PressBancaId.ToString());
+    }
+
+    [Theory]
+    [InlineData(SeedCredentials.Admin, "00000000-0000-0000-0000-000000000028", HttpStatusCode.OK)]
+    [InlineData(SeedCredentials.Trainer, "00000000-0000-0000-0000-000000000028", HttpStatusCode.OK)]
+    [InlineData(SeedCredentials.User, "00000000-0000-0000-0000-000000000028", HttpStatusCode.Forbidden)]
+    [InlineData(SeedCredentials.User, "00000000-0000-0000-0000-000000000029", HttpStatusCode.OK)]
+    [InlineData(SeedCredentials.User, "00000000-0000-0000-0000-000000000026", HttpStatusCode.OK)]
+    [InlineData(SeedCredentials.Trainer, "00000000-0000-0000-0000-000000000029", HttpStatusCode.OK)]
+    public async Task Get_ShouldApplyTheDraftRule(string email, string workoutId, HttpStatusCode expected)
+    {
+        // Arrange & Act
+        var response = await Get(email, Guid.Parse(workoutId));
+
+        // Assert
+        response.StatusCode.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task Get_ShouldNotDiscloseThePrescribedDraftToItsAthlete()
+    {
+        // Arrange & Act
+        var response = await Get(SeedCredentials.User, SeedData.PrescribedDraftWorkoutId);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        var raw = await response.Content.ReadAsStringAsync();
+        raw.Should().NotContain(SeedData.PrescribedDraftPressBancaEntryId.ToString());
+        raw.Should().NotContain(SeedData.PressBancaId.ToString());
+    }
+
+    [Theory]
+    [InlineData("PUBLISHED")]
+    [InlineData("STARTED")]
+    [InlineData("FINISHED")]
+    public async Task Get_ShouldShowAPrescribedWorkoutToItsAthleteOnceItIsNoLongerADraft(string status)
+    {
+        // Arrange
+        await GivenWorkoutStatus(SeedData.PrescribedDraftWorkoutId, status);
+
+        // Act
+        var response = await Get(SeedCredentials.User, SeedData.PrescribedDraftWorkoutId);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        body.GetProperty("status").GetString().Should().Be(status);
+    }
+
+    [Fact]
+    public async Task Get_ShouldHideAPrescribedWorkoutAgainWhenAnAdminSetsItBackToDraft()
+    {
+        // Arrange
+        await GivenWorkoutStatus(SeedData.TrainedWorkoutId, "DRAFT");
+
+        // Act
+        var response = await Get(SeedCredentials.User, SeedData.TrainedWorkoutId);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Theory]
+    [InlineData(SeedCredentials.Admin)]
+    [InlineData(SeedCredentials.Trainer)]
+    public async Task Get_ShouldCarryTheStatusOfThePrescribedDraft(string email)
+    {
+        // Arrange & Act
+        var response = await Get(email, SeedData.PrescribedDraftWorkoutId);
+
+        // Assert
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        body.GetProperty("status").GetString().Should().Be("DRAFT");
     }
 }

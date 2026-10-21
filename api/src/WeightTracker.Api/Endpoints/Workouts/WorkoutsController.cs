@@ -20,6 +20,7 @@ public class WorkoutsController : AuthorizedController
     private readonly AddWorkoutExerciseUseCase _addExercise;
     private readonly UpdateWorkoutExerciseUseCase _updateExercise;
     private readonly RemoveWorkoutExerciseUseCase _removeExercise;
+    private readonly ChangeWorkoutStatusUseCase _changeStatus;
 
     public WorkoutsController(
         GetAllWorkoutsUseCase getAllWorkouts,
@@ -30,6 +31,7 @@ public class WorkoutsController : AuthorizedController
         AddWorkoutExerciseUseCase addExercise,
         UpdateWorkoutExerciseUseCase updateExercise,
         RemoveWorkoutExerciseUseCase removeExercise,
+        ChangeWorkoutStatusUseCase changeStatus,
         GetAuthenticatedUserUseCase getAuthenticatedUser,
         ExceptionMapper exceptionMapper) : base(getAuthenticatedUser, exceptionMapper)
     {
@@ -41,6 +43,7 @@ public class WorkoutsController : AuthorizedController
         _addExercise = addExercise;
         _updateExercise = updateExercise;
         _removeExercise = removeExercise;
+        _changeStatus = changeStatus;
     }
 
     /// <summary>
@@ -166,6 +169,7 @@ public class WorkoutsController : AuthorizedController
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> BreakSuperSeries(
         Guid workoutId, int superSeriesId, CancellationToken cancellationToken)
     {
@@ -227,6 +231,7 @@ public class WorkoutsController : AuthorizedController
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> UpdateExercise(
         Guid workoutId, Guid exerciseId, [FromBody] AddOrUpdateExerciseRequest request, CancellationToken cancellationToken)
     {
@@ -260,6 +265,7 @@ public class WorkoutsController : AuthorizedController
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> RemoveExercise(
         Guid workoutId, Guid exerciseId, CancellationToken cancellationToken)
     {
@@ -268,6 +274,37 @@ public class WorkoutsController : AuthorizedController
             await _removeExercise.Execute(CurrentUser!.Id, CurrentUser.Role, Id.From(workoutId), Id.From(exerciseId), cancellationToken);
 
             return NoContent();
+        }
+        catch (Exception exception)
+        {
+            return ExceptionMapper.Map(exception);
+        }
+    }
+
+    /// <summary>
+    /// Moves the workout to another status. Admins may set any status; everybody else follows the
+    /// lifecycle (draft, published, started, finished) within what their role allows.
+    /// </summary>
+    [HttpPut("{workoutId:guid}/status")]
+    [ProducesResponseType<WorkoutDetailResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ChangeStatus(
+        Guid workoutId, [FromBody] ChangeWorkoutStatusRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var workout = await _changeStatus.Execute(
+                CurrentUser!.Id,
+                CurrentUser.Role,
+                Id.From(workoutId),
+                request.Status!.Value,
+                cancellationToken);
+
+            return Ok(WorkoutDetailResponse.From(workout));
         }
         catch (Exception exception)
         {

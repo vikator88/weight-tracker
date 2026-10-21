@@ -53,6 +53,7 @@ builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<WorkoutEditAuthorizer>();
+builder.Services.AddScoped<WorkoutStatusAuthorizer>();
 
 builder.Services.AddScoped<GetAllExercisesUseCase>();
 builder.Services.AddScoped<GetExerciseByIdUseCase>();
@@ -65,6 +66,7 @@ builder.Services.AddScoped<CreateWorkoutUseCase>();
 builder.Services.AddScoped<AddWorkoutExerciseUseCase>();
 builder.Services.AddScoped<UpdateWorkoutExerciseUseCase>();
 builder.Services.AddScoped<RemoveWorkoutExerciseUseCase>();
+builder.Services.AddScoped<ChangeWorkoutStatusUseCase>();
 builder.Services.AddScoped<CreateSuperSeriesUseCase>();
 builder.Services.AddScoped<BreakSuperSeriesUseCase>();
 builder.Services.AddScoped<LoginUseCase>();

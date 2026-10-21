@@ -32,7 +32,7 @@ public class BreakSuperSeriesUseCaseTests
         var threeSets = new SetPrescription(3, new SetTarget.Reps(10));
         var superSeriesId = SuperSeriesId.From(StoredSuperSeries);
 
-        return Workout.Rehydrate(Id.New(), OwnerId, null, WorkoutDate,
+        return Workout.Rehydrate(Id.New(), OwnerId, null, WorkoutDate, WorkoutStatus.DRAFT,
         [
             WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [threeSets], superSeriesId),
             WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [threeSets], superSeriesId),

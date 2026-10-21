@@ -85,6 +85,18 @@ public static class SeedData
     /// <summary>Plancha in the self-created superseries workout, superseries 1.</summary>
     public static readonly Guid SelfCreatedSuperSeriesPlanchaEntryId = new("00000000-0000-0000-0000-000000000043");
 
+    /// <summary>Owned by the user, prescribed by the trainer, still a draft. Hidden from the user.</summary>
+    public static readonly Guid PrescribedDraftWorkoutId = new("00000000-0000-0000-0000-000000000028");
+
+    /// <summary>Owned by the user, prescribed by the trainer, already started. Locked for editing.</summary>
+    public static readonly Guid PrescribedStartedWorkoutId = new("00000000-0000-0000-0000-000000000029");
+
+    /// <summary>Press Banca in the prescribed draft workout, 3 x 10 reps.</summary>
+    public static readonly Guid PrescribedDraftPressBancaEntryId = new("00000000-0000-0000-0000-000000000044");
+
+    /// <summary>Press Banca in the prescribed started workout, 3 x 10 reps.</summary>
+    public static readonly Guid PrescribedStartedPressBancaEntryId = new("00000000-0000-0000-0000-000000000045");
+
     /// <summary>Identifier of the superseries seeded in the superseries workouts.</summary>
     public const int SeededSuperSeries = 1;
 

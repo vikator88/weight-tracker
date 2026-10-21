@@ -140,4 +140,80 @@ public class WorkoutEditAuthorizerTests
         // Assert
         act.Should().Throw<UnauthorizedOperationException>();
     }
+
+    private static Workout AWorkoutIn(WorkoutStatus status, Id? trainerId)
+        => Workout.Rehydrate(Id.New(), OwnerId, trainerId, WorkoutDate, status, []);
+
+    [Theory]
+    [InlineData(WorkoutStatus.STARTED)]
+    [InlineData(WorkoutStatus.FINISHED)]
+    public void EnsureCanEdit_ShouldRejectThePrescribingTrainerOnceTheWorkoutHasStarted(WorkoutStatus status)
+    {
+        // Arrange
+        var workout = AWorkoutIn(status, TrainerId);
+
+        // Act
+        var act = () => _authorizer.EnsureCanEdit(workout, TrainerId, Role.TRAINER, Operation);
+
+        // Assert
+        act.Should().Throw<WorkoutLockedException>();
+    }
+
+    [Theory]
+    [InlineData(WorkoutStatus.STARTED)]
+    [InlineData(WorkoutStatus.FINISHED)]
+    public void EnsureCanEdit_ShouldRejectTheOwnerOfASelfCreatedWorkoutOnceItHasStarted(WorkoutStatus status)
+    {
+        // Arrange
+        var workout = AWorkoutIn(status, null);
+
+        // Act
+        var act = () => _authorizer.EnsureCanEdit(workout, OwnerId, Role.USER, Operation);
+
+        // Assert
+        act.Should().Throw<WorkoutLockedException>();
+    }
+
+    [Theory]
+    [InlineData(WorkoutStatus.STARTED)]
+    [InlineData(WorkoutStatus.FINISHED)]
+    public void EnsureCanEdit_ShouldAllowAnAdminOnALockedWorkout(WorkoutStatus status)
+    {
+        // Arrange
+        var workout = AWorkoutIn(status, TrainerId);
+
+        // Act
+        var act = () => _authorizer.EnsureCanEdit(workout, Id.New(), Role.ADMIN, Operation);
+
+        // Assert
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void EnsureCanEdit_ShouldRefuseACallerWhoMayNotEditALockedWorkoutWithoutRevealingTheLock()
+    {
+        // Arrange
+        var workout = AWorkoutIn(WorkoutStatus.STARTED, TrainerId);
+
+        // Act
+        var act = () => _authorizer.EnsureCanEdit(workout, OwnerId, Role.USER, Operation);
+
+        // Assert
+        act.Should().Throw<UnauthorizedOperationException>();
+    }
+
+    [Theory]
+    [InlineData(WorkoutStatus.DRAFT)]
+    [InlineData(WorkoutStatus.PUBLISHED)]
+    public void EnsureCanEdit_ShouldKeepAllowingTheTrainerWhileTheWorkoutIsDraftOrPublished(WorkoutStatus status)
+    {
+        // Arrange
+        var workout = AWorkoutIn(status, TrainerId);
+
+        // Act
+        var act = () => _authorizer.EnsureCanEdit(workout, TrainerId, Role.TRAINER, Operation);
+
+        // Assert
+        act.Should().NotThrow();
+    }
 }

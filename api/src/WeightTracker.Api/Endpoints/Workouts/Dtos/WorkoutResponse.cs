@@ -10,6 +10,7 @@ public sealed record WorkoutResponse(
     DateOnly WorkoutDate,
     Guid UserId,
     Guid? TrainerId,
+    string Status,
     IReadOnlyList<WorkoutExerciseResponse> Exercises)
 {
     /// <param name="workout">Workout to project.</param>
@@ -20,6 +21,7 @@ public sealed record WorkoutResponse(
             DateOnly.FromDateTime(workout.WorkoutDate),
             workout.UserId.Value,
             workout.TrainerId?.Value,
+            workout.Status.ToString(),
             workout.Exercises
                 .Select(entry => WorkoutExerciseResponse.From(entry, exercises[entry.ExerciseId]))
                 .ToList());
@@ -34,6 +36,7 @@ public sealed record WorkoutDetailResponse(
     DateOnly WorkoutDate,
     Guid UserId,
     Guid? TrainerId,
+    string Status,
     IReadOnlyList<WorkoutExerciseDetailResponse> Exercises)
 {
     public static WorkoutDetailResponse From(Workout workout)
@@ -42,6 +45,7 @@ public sealed record WorkoutDetailResponse(
             DateOnly.FromDateTime(workout.WorkoutDate),
             workout.UserId.Value,
             workout.TrainerId?.Value,
+            workout.Status.ToString(),
             workout.Exercises.Select(WorkoutExerciseDetailResponse.From).ToList());
 }
 

@@ -16,9 +16,9 @@ public class GetWorkoutByIdUseCaseTests
 
     private GetWorkoutByIdUseCase AUseCase() => new(_workouts.Object);
 
-    private Workout StoredWorkout(Id ownerId, Id? trainerId = null)
+    private Workout StoredWorkout(Id ownerId, Id? trainerId = null, WorkoutStatus status = WorkoutStatus.PUBLISHED)
     {
-        var workout = Workout.Rehydrate(Id.New(), ownerId, trainerId, new DateTime(2026, 10, 1), []);
+        var workout = Workout.Rehydrate(Id.New(), ownerId, trainerId, new DateTime(2026, 10, 1), status, []);
         _workouts
             .Setup(repository => repository.GetById(workout.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(workout);
@@ -122,5 +122,91 @@ public class GetWorkoutByIdUseCaseTests
 
         // Assert
         await act.Should().ThrowAsync<WorkoutNotFoundException>();
+    }
+
+    [Fact]
+    public async Task User_ShouldNotReadAPrescribedDraftTheyOwn()
+    {
+        // Arrange
+        var callerId = Id.New();
+        var workout = StoredWorkout(callerId, Id.New(), WorkoutStatus.DRAFT);
+
+        // Act
+        var act = () => AUseCase().Execute(callerId, Role.USER, workout.Id, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedOperationException>();
+    }
+
+    [Fact]
+    public async Task Trainer_ShouldNotReadAPrescribedDraftOfWhichTheyAreTheAthlete()
+    {
+        // Arrange
+        var callerId = Id.New();
+        var workout = StoredWorkout(callerId, Id.New(), WorkoutStatus.DRAFT);
+
+        // Act
+        var act = () => AUseCase().Execute(callerId, Role.TRAINER, workout.Id, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedOperationException>();
+    }
+
+    [Fact]
+    public async Task User_ShouldReadASelfPlannedDraft()
+    {
+        // Arrange
+        var callerId = Id.New();
+        var workout = StoredWorkout(callerId, null, WorkoutStatus.DRAFT);
+
+        // Act
+        var result = await AUseCase().Execute(callerId, Role.USER, workout.Id, CancellationToken.None);
+
+        // Assert
+        result.Should().BeSameAs(workout);
+    }
+
+    [Fact]
+    public async Task Trainer_ShouldReadTheDraftTheyPrescribed()
+    {
+        // Arrange
+        var callerId = Id.New();
+        var workout = StoredWorkout(Id.New(), callerId, WorkoutStatus.DRAFT);
+
+        // Act
+        var result = await AUseCase().Execute(callerId, Role.TRAINER, workout.Id, CancellationToken.None);
+
+        // Assert
+        result.Should().BeSameAs(workout);
+    }
+
+    [Fact]
+    public async Task Admin_ShouldReadAPrescribedDraft()
+    {
+        // Arrange
+        var workout = StoredWorkout(Id.New(), Id.New(), WorkoutStatus.DRAFT);
+
+        // Act
+        var result = await AUseCase().Execute(Id.New(), Role.ADMIN, workout.Id, CancellationToken.None);
+
+        // Assert
+        result.Should().BeSameAs(workout);
+    }
+
+    [Theory]
+    [InlineData(WorkoutStatus.PUBLISHED)]
+    [InlineData(WorkoutStatus.STARTED)]
+    [InlineData(WorkoutStatus.FINISHED)]
+    public async Task User_ShouldReadAPrescribedWorkoutOnceItIsPublished(WorkoutStatus status)
+    {
+        // Arrange
+        var callerId = Id.New();
+        var workout = StoredWorkout(callerId, Id.New(), status);
+
+        // Act
+        var result = await AUseCase().Execute(callerId, Role.USER, workout.Id, CancellationToken.None);
+
+        // Assert
+        result.Should().BeSameAs(workout);
     }
 }

@@ -33,6 +33,7 @@ public class RemoveWorkoutExerciseUseCase
     /// <param name="exerciseId">Catalog exercise to remove, not the workout entry id.</param>
     /// <exception cref="WorkoutNotFoundException">When no workout has the given id.</exception>
     /// <exception cref="UnauthorizedOperationException">When the caller may not edit the workout.</exception>
+    /// <exception cref="WorkoutLockedException">When the caller may edit the workout but it has already started.</exception>
     /// <exception cref="ExerciseNotInWorkoutException">When the exercise is not in the workout.</exception>
     public async Task Execute(
         Id callerId,

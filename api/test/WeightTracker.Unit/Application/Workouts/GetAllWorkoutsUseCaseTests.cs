@@ -21,7 +21,7 @@ public class GetAllWorkoutsUseCaseTests
 
     private static Workout AWorkout(Id ownerId, params Id[] exerciseIds) =>
         Workout.Rehydrate(
-            Id.New(), ownerId, null, new DateTime(2026, 10, 1),
+            Id.New(), ownerId, null, new DateTime(2026, 10, 1), WorkoutStatus.DRAFT,
             exerciseIds.Select(exerciseId => WorkoutExercise.Rehydrate(
                 Id.New(), exerciseId, Effort.MID, [new SetPrescription(3, new SetTarget.Reps(10))])));
 
@@ -139,5 +139,102 @@ public class GetAllWorkoutsUseCaseTests
         // Assert
         result.Exercises.Should().ContainSingle();
         result.Exercises[pressBancaId].Should().BeSameAs(pressBanca);
+    }
+
+    private static Workout APrescribedWorkout(Id ownerId, Id trainerId, WorkoutStatus status, params Id[] exerciseIds) =>
+        Workout.Rehydrate(
+            Id.New(), ownerId, trainerId, new DateTime(2026, 10, 1), status,
+            exerciseIds.Select(exerciseId => WorkoutExercise.Rehydrate(
+                Id.New(), exerciseId, Effort.MID, [new SetPrescription(3, new SetTarget.Reps(10))])));
+
+    [Fact]
+    public async Task User_ShouldNotSeeThePrescribedDraftsTheyOwn()
+    {
+        // Arrange
+        var callerId = Id.New();
+        var trainerId = Id.New();
+        var draft = APrescribedWorkout(callerId, trainerId, WorkoutStatus.DRAFT);
+        var published = APrescribedWorkout(callerId, trainerId, WorkoutStatus.PUBLISHED);
+        var selfPlannedDraft = AWorkout(callerId);
+        _workouts.Setup(repository => repository.GetAllByUserId(callerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([draft, published, selfPlannedDraft]);
+        NoExercisesStored();
+
+        // Act
+        var result = await AUseCase().Execute(callerId, Role.USER, CancellationToken.None);
+
+        // Assert
+        result.Workouts.Should().BeEquivalentTo([published, selfPlannedDraft]);
+        result.Workouts.Should().NotContain(draft);
+    }
+
+    [Fact]
+    public async Task Trainer_ShouldSeeTheDraftsTheyPrescribed()
+    {
+        // Arrange
+        var callerId = Id.New();
+        var draft = APrescribedWorkout(Id.New(), callerId, WorkoutStatus.DRAFT);
+        _workouts.Setup(repository => repository.GetAllByUserOrTrainerId(callerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([draft]);
+        NoExercisesStored();
+
+        // Act
+        var result = await AUseCase().Execute(callerId, Role.TRAINER, CancellationToken.None);
+
+        // Assert
+        result.Workouts.Should().BeEquivalentTo([draft]);
+    }
+
+    [Fact]
+    public async Task Trainer_ShouldNotSeeAPrescribedDraftOfWhichTheyAreTheAthlete()
+    {
+        // Arrange
+        var callerId = Id.New();
+        var prescribedToThem = APrescribedWorkout(callerId, Id.New(), WorkoutStatus.DRAFT);
+        var prescribedByThem = APrescribedWorkout(Id.New(), callerId, WorkoutStatus.DRAFT);
+        _workouts.Setup(repository => repository.GetAllByUserOrTrainerId(callerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([prescribedToThem, prescribedByThem]);
+        NoExercisesStored();
+
+        // Act
+        var result = await AUseCase().Execute(callerId, Role.TRAINER, CancellationToken.None);
+
+        // Assert
+        result.Workouts.Should().BeEquivalentTo([prescribedByThem]);
+        result.Workouts.Should().NotContain(prescribedToThem);
+    }
+
+    [Fact]
+    public async Task Admin_ShouldSeeEveryDraft()
+    {
+        // Arrange
+        var draft = APrescribedWorkout(Id.New(), Id.New(), WorkoutStatus.DRAFT);
+        _workouts.Setup(repository => repository.GetAll(It.IsAny<CancellationToken>())).ReturnsAsync([draft]);
+        NoExercisesStored();
+
+        // Act
+        var result = await AUseCase().Execute(Id.New(), Role.ADMIN, CancellationToken.None);
+
+        // Assert
+        result.Workouts.Should().BeEquivalentTo([draft]);
+    }
+
+    [Fact]
+    public async Task User_ShouldNotLoadTheExercisesOfAHiddenDraft()
+    {
+        // Arrange
+        var callerId = Id.New();
+        var hiddenExercise = Id.New();
+        var draft = APrescribedWorkout(callerId, Id.New(), WorkoutStatus.DRAFT, hiddenExercise);
+        _workouts.Setup(repository => repository.GetAllByUserId(callerId, It.IsAny<CancellationToken>())).ReturnsAsync([draft]);
+        NoExercisesStored();
+
+        // Act
+        await AUseCase().Execute(callerId, Role.USER, CancellationToken.None);
+
+        // Assert
+        _exercises.Verify(repository => repository.GetAllByIds(
+            It.Is<IEnumerable<Id>>(ids => ids.Contains(hiddenExercise) == false),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }

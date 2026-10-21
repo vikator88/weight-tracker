@@ -32,7 +32,7 @@ public class CreateSuperSeriesUseCaseTests
         var threeSets = new SetPrescription(3, new SetTarget.Reps(10));
         entryIds = [Id.New(), Id.New(), Id.New()];
 
-        return Workout.Rehydrate(Id.New(), OwnerId, TrainerId, WorkoutDate,
+        return Workout.Rehydrate(Id.New(), OwnerId, TrainerId, WorkoutDate, WorkoutStatus.DRAFT,
         [
             WorkoutExercise.Rehydrate(entryIds[0], Id.New(), Effort.MID, [threeSets]),
             WorkoutExercise.Rehydrate(entryIds[1], Id.New(), Effort.MID, [threeSets]),
