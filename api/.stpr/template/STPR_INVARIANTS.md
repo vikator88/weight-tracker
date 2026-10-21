@@ -182,15 +182,31 @@ but **no dispatcher exists**. Events raised today would never be delivered.
 These rules decide who may perform an operation. They are permissions, so they live in Application
 (see Validations above), and every use case covered by a rule must enforce it, not only the first one written.
 
-- **Editing a workout.** Any operation that changes a workout after it exists (its exercises, sets, effort,
-  superseries, or any other part of it) is allowed only to:
+- **Editing a workout.** Editing means changing the content of a workout after it exists: its exercises, sets,
+  effort or superseries. Changing its status is not an edit and follows the status rule below. An edit is allowed only to:
   - an `ADMIN`, always;
   - the workout's prescribing trainer (`TrainerId`), when the workout has one. The owner (`UserId`) may
     **not** edit a prescribed workout;
   - the workout's owner (`UserId`), when the workout has no prescribing trainer, whatever the owner's role.
   - Anyone else is rejected with `UnauthorizedOperationException` (403).
+  - Once a workout is `STARTED` or `FINISHED` it is locked: a caller who passes the rule above, other than an
+    `ADMIN`, is rejected with `WorkoutLockedException` (409). The permission check runs first, so a caller who
+    may not edit the workout gets 403 and never learns its status.
   - The rule lives in a single Application service shared by every workout-editing use case; use cases must not
     restate it inline.
+- **Changing a workout's status.** A status change is not an edit of the content, so it is governed by its own
+  Application service and not by the editing rule. The lifecycle is `DRAFT -> PUBLISHED`, `PUBLISHED -> DRAFT`,
+  `PUBLISHED -> STARTED` and `STARTED -> FINISHED`; the aggregate refuses any other move with a domain exception (409).
+  - an `ADMIN` may set any status, skipping the lifecycle;
+  - the prescribing trainer may only publish and unpublish (`DRAFT <-> PUBLISHED`);
+  - the athlete (`UserId`) of a prescribed workout may only move it forward (`PUBLISHED -> STARTED -> FINISHED`),
+    and never touches it while it is a `DRAFT`;
+  - the athlete of a workout without trainer may make every lifecycle move;
+  - anyone else is rejected with `UnauthorizedOperationException` (403). A valid move the caller's role cannot make
+    is 403; a move outside the lifecycle is 409.
+- **Reading a workout.** A prescribed workout (one with a `TrainerId`) in `DRAFT` is hidden from its athlete in
+  every read path (by id and in lists). Self-planned drafts, and drafts seen by the trainer or an `ADMIN`, are
+  never hidden. The check is the aggregate's `IsHiddenFrom`; read use cases must not restate it inline.
 
 ## 3. Testing Invariants
 

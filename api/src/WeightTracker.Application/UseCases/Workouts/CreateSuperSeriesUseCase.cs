@@ -35,6 +35,7 @@ public class CreateSuperSeriesUseCase
     /// <returns>The identifier the workout assigned to the new superseries.</returns>
     /// <exception cref="WorkoutNotFoundException">When no workout has the given id.</exception>
     /// <exception cref="UnauthorizedOperationException">When the caller may not edit the workout.</exception>
+    /// <exception cref="WorkoutLockedException">When the caller may edit the workout but it has already started.</exception>
     /// <exception cref="SuperSeriesRequiresTwoExercisesException">When fewer than two entries are given.</exception>
     /// <exception cref="DuplicateExerciseInSuperSeriesException">When the same entry is given twice.</exception>
     /// <exception cref="WorkoutExerciseNotInWorkoutException">When an entry is not in the workout.</exception>

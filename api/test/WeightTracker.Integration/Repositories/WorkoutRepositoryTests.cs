@@ -140,6 +140,37 @@ public class WorkoutRepositoryTests : IntegrationTest
     }
 
     [Fact]
+    public async Task Save_ShouldPersistANewWorkoutAsDraft()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.From(SeedData.UserId), null, new DateTime(2026, 11, 5));
+
+        await Write(repository => repository.Save(workout, CancellationToken.None));
+
+        // Act
+        var stored = await Read(workout.Id);
+
+        // Assert
+        stored!.Status.Should().Be(WorkoutStatus.DRAFT);
+    }
+
+    [Fact]
+    public async Task Save_ShouldPersistAStatusChangeOfAStoredAggregate()
+    {
+        // Arrange
+        var stored = await Read(Id.From(SeedData.OwnedWorkoutId));
+        stored!.ChangeStatus(WorkoutStatus.PUBLISHED);
+
+        await Write(repository => repository.Save(stored, CancellationToken.None));
+
+        // Act
+        var reloaded = await Read(Id.From(SeedData.OwnedWorkoutId));
+
+        // Assert
+        reloaded!.Status.Should().Be(WorkoutStatus.PUBLISHED);
+    }
+
+    [Fact]
     public async Task Save_ShouldKeepTheRowIdOfASurvivingExercise()
     {
         // Arrange
@@ -278,7 +309,7 @@ public class WorkoutRepositoryTests : IntegrationTest
             services.GetRequiredService<IWorkoutRepository>().GetAll(CancellationToken.None));
 
         // Assert
-        all.Should().HaveCount(7);
+        all.Should().HaveCount(9);
         all.Count(workout => workout.Id == Id.From(SeedData.OwnedWorkoutId)).Should().Be(1);
     }
 
@@ -323,6 +354,8 @@ public class WorkoutRepositoryTests : IntegrationTest
             Id.From(SeedData.TrainerOwnWorkoutId),
             Id.From(SeedData.PrescribedPairWorkoutId),
             Id.From(SeedData.PrescribedSuperSeriesWorkoutId),
+            Id.From(SeedData.PrescribedDraftWorkoutId),
+            Id.From(SeedData.PrescribedStartedWorkoutId),
         });
     }
 }

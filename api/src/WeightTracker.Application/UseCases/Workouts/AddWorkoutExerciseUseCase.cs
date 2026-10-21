@@ -38,6 +38,7 @@ public class AddWorkoutExerciseUseCase
     /// <returns>The entry created in the workout.</returns>
     /// <exception cref="WorkoutNotFoundException">When no workout has the given id.</exception>
     /// <exception cref="UnauthorizedOperationException">When the caller may not edit the workout.</exception>
+    /// <exception cref="WorkoutLockedException">When the caller may edit the workout but it has already started.</exception>
     /// <exception cref="ExerciseNotFoundException">When the exercise is not in the catalog.</exception>
     /// <exception cref="ExerciseAlreadyInWorkoutException">When the exercise is already in the workout.</exception>
     /// <exception cref="InvalidEffortException">When the effort is not a defined value.</exception>

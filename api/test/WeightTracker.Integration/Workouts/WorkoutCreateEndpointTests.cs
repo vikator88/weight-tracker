@@ -160,7 +160,8 @@ public class WorkoutCreateEndpointTests : IntegrationTest
         var id = body.GetProperty("id").GetGuid();
         body.GetProperty("userId").GetGuid().Should().Be(SeedData.UserId);
         body.GetProperty("trainerId").GetGuid().Should().Be(SeedData.TrainerId);
-        (await WorkoutIdsSeenBy(SeedCredentials.User)).Should().Contain(id);
+        body.GetProperty("status").GetString().Should().Be("DRAFT");
+        (await WorkoutIdsSeenBy(SeedCredentials.User)).Should().NotContain(id);
         (await WorkoutIdsSeenBy(SeedCredentials.Trainer)).Should().Contain(id);
     }
 
@@ -230,5 +231,74 @@ public class WorkoutCreateEndpointTests : IntegrationTest
         // Assert
         response.StatusCode.Should().Be(expected);
         (await WorkoutIdsSeenBy(SeedCredentials.Admin)).Should().BeEquivalentTo(before);
+    }
+
+    [Fact]
+    public async Task Post_ShouldCreateTheWorkoutOfAUserAsADraftTheyCanSee()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/workouts", new { workoutDate = Date });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var body = await BodyOf(response);
+        body.GetProperty("status").GetString().Should().Be("DRAFT");
+        (await WorkoutIdsSeenBy(SeedCredentials.User)).Should().Contain(body.GetProperty("id").GetGuid());
+    }
+
+    [Fact]
+    public async Task Post_ShouldCreateTheWorkoutOfATrainerAsADraft()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/workouts", new { userId = SeedData.UserId, workoutDate = Date });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var body = await BodyOf(response);
+        body.GetProperty("status").GetString().Should().Be("DRAFT");
+        var created = await client.GetFromJsonAsync<JsonElement>($"/workouts/{body.GetProperty("id").GetGuid()}", JsonOptions);
+        created.GetProperty("status").GetString().Should().Be("DRAFT");
+    }
+
+    [Fact]
+    public async Task Post_ShouldCreateAnAdminsPrescribedWorkoutAsADraftHiddenFromItsAthlete()
+    {
+        // Arrange
+        var admin = await AuthenticatedClientFor(SeedCredentials.Admin);
+
+        // Act
+        var response = await admin.PostAsJsonAsync("/workouts", new
+        {
+            userId = SeedData.UserId,
+            trainerId = SeedData.TrainerId,
+            workoutDate = Date,
+        });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var body = await BodyOf(response);
+        body.GetProperty("status").GetString().Should().Be("DRAFT");
+        (await WorkoutIdsSeenBy(SeedCredentials.User)).Should().NotContain(body.GetProperty("id").GetGuid());
+        (await WorkoutIdsSeenBy(SeedCredentials.Trainer)).Should().Contain(body.GetProperty("id").GetGuid());
+    }
+
+    [Fact]
+    public async Task Post_ShouldIgnoreAStatusSentByTheCaller()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/workouts", new { workoutDate = Date, status = "FINISHED" });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await BodyOf(response)).GetProperty("status").GetString().Should().Be("DRAFT");
     }
 }

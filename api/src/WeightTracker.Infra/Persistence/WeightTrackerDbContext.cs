@@ -63,6 +63,7 @@ public class WeightTrackerDbContext : DbContext
             entity.Property(workout => workout.UserId).HasColumnName("user_id");
             entity.Property(workout => workout.TrainerId).HasColumnName("trainer_id");
             entity.Property(workout => workout.WorkoutDate).HasColumnName("workout_date").HasColumnType("date");
+            entity.Property(workout => workout.Status).HasColumnName("status");
 
             // Declared without navigation properties: the User aggregate stays referenced by
             // identifier only, while EF still orders writes to satisfy the real constraints.

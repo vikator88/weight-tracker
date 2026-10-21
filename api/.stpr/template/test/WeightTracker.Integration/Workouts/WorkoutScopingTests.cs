@@ -13,7 +13,7 @@ namespace WeightTracker.Integration.Workouts;
 /// workouts owned by the user on their own, workouts owned by the user and prescribed by the
 /// trainer, and one owned by the trainer themselves.
 /// </summary>
-public class WorkoutScopingTests : IntegrationTest
+public class WorkoutScopingTests : WorkoutEndpointTest
 {
     public WorkoutScopingTests(ApiFactory factory) : base(factory)
     { }
@@ -61,7 +61,18 @@ public class WorkoutScopingTests : IntegrationTest
             SeedData.PrescribedSuperSeriesWorkoutId,
             SeedData.SelfCreatedPairWorkoutId,
             SeedData.SelfCreatedSuperSeriesWorkoutId,
+            SeedData.PrescribedStartedWorkoutId,
         });
+    }
+
+    [Fact]
+    public async Task User_ShouldNotSeeAPrescribedDraft()
+    {
+        // Arrange & Act
+        var visible = await WorkoutIdsVisibleTo(SeedCredentials.User);
+
+        // Assert
+        visible.Should().NotContain(SeedData.PrescribedDraftWorkoutId);
     }
 
     [Fact]
@@ -87,6 +98,8 @@ public class WorkoutScopingTests : IntegrationTest
             SeedData.TrainerOwnWorkoutId,
             SeedData.PrescribedPairWorkoutId,
             SeedData.PrescribedSuperSeriesWorkoutId,
+            SeedData.PrescribedDraftWorkoutId,
+            SeedData.PrescribedStartedWorkoutId,
         });
     }
 
@@ -121,6 +134,63 @@ public class WorkoutScopingTests : IntegrationTest
             SeedData.PrescribedSuperSeriesWorkoutId,
             SeedData.SelfCreatedPairWorkoutId,
             SeedData.SelfCreatedSuperSeriesWorkoutId,
+            SeedData.PrescribedDraftWorkoutId,
+            SeedData.PrescribedStartedWorkoutId,
         });
+    }
+
+    [Fact]
+    public async Task User_ShouldSeeAPrescribedDraftOnceItIsPublished()
+    {
+        // Arrange
+        await GivenWorkoutStatus(SeedData.PrescribedDraftWorkoutId, "PUBLISHED");
+
+        // Act
+        var visible = await WorkoutIdsVisibleTo(SeedCredentials.User);
+
+        // Assert
+        visible.Should().Contain(SeedData.PrescribedDraftWorkoutId);
+    }
+
+    [Fact]
+    public async Task User_ShouldNoLongerSeeAPrescribedWorkoutThatGoesBackToDraft()
+    {
+        // Arrange
+        await GivenWorkoutStatus(SeedData.TrainedWorkoutId, "DRAFT");
+
+        // Act
+        var visible = await WorkoutIdsVisibleTo(SeedCredentials.User);
+
+        // Assert
+        visible.Should().NotContain(SeedData.TrainedWorkoutId);
+        visible.Should().Contain(SeedData.PrescribedPairWorkoutId);
+    }
+
+    [Fact]
+    public async Task User_ShouldAlwaysSeeTheirSelfPlannedDrafts()
+    {
+        // Arrange & Act
+        var visible = await WorkoutIdsVisibleTo(SeedCredentials.User);
+
+        // Assert
+        visible.Should().Contain(new[] { SeedData.OwnedWorkoutId, SeedData.SelfCreatedPairWorkoutId });
+    }
+
+    [Fact]
+    public async Task Trainer_ShouldSeeTheStatusOfEachWorkout()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var payload = await client.GetFromJsonAsync<JsonElement>("/workouts", JsonOptions);
+
+        // Assert
+        var statuses = payload.EnumerateArray().ToDictionary(
+            workout => workout.GetProperty("id").GetGuid(),
+            workout => workout.GetProperty("status").GetString());
+        statuses[SeedData.PrescribedDraftWorkoutId].Should().Be("DRAFT");
+        statuses[SeedData.TrainedWorkoutId].Should().Be("PUBLISHED");
+        statuses[SeedData.PrescribedStartedWorkoutId].Should().Be("STARTED");
     }
 }

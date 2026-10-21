@@ -283,4 +283,74 @@ public class WorkoutExerciseAddEndpointTests : WorkoutExerciseEndpointTest
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest, scenario);
         ExerciseIds(await EntriesOf(SeedData.OwnedWorkoutId)).Should().Equal(SeedData.PressBancaId);
     }
+
+    [Fact]
+    public async Task Post_ShouldRejectThePrescribingTrainerOnAStartedWorkoutWithConflict()
+    {
+        // Arrange
+        var trainer = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await trainer.PostAsJsonAsync(ExercisesRoute(SeedData.PrescribedStartedWorkoutId), ACurl());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        ExerciseIds(await EntriesOf(SeedData.PrescribedStartedWorkoutId)).Should().Equal(SeedData.PressBancaId);
+    }
+
+    [Fact]
+    public async Task Post_ShouldRejectTheOwnerOfAFinishedWorkoutWithoutTrainerWithConflict()
+    {
+        // Arrange
+        await GivenWorkoutStatus(SeedData.OwnedWorkoutId, "FINISHED");
+        var user = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await user.PostAsJsonAsync(ExercisesRoute(SeedData.OwnedWorkoutId), ACurl());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        ExerciseIds(await EntriesOf(SeedData.OwnedWorkoutId)).Should().Equal(SeedData.PressBancaId);
+    }
+
+    [Fact]
+    public async Task Post_ShouldRejectACallerWhoMayNotEditAStartedWorkoutWithForbidden()
+    {
+        // Arrange
+        var user = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await user.PostAsJsonAsync(ExercisesRoute(SeedData.PrescribedStartedWorkoutId), ACurl());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Post_ShouldAllowAnAdminOnAStartedWorkout()
+    {
+        // Arrange
+        var admin = await AuthenticatedClientFor(SeedCredentials.Admin);
+
+        // Act
+        var response = await admin.PostAsJsonAsync(ExercisesRoute(SeedData.PrescribedStartedWorkoutId), ACurl());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        ExerciseIds(await EntriesOf(SeedData.PrescribedStartedWorkoutId)).Should().Equal(SeedData.PressBancaId, SeedData.CurlBicepsId);
+    }
+
+    [Fact]
+    public async Task Post_ShouldKeepAllowingThePrescribingTrainerOnAPublishedWorkout()
+    {
+        // Arrange
+        var trainer = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await trainer.PostAsJsonAsync(ExercisesRoute(SeedData.TrainedWorkoutId), ACurl());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await WorkoutAsAdmin(SeedData.TrainedWorkoutId)).GetProperty("status").GetString().Should().Be("PUBLISHED");
+    }
 }

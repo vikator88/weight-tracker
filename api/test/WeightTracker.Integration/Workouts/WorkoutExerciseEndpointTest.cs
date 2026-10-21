@@ -12,7 +12,7 @@ namespace WeightTracker.Integration.Workouts;
 /// Shared plumbing of the tests of the workout exercise routes. Reads go through the API as an admin;
 /// only the set rows, which no response exposes, are read from the database.
 /// </summary>
-public abstract class WorkoutExerciseEndpointTest : IntegrationTest
+public abstract class WorkoutExerciseEndpointTest : WorkoutEndpointTest
 {
     protected WorkoutExerciseEndpointTest(ApiFactory factory) : base(factory)
     { }

@@ -37,7 +37,8 @@ When selecting a reference, first decide whether it is:
 | `WorkoutsController`    | `REST controller`                             | Authenticated endpoint, `CurrentUser` to use case, ExceptionMapper in catch |
 | `AuthorizedController`  | `Base controller`                             | Resolves the caller through a use case, 401 when the user no longer exists |
 | `ExceptionMapper`       | `Domain-to-HTTP error mapping`                | Single mapping point for custom exceptions                                |
-| `WorkoutEditAuthorizer` | `Business authorization service`              | The workout edit rule, shared by every use case that edits a workout      |
+| `WorkoutEditAuthorizer` | `Business authorization service`              | The workout edit rule (content, plus the lock once started), shared by every use case that edits a workout |
+| `WorkoutStatusAuthorizer` | `Business authorization service`            | The status rule: who may attempt each lifecycle move. Status changes are not edits |
 | `Auth`                  | `Aggregate root plus use cases`               | JWT issuing plus persisted, rotating refresh tokens                       |
 | `CreateWorkoutsTable`   | `FluentMigrator migration`                    | Naming, FK, index and rollback shape                                      |
 | `DatabaseSeeder`        | `Seed`                                        | Deterministic ids, aggregates built through the domain                    |
@@ -107,7 +108,8 @@ Rule:
 - If you need a repository implementation or an aggregate mapper spanning several tables, replicate `WorkoutRepository` and `WorkoutMapper`
 - If you need a new endpoint, replicate `WorkoutsController`, and route every catch through `ExceptionMapper`
 - If a controller has protected routes, inherit `AuthorizedController` and read the caller from `CurrentUser`; never parse claims in the controller
-- If a use case edits an existing workout, call `WorkoutEditAuthorizer.EnsureCanEdit` before touching the aggregate, as `CreateSuperSeriesUseCase` does
+- If a use case edits the content of an existing workout, call `WorkoutEditAuthorizer.EnsureCanEdit` before touching the aggregate, as `CreateSuperSeriesUseCase` does
+- If a use case changes the status of a workout, call `WorkoutStatusAuthorizer.EnsureCanChange` instead, as `ChangeWorkoutStatusUseCase` does; a status change is not an edit
 - If you need a new identifier or business identifier, reuse `Id` and `Email` from `Domain/Common` instead of adding a per-module value object
 - If you need a new table, replicate the migration shape in `src/WeightTracker.Migrations/Migrations`
 - If you need a test for a protected endpoint, replicate `AuthEndpointsTests`; it carries the `401` matrix every protected route must have

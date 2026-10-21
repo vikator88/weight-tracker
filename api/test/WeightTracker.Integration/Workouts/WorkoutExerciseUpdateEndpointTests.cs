@@ -290,4 +290,79 @@ public class WorkoutExerciseUpdateEndpointTests : WorkoutExerciseEndpointTest
         entry.GetProperty("superSeriesId").GetInt32().Should().Be(SeedData.SeededSuperSeries);
         SetsOf(entry).Should().Equal((2, "Reps", (int?)8), (1, "MaxReps", (int?)null));
     }
+
+    private static object APressBancaUpdate() => Body(SeedData.PressBancaId, "LOW", Reps(2, 12));
+
+    [Fact]
+    public async Task Put_ShouldRejectThePrescribingTrainerOnAStartedWorkoutWithConflict()
+    {
+        // Arrange
+        var trainer = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await trainer.PutAsJsonAsync(ExerciseRoute(SeedData.PrescribedStartedWorkoutId, SeedData.PressBancaId), APressBancaUpdate());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var entry = (await EntriesOf(SeedData.PrescribedStartedWorkoutId)).Single();
+        entry.GetProperty("effort").GetString().Should().Be("HIGH");
+    }
+
+    [Fact]
+    public async Task Put_ShouldRejectTheOwnerOfAFinishedWorkoutWithoutTrainerWithConflict()
+    {
+        // Arrange
+        await GivenWorkoutStatus(SeedData.OwnedWorkoutId, "FINISHED");
+        var user = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await user.PutAsJsonAsync(ExerciseRoute(SeedData.OwnedWorkoutId, SeedData.PressBancaId), APressBancaUpdate());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var entry = (await EntriesOf(SeedData.OwnedWorkoutId)).Single();
+        entry.GetProperty("effort").GetString().Should().Be("HIGH");
+    }
+
+    [Fact]
+    public async Task Put_ShouldRejectACallerWhoMayNotEditAStartedWorkoutWithForbidden()
+    {
+        // Arrange
+        var user = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await user.PutAsJsonAsync(ExerciseRoute(SeedData.PrescribedStartedWorkoutId, SeedData.PressBancaId), APressBancaUpdate());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Put_ShouldAllowAnAdminOnAStartedWorkout()
+    {
+        // Arrange
+        var admin = await AuthenticatedClientFor(SeedCredentials.Admin);
+
+        // Act
+        var response = await admin.PutAsJsonAsync(ExerciseRoute(SeedData.PrescribedStartedWorkoutId, SeedData.PressBancaId), APressBancaUpdate());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var entry = (await EntriesOf(SeedData.PrescribedStartedWorkoutId)).Single();
+        entry.GetProperty("effort").GetString().Should().Be("LOW");
+    }
+
+    [Fact]
+    public async Task Put_ShouldKeepAllowingThePrescribingTrainerOnAPublishedWorkoutWithoutUnpublishingIt()
+    {
+        // Arrange
+        var trainer = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await trainer.PutAsJsonAsync(ExerciseRoute(SeedData.TrainedWorkoutId, SeedData.SentadillaId), ASentadillaUpdate());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await WorkoutAsAdmin(SeedData.TrainedWorkoutId)).GetProperty("status").GetString().Should().Be("PUBLISHED");
+    }
 }

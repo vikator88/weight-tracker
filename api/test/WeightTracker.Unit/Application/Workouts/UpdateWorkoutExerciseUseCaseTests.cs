@@ -29,7 +29,7 @@ public class UpdateWorkoutExerciseUseCaseTests
 
     /// <summary>A stored workout prescribed by the trainer, with one exercise.</summary>
     private static Workout AStoredWorkout(Id exerciseId)
-        => Workout.Rehydrate(Id.New(), OwnerId, TrainerId, WorkoutDate,
+        => Workout.Rehydrate(Id.New(), OwnerId, TrainerId, WorkoutDate, WorkoutStatus.DRAFT,
             [WorkoutExercise.Rehydrate(Id.New(), exerciseId, Effort.MID, [ThreeByTen])]);
 
     private void GivenStored(Workout workout)

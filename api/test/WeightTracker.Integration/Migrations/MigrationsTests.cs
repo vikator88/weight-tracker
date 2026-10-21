@@ -21,6 +21,9 @@ public class MigrationsTests : IAsyncLifetime
     /// <summary>Last migration before <c>AddEffortToWorkoutExercises_202610131437</c> that it depends on.</summary>
     private const long BeforeEffortVersion = 202610080944;
 
+    /// <summary>Last migration before <c>AddStatusToWorkouts_202610182247</c> that it depends on.</summary>
+    private const long BeforeStatusVersion = 202610161647;
+
     private static readonly string[] ExpectedTables =
     [
         "users",
@@ -141,6 +144,55 @@ public class MigrationsTests : IAsyncLifetime
         (await Scalar<bool>("""
             SELECT EXISTS (SELECT 1 FROM information_schema.columns
             WHERE table_name = 'workout_exercises' AND column_name = 'effort')
+            """)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task AddStatus_ShouldBackfillExistingRowsWithDraft()
+    {
+        // Arrange
+        DatabaseMigrator.MigrateUp(_connectionString, BeforeStatusVersion);
+        await Execute(_connectionString, """
+            INSERT INTO users (id, email, name, surname, date_birth, role, password_hash, created_at)
+            VALUES ('00000000-0000-0000-0000-0000000000b1', 'legacy-status@weighttracker.test', 'Legacy', 'User',
+                    '1990-01-01', 1, 'hash', now());
+            INSERT INTO workouts (id, user_id, trainer_id, workout_date)
+            VALUES ('00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-0000000000b1', NULL, '2026-10-01');
+            """);
+
+        // Act
+        DatabaseMigrator.MigrateUp(_connectionString);
+
+        // Assert
+        (await Scalar<int>("SELECT status FROM workouts")).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task AddStatus_ShouldLeaveNoDefaultForNewRows()
+    {
+        // Arrange & Act
+        DatabaseMigrator.MigrateUp(_connectionString);
+
+        // Assert
+        (await Scalar<bool>("""
+            SELECT column_default IS NULL FROM information_schema.columns
+            WHERE table_name = 'workouts' AND column_name = 'status'
+            """)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AddStatus_Down_ShouldRemoveTheColumn()
+    {
+        // Arrange
+        DatabaseMigrator.MigrateUp(_connectionString);
+
+        // Act
+        DatabaseMigrator.MigrateDown(_connectionString, BeforeStatusVersion);
+
+        // Assert
+        (await Scalar<bool>("""
+            SELECT EXISTS (SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'workouts' AND column_name = 'status')
             """)).Should().BeFalse();
     }
 

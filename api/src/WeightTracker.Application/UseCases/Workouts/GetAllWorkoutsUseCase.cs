@@ -49,9 +49,15 @@ public class GetAllWorkoutsUseCase
         return callerRole switch
         {
             Role.ADMIN => await _workouts.GetAll(cancellationToken),
-            Role.TRAINER => await _workouts.GetAllByUserOrTrainerId(callerId, cancellationToken),
-            Role.USER => await _workouts.GetAllByUserId(callerId, cancellationToken),
+            Role.TRAINER => PublishedToCaller(await _workouts.GetAllByUserOrTrainerId(callerId, cancellationToken), callerId),
+            Role.USER => PublishedToCaller(await _workouts.GetAllByUserId(callerId, cancellationToken), callerId),
             _ => throw new UnauthorizedOperationException("GET /workouts"),
         };
     }
+
+    /// <summary>
+    /// Leaves out the prescribed drafts of which the caller is the athlete: their trainer has not published them yet.
+    /// </summary>
+    private static IEnumerable<Workout> PublishedToCaller(IEnumerable<Workout> workouts, Id callerId)
+        => workouts.Where(workout => workout.IsHiddenFrom(callerId) == false);
 }

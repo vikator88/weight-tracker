@@ -17,7 +17,7 @@ public class WorkoutMapperTests
 
     private static Workout AFullyLoadedWorkout(Id? trainerId = null)
         => Workout.Rehydrate(
-            Id.New(), Id.New(), trainerId, WorkoutDate,
+            Id.New(), Id.New(), trainerId, WorkoutDate, WorkoutStatus.DRAFT,
             [
                 WorkoutExercise.Rehydrate(Id.New(), SentadillaId, Effort.MIDHIGH,
                 [
@@ -29,7 +29,7 @@ public class WorkoutMapperTests
 
     private static Workout AWorkoutWithOneSet(SetTarget target)
         => Workout.Rehydrate(
-            Id.New(), Id.New(), null, WorkoutDate,
+            Id.New(), Id.New(), null, WorkoutDate, WorkoutStatus.DRAFT,
             [WorkoutExercise.Rehydrate(Id.New(), SentadillaId, Effort.MID, [new SetPrescription(4, target)])]);
 
     private static Workout RoundTrip(Workout workout)
@@ -297,6 +297,52 @@ public class WorkoutMapperTests
         // Arrange
         var entity = WorkoutMapper.MapToEntity(AFullyLoadedWorkout());
         entity.WorkoutExercises.First().SuperSeriesId = 1;
+
+        // Act
+        var act = () => WorkoutMapper.MapToDomain(entity);
+
+        // Assert
+        act.Should().Throw<PersistenceMappingException>();
+    }
+
+    [Theory]
+    [InlineData(WorkoutStatus.DRAFT)]
+    [InlineData(WorkoutStatus.PUBLISHED)]
+    [InlineData(WorkoutStatus.STARTED)]
+    [InlineData(WorkoutStatus.FINISHED)]
+    public void RoundTrip_ShouldPreserveEveryStatus(WorkoutStatus status)
+    {
+        // Arrange
+        var original = Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, status, []);
+
+        // Act
+        var restored = RoundTrip(original);
+
+        // Assert
+        restored.Status.Should().Be(status);
+    }
+
+    [Fact]
+    public void MapToEntity_ShouldStoreTheStatusAsItsIntegerValue()
+    {
+        // Arrange
+        var workout = Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, WorkoutStatus.STARTED, []);
+
+        // Act
+        var entity = WorkoutMapper.MapToEntity(workout);
+
+        // Assert
+        entity.Status.Should().Be((int)WorkoutStatus.STARTED);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(5)]
+    public void MapToDomain_ShouldRejectAnUnknownStoredStatus(int status)
+    {
+        // Arrange
+        var entity = WorkoutMapper.MapToEntity(AFullyLoadedWorkout());
+        entity.Status = status;
 
         // Act
         var act = () => WorkoutMapper.MapToDomain(entity);

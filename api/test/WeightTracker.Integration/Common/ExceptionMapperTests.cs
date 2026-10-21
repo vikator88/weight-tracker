@@ -258,4 +258,43 @@ public class ExceptionMapperTests
         // Assert
         status.Should().Be(StatusCodes.Status409Conflict);
     }
+
+    [Fact]
+    public void Map_ShouldReturnBadRequestForAnInvalidWorkoutStatus()
+    {
+        // Arrange
+        var exception = new InvalidWorkoutStatusException(99);
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public void Map_ShouldReturnConflictForAnInvalidWorkoutStatusTransition()
+    {
+        // Arrange
+        var exception = new InvalidWorkoutStatusTransitionException(WorkoutStatus.DRAFT, WorkoutStatus.FINISHED);
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status409Conflict);
+    }
+
+    [Fact]
+    public void Map_ShouldReturnConflictForALockedWorkout()
+    {
+        // Arrange
+        var exception = new WorkoutLockedException(Id.New(), WorkoutStatus.STARTED);
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status409Conflict);
+    }
 }

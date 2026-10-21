@@ -183,4 +183,60 @@ public class WorkoutExerciseRemoveEndpointTests : WorkoutExerciseEndpointTest
         ExerciseIds(entries).Should().Equal(SeedData.PressBancaId);
         entries[0].GetProperty("superSeriesId").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
     }
+
+    [Fact]
+    public async Task Delete_ShouldRejectThePrescribingTrainerOnAStartedWorkoutWithConflict()
+    {
+        // Arrange
+        var trainer = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await trainer.DeleteAsync(ExerciseRoute(SeedData.PrescribedStartedWorkoutId, SeedData.PressBancaId));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        ExerciseIds(await EntriesOf(SeedData.PrescribedStartedWorkoutId)).Should().Equal(SeedData.PressBancaId);
+    }
+
+    [Fact]
+    public async Task Delete_ShouldRejectTheOwnerOfAFinishedWorkoutWithoutTrainerWithConflict()
+    {
+        // Arrange
+        await GivenWorkoutStatus(SeedData.OwnedWorkoutId, "FINISHED");
+        var user = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await user.DeleteAsync(ExerciseRoute(SeedData.OwnedWorkoutId, SeedData.PressBancaId));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        ExerciseIds(await EntriesOf(SeedData.OwnedWorkoutId)).Should().Equal(SeedData.PressBancaId);
+    }
+
+    [Fact]
+    public async Task Delete_ShouldRejectACallerWhoMayNotEditAStartedWorkoutWithForbidden()
+    {
+        // Arrange
+        var user = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await user.DeleteAsync(ExerciseRoute(SeedData.PrescribedStartedWorkoutId, SeedData.PressBancaId));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Delete_ShouldAllowAnAdminOnAStartedWorkout()
+    {
+        // Arrange
+        var admin = await AuthenticatedClientFor(SeedCredentials.Admin);
+
+        // Act
+        var response = await admin.DeleteAsync(ExerciseRoute(SeedData.PrescribedStartedWorkoutId, SeedData.PressBancaId));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await EntriesOf(SeedData.PrescribedStartedWorkoutId)).Should().BeEmpty();
+    }
 }

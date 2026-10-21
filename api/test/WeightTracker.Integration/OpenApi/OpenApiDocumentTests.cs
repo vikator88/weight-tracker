@@ -160,6 +160,50 @@ public class OpenApiDocumentTests : IntegrationTest
             .Should().Contain(["201", "400", "401", "403", "404"]);
     }
 
+    [Theory]
+    [InlineData("/workouts/{workoutId}/exercises", "post")]
+    [InlineData("/workouts/{workoutId}/exercises/{exerciseId}", "put")]
+    [InlineData("/workouts/{workoutId}/exercises/{exerciseId}", "delete")]
+    [InlineData("/workouts/{workoutId}/superseries", "post")]
+    [InlineData("/workouts/{workoutId}/superseries/{superSeriesId}", "delete")]
+    public async Task WorkoutEditOperation_ShouldDocumentTheConflictOfALockedWorkout(string path, string method)
+    {
+        // Arrange & Act
+        var document = await Document();
+
+        // Assert
+        Operation(document, path, method).GetProperty("responses").EnumerateObject().Select(property => property.Name)
+            .Should().Contain("409");
+    }
+
+    [Fact]
+    public async Task ChangeWorkoutStatus_ShouldDocumentItsSecurityAndResponses()
+    {
+        // Arrange & Act
+        var document = await Document();
+
+        // Assert
+        var operation = Operation(document, "/workouts/{workoutId}/status", "put");
+
+        operation.GetProperty("security")[0].TryGetProperty("Bearer", out _).Should().BeTrue();
+        operation.GetProperty("responses").EnumerateObject().Select(property => property.Name)
+            .Should().Contain(["200", "400", "401", "403", "404", "409"]);
+    }
+
+    [Fact]
+    public async Task WorkoutDetail_ShouldDocumentTheStatusField()
+    {
+        // Arrange & Act
+        var document = await Document();
+
+        // Assert
+        var properties = document
+            .GetProperty("components").GetProperty("schemas").GetProperty("WorkoutDetailResponse")
+            .GetProperty("properties");
+
+        properties.EnumerateObject().Select(property => property.Name).Should().Contain("status");
+    }
+
     [Fact]
     public async Task Login_ShouldDocumentItsResponses()
     {

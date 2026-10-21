@@ -327,7 +327,7 @@ public class WorkoutTests
     public void Rehydrate_ShouldNotMarkTheWorkoutAsNew()
     {
         // Arrange & Act
-        var workout = Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, []);
+        var workout = Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, WorkoutStatus.DRAFT, []);
 
         // Assert
         workout.IsNew.Should().BeFalse();
@@ -344,7 +344,7 @@ public class WorkoutTests
         var plancha = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.LOW, [new SetPrescription(3, new SetTarget.Duration(40))]);
 
         // Act
-        var workout = Workout.Rehydrate(id, userId, trainerId, WorkoutDate, [sentadilla, plancha]);
+        var workout = Workout.Rehydrate(id, userId, trainerId, WorkoutDate, WorkoutStatus.DRAFT, [sentadilla, plancha]);
 
         // Assert
         workout.Id.Should().Be(id);
@@ -364,7 +364,7 @@ public class WorkoutTests
         var second = WorkoutExercise.Rehydrate(Id.New(), exerciseId, Effort.HIGH, [FourByTen]);
 
         // Act
-        var act = () => Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, [first, second]);
+        var act = () => Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, WorkoutStatus.DRAFT, [first, second]);
 
         // Assert
         act.Should().Throw<ExerciseAlreadyInWorkoutException>();
@@ -652,7 +652,7 @@ public class WorkoutTests
         var second = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [FourByTen], superSeriesId);
 
         // Act
-        var workout = Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, [first, second]);
+        var workout = Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, WorkoutStatus.DRAFT, [first, second]);
 
         // Assert
         workout.Exercises.Should().OnlyContain(entry => entry.SuperSeriesId == superSeriesId);
@@ -665,7 +665,7 @@ public class WorkoutTests
         var alone = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [FourByTen], SuperSeriesId.From(1));
 
         // Act
-        var act = () => Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, [alone]);
+        var act = () => Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, WorkoutStatus.DRAFT, [alone]);
 
         // Assert
         act.Should().Throw<SuperSeriesRequiresTwoExercisesException>();
@@ -680,9 +680,228 @@ public class WorkoutTests
         var second = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [FourByTen], superSeriesId);
 
         // Act
-        var act = () => Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, [first, second]);
+        var act = () => Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, WorkoutStatus.DRAFT, [first, second]);
 
         // Assert
         act.Should().Throw<SuperSeriesSetCountMismatchException>();
+    }
+
+    private static Workout AWorkoutIn(WorkoutStatus status, Id? trainerId = null)
+        => Workout.Rehydrate(Id.New(), Id.New(), trainerId, WorkoutDate, status, []);
+
+    [Fact]
+    public void Create_ShouldStartAsDraft()
+    {
+        // Arrange & Act
+        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+
+        // Assert
+        workout.Status.Should().Be(WorkoutStatus.DRAFT);
+    }
+
+    [Fact]
+    public void Rehydrate_ShouldRestoreTheStoredStatus()
+    {
+        // Arrange & Act
+        var workout = AWorkoutIn(WorkoutStatus.STARTED);
+
+        // Assert
+        workout.Status.Should().Be(WorkoutStatus.STARTED);
+    }
+
+    [Fact]
+    public void Rehydrate_ShouldRejectAnUndefinedStatus()
+    {
+        // Arrange & Act
+        var act = () => AWorkoutIn((WorkoutStatus)99);
+
+        // Assert
+        act.Should().Throw<InvalidWorkoutStatusException>();
+    }
+
+    [Theory]
+    [InlineData(WorkoutStatus.DRAFT, WorkoutStatus.PUBLISHED)]
+    [InlineData(WorkoutStatus.PUBLISHED, WorkoutStatus.DRAFT)]
+    [InlineData(WorkoutStatus.PUBLISHED, WorkoutStatus.STARTED)]
+    [InlineData(WorkoutStatus.STARTED, WorkoutStatus.FINISHED)]
+    public void ChangeStatus_ShouldAcceptTheBusinessTransitions(WorkoutStatus from, WorkoutStatus to)
+    {
+        // Arrange
+        var workout = AWorkoutIn(from);
+
+        // Act
+        workout.ChangeStatus(to);
+
+        // Assert
+        workout.Status.Should().Be(to);
+    }
+
+    [Theory]
+    [InlineData(WorkoutStatus.DRAFT, WorkoutStatus.DRAFT)]
+    [InlineData(WorkoutStatus.DRAFT, WorkoutStatus.STARTED)]
+    [InlineData(WorkoutStatus.DRAFT, WorkoutStatus.FINISHED)]
+    [InlineData(WorkoutStatus.PUBLISHED, WorkoutStatus.PUBLISHED)]
+    [InlineData(WorkoutStatus.PUBLISHED, WorkoutStatus.FINISHED)]
+    [InlineData(WorkoutStatus.STARTED, WorkoutStatus.DRAFT)]
+    [InlineData(WorkoutStatus.STARTED, WorkoutStatus.PUBLISHED)]
+    [InlineData(WorkoutStatus.STARTED, WorkoutStatus.STARTED)]
+    [InlineData(WorkoutStatus.FINISHED, WorkoutStatus.DRAFT)]
+    [InlineData(WorkoutStatus.FINISHED, WorkoutStatus.PUBLISHED)]
+    [InlineData(WorkoutStatus.FINISHED, WorkoutStatus.STARTED)]
+    [InlineData(WorkoutStatus.FINISHED, WorkoutStatus.FINISHED)]
+    public void ChangeStatus_ShouldRejectEveryOtherTransitionAndKeepTheStatus(WorkoutStatus from, WorkoutStatus to)
+    {
+        // Arrange
+        var workout = AWorkoutIn(from);
+
+        // Act
+        var act = () => workout.ChangeStatus(to);
+
+        // Assert
+        act.Should().Throw<InvalidWorkoutStatusTransitionException>();
+        workout.Status.Should().Be(from);
+    }
+
+    [Fact]
+    public void ChangeStatus_ShouldRejectAnUndefinedTarget()
+    {
+        // Arrange
+        var workout = AWorkoutIn(WorkoutStatus.DRAFT);
+
+        // Act
+        var act = () => workout.ChangeStatus((WorkoutStatus)99);
+
+        // Assert
+        act.Should().Throw<InvalidWorkoutStatusException>();
+        workout.Status.Should().Be(WorkoutStatus.DRAFT);
+    }
+
+    [Theory]
+    [InlineData(WorkoutStatus.FINISHED, WorkoutStatus.DRAFT)]
+    [InlineData(WorkoutStatus.DRAFT, WorkoutStatus.FINISHED)]
+    [InlineData(WorkoutStatus.STARTED, WorkoutStatus.STARTED)]
+    public void OverrideStatus_ShouldSkipTheLifecycle(WorkoutStatus from, WorkoutStatus to)
+    {
+        // Arrange
+        var workout = AWorkoutIn(from);
+
+        // Act
+        workout.OverrideStatus(to);
+
+        // Assert
+        workout.Status.Should().Be(to);
+    }
+
+    [Fact]
+    public void OverrideStatus_ShouldRejectAnUndefinedTarget()
+    {
+        // Arrange
+        var workout = AWorkoutIn(WorkoutStatus.PUBLISHED);
+
+        // Act
+        var act = () => workout.OverrideStatus((WorkoutStatus)99);
+
+        // Assert
+        act.Should().Throw<InvalidWorkoutStatusException>();
+        workout.Status.Should().Be(WorkoutStatus.PUBLISHED);
+    }
+
+    [Theory]
+    [InlineData(WorkoutStatus.DRAFT, false)]
+    [InlineData(WorkoutStatus.PUBLISHED, false)]
+    [InlineData(WorkoutStatus.STARTED, true)]
+    [InlineData(WorkoutStatus.FINISHED, true)]
+    public void IsLocked_ShouldBeTrueOnlyOnceTheWorkoutHasStarted(WorkoutStatus status, bool expected)
+    {
+        // Arrange
+        var workout = AWorkoutIn(status);
+
+        // Act
+        var locked = workout.IsLocked;
+
+        // Assert
+        locked.Should().Be(expected);
+    }
+
+    [Fact]
+    public void IsHiddenFrom_ShouldHideAPrescribedDraftFromItsAthlete()
+    {
+        // Arrange
+        var athleteId = Id.New();
+        var workout = Workout.Rehydrate(Id.New(), athleteId, Id.New(), WorkoutDate, WorkoutStatus.DRAFT, []);
+
+        // Act
+        var hidden = workout.IsHiddenFrom(athleteId);
+
+        // Assert
+        hidden.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsHiddenFrom_ShouldShowAPrescribedDraftToAnyoneElse()
+    {
+        // Arrange
+        var trainerId = Id.New();
+        var workout = Workout.Rehydrate(Id.New(), Id.New(), trainerId, WorkoutDate, WorkoutStatus.DRAFT, []);
+
+        // Act
+        var hiddenFromTrainer = workout.IsHiddenFrom(trainerId);
+        var hiddenFromStranger = workout.IsHiddenFrom(Id.New());
+
+        // Assert
+        hiddenFromTrainer.Should().BeFalse();
+        hiddenFromStranger.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsHiddenFrom_ShouldNeverHideASelfPlannedDraftFromItsAthlete()
+    {
+        // Arrange
+        var athleteId = Id.New();
+        var workout = Workout.Rehydrate(Id.New(), athleteId, null, WorkoutDate, WorkoutStatus.DRAFT, []);
+
+        // Act
+        var hidden = workout.IsHiddenFrom(athleteId);
+
+        // Assert
+        hidden.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(WorkoutStatus.PUBLISHED)]
+    [InlineData(WorkoutStatus.STARTED)]
+    [InlineData(WorkoutStatus.FINISHED)]
+    public void IsHiddenFrom_ShouldShowAPrescribedWorkoutOnceItIsPublished(WorkoutStatus status)
+    {
+        // Arrange
+        var athleteId = Id.New();
+        var workout = Workout.Rehydrate(Id.New(), athleteId, Id.New(), WorkoutDate, status, []);
+
+        // Act
+        var hidden = workout.IsHiddenFrom(athleteId);
+
+        // Assert
+        hidden.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(WorkoutStatus.DRAFT, WorkoutStatus.PUBLISHED, true)]
+    [InlineData(WorkoutStatus.PUBLISHED, WorkoutStatus.DRAFT, true)]
+    [InlineData(WorkoutStatus.PUBLISHED, WorkoutStatus.STARTED, true)]
+    [InlineData(WorkoutStatus.STARTED, WorkoutStatus.FINISHED, true)]
+    [InlineData(WorkoutStatus.DRAFT, WorkoutStatus.STARTED, false)]
+    [InlineData(WorkoutStatus.STARTED, WorkoutStatus.PUBLISHED, false)]
+    [InlineData(WorkoutStatus.FINISHED, WorkoutStatus.DRAFT, false)]
+    [InlineData(WorkoutStatus.DRAFT, WorkoutStatus.DRAFT, false)]
+    public void CanTransitionTo_ShouldMatchTheLifecycle(WorkoutStatus from, WorkoutStatus to, bool expected)
+    {
+        // Arrange
+        var workout = AWorkoutIn(from);
+
+        // Act
+        var allowed = workout.CanTransitionTo(to);
+
+        // Assert
+        allowed.Should().Be(expected);
     }
 }

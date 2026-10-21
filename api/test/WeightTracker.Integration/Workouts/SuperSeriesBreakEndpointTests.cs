@@ -13,7 +13,7 @@ namespace WeightTracker.Integration.Workouts;
 /// Covers <c>DELETE /workouts/{workoutId}/superseries/{superSeriesId}</c>, including every branch of the
 /// workout edit rule reachable with the seeded users. A second trainer on a prescribed workout is covered by unit tests.
 /// </summary>
-public class SuperSeriesBreakEndpointTests : IntegrationTest
+public class SuperSeriesBreakEndpointTests : WorkoutEndpointTest
 {
     public SuperSeriesBreakEndpointTests(ApiFactory factory) : base(factory)
     { }
@@ -188,5 +188,64 @@ public class SuperSeriesBreakEndpointTests : IntegrationTest
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Delete_ShouldRejectThePrescribingTrainerOnAStartedWorkoutWithConflict()
+    {
+        // Arrange
+        await GivenWorkoutStatus(SeedData.PrescribedSuperSeriesWorkoutId, "STARTED");
+        var trainer = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await trainer.DeleteAsync(Route(SeedData.PrescribedSuperSeriesWorkoutId));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await EntriesOf(SeedData.PrescribedSuperSeriesWorkoutId)).Count(entry => entry.SuperSeriesId == SeedData.SeededSuperSeries).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Delete_ShouldRejectTheOwnerOfAFinishedWorkoutWithoutTrainerWithConflict()
+    {
+        // Arrange
+        await GivenWorkoutStatus(SeedData.SelfCreatedSuperSeriesWorkoutId, "FINISHED");
+        var user = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await user.DeleteAsync(Route(SeedData.SelfCreatedSuperSeriesWorkoutId));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await EntriesOf(SeedData.SelfCreatedSuperSeriesWorkoutId)).Should().OnlyContain(entry => entry.SuperSeriesId == SeedData.SeededSuperSeries);
+    }
+
+    [Fact]
+    public async Task Delete_ShouldRejectACallerWhoMayNotEditAStartedWorkoutWithForbidden()
+    {
+        // Arrange
+        await GivenWorkoutStatus(SeedData.PrescribedSuperSeriesWorkoutId, "STARTED");
+        var user = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await user.DeleteAsync(Route(SeedData.PrescribedSuperSeriesWorkoutId));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Delete_ShouldAllowAnAdminOnAStartedWorkout()
+    {
+        // Arrange
+        await GivenWorkoutStatus(SeedData.PrescribedSuperSeriesWorkoutId, "STARTED");
+        var admin = await AuthenticatedClientFor(SeedCredentials.Admin);
+
+        // Act
+        var response = await admin.DeleteAsync(Route(SeedData.PrescribedSuperSeriesWorkoutId));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await EntriesOf(SeedData.PrescribedSuperSeriesWorkoutId)).Should().OnlyContain(entry => entry.SuperSeriesId == null);
     }
 }

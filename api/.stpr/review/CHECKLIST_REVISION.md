@@ -55,7 +55,7 @@ This checklist is a guide for human review. AI may help inspect the codebase, co
 - [ ] Every custom exception introduced by the change has an explicit status mapping in `ExceptionMapper`.
 - [ ] New use cases, repositories and services are registered in `Program.cs`.
 - [ ] Endpoint visibility matches the matrix approved in the plan.
-- [ ] Every use case that edits a workout enforces the workout edit rule (`STPR_INVARIANTS.md`, "Business authorization rules") through the shared Application service, never inline.
+- [ ] Every use case that edits workout content enforces the workout edit rule (`STPR_INVARIANTS.md`, "Business authorization rules") through the shared Application service, never inline. Every use case that changes a workout's status enforces the status rule through its own shared service.
 - [ ] No domain object crosses the HTTP boundary; responses are DTOs from `Endpoints/<Resource>/Dtos`.
 - [ ] Every new or changed action declares its responses with `[ProducesResponseType]`, including the failure codes.
 - [ ] Protected endpoints appear in the OpenAPI document with a resolved `Bearer` security requirement.

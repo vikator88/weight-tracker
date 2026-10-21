@@ -13,7 +13,7 @@ namespace WeightTracker.Integration.Workouts;
 /// Covers <c>POST /workouts/{workoutId}/superseries</c>, including every branch of the workout edit rule
 /// reachable with the seeded users. A second trainer on a prescribed workout is covered by unit tests.
 /// </summary>
-public class SuperSeriesCreateEndpointTests : IntegrationTest
+public class SuperSeriesCreateEndpointTests : WorkoutEndpointTest
 {
     private static readonly object PrescribedPairBody = new
     {
@@ -294,5 +294,64 @@ public class SuperSeriesCreateEndpointTests : IntegrationTest
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Post_ShouldRejectThePrescribingTrainerOnAStartedWorkoutWithConflict()
+    {
+        // Arrange
+        await GivenWorkoutStatus(SeedData.PrescribedPairWorkoutId, "STARTED");
+        var trainer = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await trainer.PostAsJsonAsync(Route(SeedData.PrescribedPairWorkoutId), PrescribedPairBody);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await EntriesOf(SeedData.PrescribedPairWorkoutId)).Select(entry => entry.SuperSeriesId).Should().OnlyContain(id => id == null);
+    }
+
+    [Fact]
+    public async Task Post_ShouldRejectTheOwnerOfAFinishedWorkoutWithoutTrainerWithConflict()
+    {
+        // Arrange
+        await GivenWorkoutStatus(SeedData.SelfCreatedPairWorkoutId, "FINISHED");
+        var user = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await user.PostAsJsonAsync(Route(SeedData.SelfCreatedPairWorkoutId), SelfCreatedPairBody);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await EntriesOf(SeedData.SelfCreatedPairWorkoutId)).Select(entry => entry.SuperSeriesId).Should().OnlyContain(id => id == null);
+    }
+
+    [Fact]
+    public async Task Post_ShouldRejectACallerWhoMayNotEditAStartedWorkoutWithForbidden()
+    {
+        // Arrange
+        await GivenWorkoutStatus(SeedData.PrescribedPairWorkoutId, "STARTED");
+        var user = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await user.PostAsJsonAsync(Route(SeedData.PrescribedPairWorkoutId), PrescribedPairBody);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Post_ShouldAllowAnAdminOnAStartedWorkout()
+    {
+        // Arrange
+        await GivenWorkoutStatus(SeedData.PrescribedPairWorkoutId, "STARTED");
+        var admin = await AuthenticatedClientFor(SeedCredentials.Admin);
+
+        // Act
+        var response = await admin.PostAsJsonAsync(Route(SeedData.PrescribedPairWorkoutId), PrescribedPairBody);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await EntriesOf(SeedData.PrescribedPairWorkoutId)).Select(entry => entry.SuperSeriesId).Should().OnlyContain(id => id == 1);
     }
 }
