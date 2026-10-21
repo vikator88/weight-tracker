@@ -41,7 +41,7 @@ public static class WorkoutMapper
 
             foreach (var prescription in entry.Sets)
             {
-                var (targetType, targetValue) = MapTargetToColumns(prescription.target);
+                var (targetType, targetValue, targetMaxValue) = MapTargetToColumns(prescription.target);
 
                 workoutExercise.Sets.Add(new WorkoutExerciseSetEntity
                 {
@@ -51,6 +51,7 @@ public static class WorkoutMapper
                     Count = prescription.count,
                     TargetType = targetType,
                     TargetValue = targetValue,
+                    TargetMaxValue = targetMaxValue,
                 });
             }
 
@@ -76,7 +77,7 @@ public static class WorkoutMapper
                     MapEffort(item.Effort),
                     item.Sets
                         .OrderBy(set => set.Position)
-                        .Select(set => new SetPrescription(set.Count, MapTargetToDomain(set.TargetType, set.TargetValue))),
+                        .Select(set => new SetPrescription(set.Count, MapTargetToDomain(set.TargetType, set.TargetValue, set.TargetMaxValue))),
                     item.SuperSeriesId is null ? null : SuperSeriesId.From(item.SuperSeriesId.Value)))
                 .ToList();
 
@@ -95,19 +96,22 @@ public static class WorkoutMapper
         }
     }
 
-    private static (string TargetType, int? TargetValue) MapTargetToColumns(SetTarget target) => target switch
+    private static (string TargetType, int? TargetValue, int? TargetMaxValue) MapTargetToColumns(SetTarget target) => target switch
     {
-        SetTarget.Reps reps => (SetTargetTypes.Reps, reps.value),
-        SetTarget.Duration duration => (SetTargetTypes.Duration, duration.value),
-        SetTarget.MaxReps => (SetTargetTypes.MaxReps, (int?)null),
+        SetTarget.Reps reps => (SetTargetTypes.Reps, reps.value, null),
+        SetTarget.Duration duration => (SetTargetTypes.Duration, duration.value, null),
+        SetTarget.MaxReps => (SetTargetTypes.MaxReps, null, null),
+        SetTarget.RepsRange range => (SetTargetTypes.RepsRange, range.min, range.max),
         _ => throw new PersistenceMappingException($"'{target.GetType().Name}' is not a known set target"),
     };
 
-    private static SetTarget MapTargetToDomain(string targetType, int? targetValue) => targetType switch
+    private static SetTarget MapTargetToDomain(string targetType, int? targetValue, int? targetMaxValue) => targetType switch
     {
         SetTargetTypes.Reps => new SetTarget.Reps(RequireValue(targetType, targetValue)),
         SetTargetTypes.Duration => new SetTarget.Duration(RequireValue(targetType, targetValue)),
         SetTargetTypes.MaxReps => new SetTarget.MaxReps(),
+        SetTargetTypes.RepsRange => new SetTarget.RepsRange(
+            RequireValue(targetType, targetValue), RequireValue(targetType, targetMaxValue)),
         _ => throw new PersistenceMappingException($"'{targetType}' is not a known set target"),
     };
 

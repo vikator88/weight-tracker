@@ -252,6 +252,42 @@ public class WorkoutExerciseAddEndpointTests : WorkoutExerciseEndpointTest
         SetsOf((await EntriesOf(SeedData.OwnedWorkoutId))[^1]).Should().Equal((3, "Duration", (int?)40));
     }
 
+    [Fact]
+    public async Task Post_ShouldStoreARepsRangeAndReturnBothBounds()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await client.PostAsJsonAsync(ExercisesRoute(SeedData.OwnedWorkoutId), Body(SeedData.CurlBicepsId, "MID", RepsRange(3, 8, 12)));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var returned = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        SetsOf(returned).Should().Equal((3, "RepsRange", (int?)8));
+        MaxValuesOf(returned).Should().Equal(12);
+        var stored = (await EntriesOf(SeedData.OwnedWorkoutId))[^1];
+        SetsOf(stored).Should().Equal((3, "RepsRange", (int?)8));
+        MaxValuesOf(stored).Should().Equal(12);
+    }
+
+    [Fact]
+    public async Task Post_ShouldIgnoreAMaxTargetSentWithReps()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.User);
+        var reps = new { count = 3, targetType = "Reps", target = 10, maxTarget = 12 };
+
+        // Act
+        var response = await client.PostAsJsonAsync(ExercisesRoute(SeedData.OwnedWorkoutId), Body(SeedData.CurlBicepsId, "MID", reps));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var stored = (await EntriesOf(SeedData.OwnedWorkoutId))[^1];
+        SetsOf(stored).Should().Equal((3, "Reps", (int?)10));
+        MaxValuesOf(stored).Should().Equal((int?)null);
+    }
+
     public static IEnumerable<object[]> InvalidBodies()
     {
         var curl = SeedData.CurlBicepsId;
@@ -267,6 +303,10 @@ public class WorkoutExerciseAddEndpointTests : WorkoutExerciseEndpointTest
         yield return ["reps target zero", Body(curl, "MID", Reps(3, 0))];
         yield return ["duration target zero", Body(curl, "MID", Sets(3, "Duration", 0))];
         yield return ["reps without target", Body(curl, "MID", Sets(3, "Reps"))];
+        yield return ["range max equal to min", Body(curl, "MID", RepsRange(3, 10, 10))];
+        yield return ["range max below min", Body(curl, "MID", RepsRange(3, 10, 8))];
+        yield return ["range without max", Body(curl, "MID", RepsRange(3, 8, null))];
+        yield return ["range min zero", Body(curl, "MID", RepsRange(3, 0, 12))];
     }
 
     [Theory]

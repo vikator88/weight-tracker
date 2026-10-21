@@ -134,6 +134,25 @@ public class WorkoutResponseShapeTests : IntegrationTest
     }
 
     [Fact]
+    public async Task NonRangeTargets_ShouldBeSerializedWithoutAMaxValue()
+    {
+        // Arrange
+        var workouts = await WorkoutsSeenByAdmin();
+
+        // Act
+        var targets = workouts.EnumerateArray()
+            .SelectMany(workout => workout.GetProperty("exercises").EnumerateArray())
+            .SelectMany(exercise => exercise.GetProperty("sets").EnumerateArray())
+            .Select(set => set.GetProperty("target"))
+            .ToList();
+
+        // Assert
+        targets.Select(target => target.GetProperty("type").GetString())
+            .Should().Contain(["Reps", "Duration", "MaxReps"]).And.NotContain("RepsRange");
+        targets.Where(target => target.TryGetProperty("maxValue", out _)).Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task WorkoutWithSeveralExercises_ShouldReturnThemAll()
     {
         // Arrange & Act

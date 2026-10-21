@@ -8,4 +8,5 @@ public static class SetTargetTypes
     public const string Reps = "Reps";
     public const string Duration = "Duration";
     public const string MaxReps = "MaxReps";
+    public const string RepsRange = "RepsRange";
 }

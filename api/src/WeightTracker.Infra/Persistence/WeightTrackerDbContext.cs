@@ -118,6 +118,7 @@ public class WeightTrackerDbContext : DbContext
             entity.Property(set => set.Count).HasColumnName("count");
             entity.Property(set => set.TargetType).HasColumnName("target_type").HasMaxLength(20).IsRequired();
             entity.Property(set => set.TargetValue).HasColumnName("target_value");
+            entity.Property(set => set.TargetMaxValue).HasColumnName("target_max_value");
         });
 
         modelBuilder.Entity<RefreshTokenEntity>(entity =>

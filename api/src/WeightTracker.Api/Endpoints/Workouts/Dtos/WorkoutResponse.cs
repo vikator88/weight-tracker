@@ -106,10 +106,15 @@ public sealed record SetTargetResponse(string Type)
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? Value { get; init; }
 
+    /// <summary>Upper bound of a <c>RepsRange</c>, whose lower bound is <see cref="Value"/>. Omitted for every other type.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? MaxValue { get; init; }
+
     public static SetTargetResponse From(SetTarget target) => target switch
     {
         SetTarget.Reps reps => new SetTargetResponse(SetTargetTypes.Reps) { Value = reps.value },
         SetTarget.Duration duration => new SetTargetResponse(SetTargetTypes.Duration) { Value = duration.value },
+        SetTarget.RepsRange range => new SetTargetResponse(SetTargetTypes.RepsRange) { Value = range.min, MaxValue = range.max },
         _ => new SetTargetResponse(SetTargetTypes.MaxReps),
     };
 }
