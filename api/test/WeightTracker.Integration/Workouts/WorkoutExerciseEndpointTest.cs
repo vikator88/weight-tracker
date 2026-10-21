@@ -29,6 +29,9 @@ public abstract class WorkoutExerciseEndpointTest : WorkoutEndpointTest
 
     protected static object Reps(int count, int reps) => Sets(count, "Reps", reps);
 
+    protected static object RepsRange(int count, int? min, int? max)
+        => new { count, targetType = "RepsRange", target = min, maxTarget = max };
+
     /// <summary>The workout as an admin reads it, so what a rejected call leaves behind is checked independently of the caller.</summary>
     protected async Task<JsonElement> WorkoutAsAdmin(Guid workoutId)
     {
@@ -52,6 +55,12 @@ public abstract class WorkoutExerciseEndpointTest : WorkoutEndpointTest
                     target.GetProperty("type").GetString()!,
                     target.TryGetProperty("value", out var value) ? value.GetInt32() : (int?)null);
             })
+            .ToList();
+
+    /// <summary>The <c>maxValue</c> of every set target of one entry, null where it is omitted.</summary>
+    protected static IReadOnlyList<int?> MaxValuesOf(JsonElement entry)
+        => entry.GetProperty("sets").EnumerateArray()
+            .Select(set => set.GetProperty("target").TryGetProperty("maxValue", out var maxValue) ? maxValue.GetInt32() : (int?)null)
             .ToList();
 
     /// <summary>Ids of the stored set rows of one workout entry, in position order.</summary>

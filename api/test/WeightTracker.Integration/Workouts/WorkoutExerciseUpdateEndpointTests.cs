@@ -135,6 +135,38 @@ public class WorkoutExerciseUpdateEndpointTests : WorkoutExerciseEndpointTest
     }
 
     [Fact]
+    public async Task Put_ShouldReplaceTheSetsWithARepsRange()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await client.PutAsJsonAsync(
+            ExerciseRoute(SeedData.OwnedWorkoutId, SeedData.PressBancaId), Body(SeedData.PressBancaId, "MID", RepsRange(4, 8, 12)));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var entry = (await EntriesOf(SeedData.OwnedWorkoutId))[0];
+        SetsOf(entry).Should().Equal((4, "RepsRange", (int?)8));
+        MaxValuesOf(entry).Should().Equal(12);
+    }
+
+    [Fact]
+    public async Task Put_ShouldRejectARepsRangeWhoseMaxIsNotAboveTheMinAndChangeNothing()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await client.PutAsJsonAsync(
+            ExerciseRoute(SeedData.OwnedWorkoutId, SeedData.PressBancaId), Body(SeedData.PressBancaId, "MID", RepsRange(4, 12, 8)));
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        SetsOf((await EntriesOf(SeedData.OwnedWorkoutId))[0]).Should().Equal((4, "Reps", (int?)10));
+    }
+
+    [Fact]
     public async Task Put_ShouldUpdateTheExerciseForAnAdmin()
     {
         // Arrange

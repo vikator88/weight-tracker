@@ -120,6 +120,14 @@ public class WorkoutMapperTests
         new SetTarget.Reps(10),
         new SetTarget.Duration(40),
         new SetTarget.MaxReps(),
+        new SetTarget.RepsRange(8, 12),
+    ];
+
+    public static TheoryData<SetTarget> EveryNonRangeSetTarget() =>
+    [
+        new SetTarget.Reps(10),
+        new SetTarget.Duration(40),
+        new SetTarget.MaxReps(),
     ];
 
     [Fact]
@@ -148,6 +156,35 @@ public class WorkoutMapperTests
         // Assert
         set.TargetType.Should().Be("MaxReps");
         set.TargetValue.Should().BeNull();
+    }
+
+    [Fact]
+    public void MapToEntity_ShouldStoreBothBoundsOfARepsRange()
+    {
+        // Arrange
+        var workout = AWorkoutWithOneSet(new SetTarget.RepsRange(8, 12));
+
+        // Act
+        var set = WorkoutMapper.MapToEntity(workout).WorkoutExercises.Single().Sets.Single();
+
+        // Assert
+        set.TargetType.Should().Be("RepsRange");
+        set.TargetValue.Should().Be(8);
+        set.TargetMaxValue.Should().Be(12);
+    }
+
+    [Theory]
+    [MemberData(nameof(EveryNonRangeSetTarget))]
+    public void MapToEntity_ShouldLeaveTheMaxEmptyForEveryNonRangeTarget(SetTarget target)
+    {
+        // Arrange
+        var workout = AWorkoutWithOneSet(target);
+
+        // Act
+        var set = WorkoutMapper.MapToEntity(workout).WorkoutExercises.Single().Sets.Single();
+
+        // Assert
+        set.TargetMaxValue.Should().BeNull();
     }
 
     [Fact]
@@ -231,6 +268,20 @@ public class WorkoutMapperTests
         var entity = WorkoutMapper.MapToEntity(AFullyLoadedWorkout());
         var set = entity.WorkoutExercises.First().Sets.First(item => item.TargetType == "Reps");
         set.TargetValue = null;
+
+        // Act
+        var act = () => WorkoutMapper.MapToDomain(entity);
+
+        // Assert
+        act.Should().Throw<PersistenceMappingException>();
+    }
+
+    [Fact]
+    public void MapToDomain_ShouldRejectARepsRangeTargetWithoutAMax()
+    {
+        // Arrange
+        var entity = WorkoutMapper.MapToEntity(AWorkoutWithOneSet(new SetTarget.RepsRange(8, 12)));
+        entity.WorkoutExercises.Single().Sets.Single().TargetMaxValue = null;
 
         // Act
         var act = () => WorkoutMapper.MapToDomain(entity);

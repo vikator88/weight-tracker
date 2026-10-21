@@ -12,9 +12,12 @@ public class WorkoutExerciseSetEntity
 
     public int Count { get; set; }
 
-    /// <summary>Discriminator of the SetTarget hierarchy: Reps, Duration or MaxReps.</summary>
+    /// <summary>Discriminator of the SetTarget hierarchy: Reps, Duration, MaxReps or RepsRange.</summary>
     public string TargetType { get; set; } = string.Empty;
 
-    /// <summary>Null only for MaxReps, which carries no value.</summary>
+    /// <summary>Null only for MaxReps, which carries no value. The min for RepsRange.</summary>
     public int? TargetValue { get; set; }
+
+    /// <summary>The max for RepsRange; null for every other target type.</summary>
+    public int? TargetMaxValue { get; set; }
 }

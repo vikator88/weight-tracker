@@ -60,4 +60,34 @@ public abstract record SetTarget
             return $"max.";
         }
     }
+
+    /// <summary>
+    /// When any number of reps between two bounds completes the set (i.e. Squat 3x8-12)
+    /// </summary>
+    /// <param name="min">Minimum number of reps per set</param>
+    /// <param name="max">Maximum number of reps per set</param>
+    public sealed record RepsRange : SetTarget
+    {
+        public int min { get; }
+
+        public int max { get; }
+
+        /// <exception cref="InvalidSetPrescriptionException">When the min is lower than 1 or the max is not greater than the min.</exception>
+        public RepsRange(int min, int max)
+        {
+            if (min < 1)
+                throw new InvalidSetPrescriptionException($"min reps must be at least 1, got {min}");
+
+            if (max <= min)
+                throw new InvalidSetPrescriptionException($"max reps must be greater than min reps, got {min}-{max}");
+
+            this.min = min;
+            this.max = max;
+        }
+
+        public override string ToString()
+        {
+            return $"{min.ToString()}-{max.ToString()} reps.";
+        }
+    }
 }

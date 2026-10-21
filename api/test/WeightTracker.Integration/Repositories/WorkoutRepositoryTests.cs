@@ -102,6 +102,22 @@ public class WorkoutRepositoryTests : IntegrationTest
     }
 
     [Fact]
+    public async Task Save_ShouldPersistBothBoundsOfARepsRange()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.From(SeedData.UserId), null, new DateTime(2026, 11, 3));
+        workout.AddExercise(Sentadilla, Effort.MID, [new SetPrescription(3, new SetTarget.RepsRange(8, 12))]);
+
+        await Write(repository => repository.Save(workout, CancellationToken.None));
+
+        // Act
+        var stored = await Read(workout.Id);
+
+        // Assert
+        EntryFor(stored!, Sentadilla).Sets.Single().Should().Be(new SetPrescription(3, new SetTarget.RepsRange(8, 12)));
+    }
+
+    [Fact]
     public async Task Save_ShouldReplaceThePrescriptionsOfAnExistingAggregate()
     {
         // Arrange

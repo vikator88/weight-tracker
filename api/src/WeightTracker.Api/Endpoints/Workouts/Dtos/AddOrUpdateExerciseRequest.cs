@@ -38,20 +38,27 @@ public sealed record SetPrescriptionRequest
     [Required]
     public int? Count { get; init; }
 
-    /// <summary><c>Reps</c>, <c>Duration</c> or <c>MaxReps</c>.</summary>
+    /// <summary><c>Reps</c>, <c>Duration</c>, <c>MaxReps</c> or <c>RepsRange</c>.</summary>
     [Required]
-    [AllowedValues(SetTargetTypes.Reps, SetTargetTypes.Duration, SetTargetTypes.MaxReps)]
+    [AllowedValues(SetTargetTypes.Reps, SetTargetTypes.Duration, SetTargetTypes.MaxReps, SetTargetTypes.RepsRange)]
     public string? TargetType { get; init; }
 
     /// <summary>
-    /// Reps per set for <c>Reps</c>, seconds per set for <c>Duration</c>. Ignored for <c>MaxReps</c>.
+    /// Reps per set for <c>Reps</c>, seconds per set for <c>Duration</c>, minimum reps per set for
+    /// <c>RepsRange</c>. Ignored for <c>MaxReps</c>.
     /// </summary>
     public int? Target { get; init; }
+
+    /// <summary>
+    /// Maximum reps per set for <c>RepsRange</c>. Ignored for every other target type.
+    /// </summary>
+    public int? MaxTarget { get; init; }
 
     public SetPrescription ToDomain() => new(Count!.Value, TargetType switch
     {
         SetTargetTypes.Reps => new SetTarget.Reps(Target ?? 0),
         SetTargetTypes.Duration => new SetTarget.Duration(Target ?? 0),
+        SetTargetTypes.RepsRange => new SetTarget.RepsRange(Target ?? 0, MaxTarget ?? 0),
         _ => new SetTarget.MaxReps(),
     });
 }
