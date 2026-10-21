@@ -1,0 +1,55 @@
+schema: spec-driven
+
+context: |
+  This is the `front/` monorepo (pnpm + Turborepo): `core` (shared TypeScript), `backoffice`
+  (Next.js static SPA + MUI, for ADMIN and TRAINER) and `app` (Expo + React Native Paper, for athletes).
+
+  It uses the STPR method, independently from the API's STPR in `api/`.
+
+  STPR means Skeleton + Template + Plan + Review.
+
+  OpenSpec is optional workflow support only. It is not the core of the method.
+
+  OpenSpec artifacts must follow:
+  - `.stpr/template/STPR_INVARIANTS.md`
+  - `.stpr/template/README.md`
+  - `.stpr/template/`
+  - `AGENTS.md`
+  - `.stpr/README.md`
+
+  The source brief of a proposal is `.stpr/plan/openspec/proposal-change-<change-slug>.md`, written from
+  `.stpr/plan/openspec/proposal-change-template.md`.
+
+  Business rules belong to the API. The front domain is anemic and generated from `core/openapi/v1.json`.
+  A change that needs the API to change is planned there as a separate change.
+
+rules:
+  proposal:
+    - Treat `.stpr/template/` and `.stpr/template/STPR_INVARIANTS.md` as mandatory constraints, not optional references.
+    - Use `.stpr/template/README.md` to choose the canonical reference before describing implementation.
+    - Treat the resulting artifact as part of the Plan layer of STPR.
+    - Use `AGENTS.md` for project-specific guidance that is not already enforced by the invariants or template.
+    - Start from the filled brief in `.stpr/plan/openspec/` when one exists; do not drop decisions it makes.
+    - Explicitly call out any conflict between the requested change and the template, the invariants or a stop case.
+    - Keep the proposal focused on scope, goals, constraints, and acceptance criteria.
+    - Require every capability to declare its canonical template reference explicitly, or to state that the reference is pending and this change establishes it.
+    - Require every capability to state which front(s) it lands in and how behaviour differs per front and per role, including what each role must not see.
+    - Require every API endpoint used to be named, and to be present in `core/openapi/v1.json` or covered by a named API change.
+    - Reject any business rule in the front; structural form validation only.
+  design:
+    - Treat the design as a refinement of the Plan layer, not as a second architecture source of truth.
+    - Follow the template and invariants instead of restating architecture here.
+    - Describe how the change maps to `core` (domain aliases, ports, use cases, repositories) and to each front (adapters, `container.ts`, state hooks, views, components, routes, translations).
+    - State every new key in `Dependencies` and its registration in each front's `container.ts`.
+    - State the state each provider holds, who changes it and when it resets.
+    - State every error code involved and its translation in `es` and `en`.
+    - "Keep `backoffice` and `app` independent: no shared UI, styles, translations or presentation code."
+    - Do not change test helpers or test patterns from the template unless the design documents the exception explicitly.
+  tasks:
+    - Treat tasks as executable Plan work, not as an independent source of architecture decisions.
+    - Derive implementation and test work from the template, invariants, and AGENTS guidance rather than duplicating those rules here.
+    - Order tasks core first (domain aliases, ports, repositories, use cases), then each front (adapters, container, state hooks, components, views, routes, translations).
+    - Include implementation tasks and test tasks for every tier the change requires, with the API always mocked.
+    - Break work into small, ordered tasks that can be implemented incrementally.
+    - Include a review task per front and for core that compares the result against its mapped template reference before closing it.
+    - End with `pnpm typecheck && pnpm lint && pnpm test` from `front/`, plus `pnpm test:e2e` when an E2E flow is planned.

@@ -1,0 +1,9 @@
+{
+  // tests: may use web-standard APIs (Response, fetch) to fake the transport.
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "types": []
+  },
+  "include": ["src", "test"]
+}

@@ -1,0 +1,9 @@
+{
+  // domain + application: pure TypeScript, no platform globals (no DOM, no Node, no React Native).
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": []
+  },
+  "include": ["src/domain", "src/application"]
+}

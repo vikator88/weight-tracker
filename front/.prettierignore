@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+.expo
+.turbo
+dist
+coverage
+playwright-report
+test-results
+pnpm-lock.yaml
+*.tsbuildinfo
+core/src/domain/generated
+core/openapi
+.claude
+**/.claude
+expo-env.d.ts
+next-env.d.ts
