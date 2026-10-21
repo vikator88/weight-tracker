@@ -1,0 +1,2 @@
+export type DomainErrorCode =
+  "VALIDATION" | "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "NETWORK" | "UNEXPECTED";

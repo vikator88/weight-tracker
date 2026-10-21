@@ -1,0 +1,9 @@
+{
+  "VALIDATION": "Revisa los datos introducidos.",
+  "UNAUTHORIZED": "Tu sesión no es válida. Vuelve a iniciar sesión.",
+  "FORBIDDEN": "No tienes permiso para realizar esta acción.",
+  "NOT_FOUND": "No hemos encontrado lo que buscas.",
+  "CONFLICT": "La operación entra en conflicto con el estado actual.",
+  "NETWORK": "No hay conexión con el servidor.",
+  "UNEXPECTED": "Ha ocurrido un error inesperado."
+}

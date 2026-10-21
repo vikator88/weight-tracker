@@ -1,0 +1,26 @@
+{
+  "name": "@weight-tracker/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./domain": "./src/domain/index.ts",
+    "./application": "./src/application/index.ts",
+    "./infrastructure": "./src/infrastructure/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.infrastructure.json && tsc -p tsconfig.test.json",
+    "openapi:refresh": "node scripts/openapi-refresh.mjs",
+    "openapi:generate": "openapi-typescript openapi/v1.json -o src/domain/generated/api.ts",
+    "lint": "eslint",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
+  }
+}

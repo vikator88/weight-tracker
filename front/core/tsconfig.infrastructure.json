@@ -1,0 +1,9 @@
+{
+  // infrastructure: may use web-standard APIs available in both browsers and React Native (fetch, URL, ...).
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "types": []
+  },
+  "include": ["src"]
+}

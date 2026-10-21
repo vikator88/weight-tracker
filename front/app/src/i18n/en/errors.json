@@ -1,0 +1,9 @@
+{
+  "VALIDATION": "Please check the data you entered.",
+  "UNAUTHORIZED": "Your session is not valid. Please sign in again.",
+  "FORBIDDEN": "You are not allowed to do this.",
+  "NOT_FOUND": "We couldn't find what you were looking for.",
+  "CONFLICT": "This action conflicts with the current state.",
+  "NETWORK": "Can't reach the server.",
+  "UNEXPECTED": "Something went wrong."
+}
