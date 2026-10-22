@@ -23,7 +23,7 @@ but final validation remains manual.
 ## Structure
 
 - [ ] Code sits in the layer and domain-area folder its building block requires (`STPR_INVARIANTS.md`, "Workspace layout").
-- [ ] Files under `src/app` are routes only: each imports one view and default-exports it.
+- [ ] Files under `src/app` are routes and layouts only: each route imports one view and default-exports it.
 - [ ] Views, components, hooks and context live under `src/presentation/<area>` or `src/presentation/common`.
 - [ ] Platform adapters and `container.ts` live under the front's `src/infrastructure`.
 
@@ -62,6 +62,11 @@ but final validation remains manual.
 - [ ] App: UI uses React Native Paper and `StyleSheet` only.
 - [ ] App: no file was created or edited under `ios/` or `android/`; native configuration is in `app.json` or config plugins.
 - [ ] App: dependencies were added with `expo install`; any native-code library is called out in the plan.
+- [ ] App: routes sit in the access-state groups of `STPR_INVARIANTS.md` 4.3 ("Routing"); access is decided only by
+      `Stack.Protected` in the root layout, and no code navigates on sign-in or sign-out.
+- [ ] App: nested layouts render one navigator and at most one flow provider; hrefs are typed literals and params
+      carry ids or primitives only.
+- [ ] App: no colour literal outside `theme.ts`; overlays render in Paper's `Portal`; form errors use `HelperText`.
 - [ ] Core: no decorator, no `reflect-metadata`, and any new runtime dependency is named in the plan.
 
 ## Naming

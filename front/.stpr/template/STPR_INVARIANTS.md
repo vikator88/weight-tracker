@@ -147,10 +147,13 @@ Classify every planned piece as exactly one of these before writing code.
   Lives in `core/src/infrastructure/repositories`.
 - **Platform adapter**: implements a platform port for one front. Lives in `<front>/src/infrastructure`.
 - **Route**: a file under `<front>/src/app`. It only default-exports a view.
+- **Layout**: a layout file under `<front>/src/app` (`layout.tsx` in the backoffice, `_layout.tsx` in the app). It
+  renders the outlet or navigator for the routes beside it (see "Presentation" and section 4.3).
 - **View**: a screen. Composes components and hooks. Lives in `<front>/src/presentation/<area>/views`.
 - **Component**: a reusable piece of UI. Lives in `<front>/src/presentation/<area>/components` or `common/components`.
 - **State hook**: a custom hook that owns state through the Context API (`<Name>Provider` plus `use<Name>`) and calls
-  use cases. Lives in `<front>/src/presentation/<area>/{context,hooks}`.
+  use cases. Lives in `<front>/src/presentation/<area>/{context,hooks}`. A hook that only holds one view's local
+  `useState` is part of that view, not a state hook.
 
 ### Domain: anemic, generated
 
@@ -195,8 +198,8 @@ Classify every planned piece as exactly one of these before writing code.
 
 - `src/app` holds routing only. A route file imports one view and default-exports it; it holds no logic, no state
   and no UI of its own.
-- A layout file renders only the root providers component around the outlet: the document shell plus `children` in
-  the backoffice, the Expo Router navigator in the app.
+- A backoffice layout file renders only the root providers component around the outlet: the document shell plus
+  `children`. App layouts, which also hold the auth gate and the navigators, follow section 4.3 ("Routing").
 - Presentation reaches use cases through the container, never repositories, the HTTP client or platform adapters.
 - State is held in Context API providers exposed through custom hooks. No other state library is used.
 - Presentation turns a failed `Result` into UI. It never uses `try/catch` for flow control.
@@ -334,7 +337,7 @@ Tests live outside `src`. In the app this is also required, because Expo Router 
   and use the matching versioned docs (`https://docs.expo.dev/versions/v<major>.0.0/`), plus
   `https://docs.expo.dev/llms.txt` for everything else.
 - Navigation uses Expo Router. Routes live in `src/app`; every file there is a screen and `_layout.tsx` files define
-  navigators. Nothing that is not a route lives in `src/app`.
+  navigators. Nothing that is not a route lives in `src/app`. Its organisation is fixed by "Routing" below.
 - UI is built with React Native Paper. No other component or styling library; styles beyond Paper's theme use
   `StyleSheet`.
 - The project uses Continuous Native Generation. `ios/` and `android/` are generated and never created or edited by
@@ -343,3 +346,101 @@ Tests live outside `src`. In the app this is also required, because Expo Router 
   versions.
 - Prefer Expo modules over third-party libraries. A library with native code requires a development build
   (Expo Go only bundles its own native modules); the plan must say so when it adds one.
+
+#### Routing
+
+`src/app` is split into route groups by access state. Groups do not change URLs, and every URL resolves to exactly
+one route file.
+
+```
+app/src/app/
+  _layout.tsx           root: AppProviders, splash hold, Stack with one Stack.Protected per access state
+  +not-found.tsx        re-exports a view from presentation/common/views
+  (auth)/
+    _layout.tsx         Stack of the signed-out screens
+    login.tsx
+    signup.tsx
+  (app)/
+    _layout.tsx         Stack: the home (or (tabs)) first, then the screens pushed over it
+    index.tsx           signed-in home, while there is one top-level destination
+    (tabs)/             from the second top-level destination on
+      _layout.tsx       Tabs, one Tabs.Screen per tab
+      index.tsx         first tab (the home moves here)
+      <tab>/            a tab that pushes screens which keep the tab bar
+        _layout.tsx     Stack
+        index.tsx
+    <screen>.tsx        full-screen screen pushed over the home or the tabs (forms, details)
+    (<flow>)/           a multi-screen flow whose screens share state
+      _layout.tsx       mounts the flow's provider around a Stack
+      <step>.tsx
+```
+
+- `(auth)` holds the screens of a signed-out user; `(app)` holds every screen that needs a session. A state a
+  signed-in user must leave before reaching `(app)` (completing a profile, for example) is its own sibling group with
+  its own guard.
+- Screens that must hide the tab bar sit in `(app)` beside `(tabs)` and are pushed on the `(app)` stack. The tab bar is
+  never hidden by inspecting the pathname.
+- Every group folder and every tab folder has a `_layout.tsx`.
+- Segments and group names are kebab-case (`edit-workout.tsx`, `(auth)`). Dynamic segments (`[id].tsx`) are not
+  used: a screen's inputs travel as search params.
+
+Root layout and auth gate:
+
+- `src/app/_layout.tsx` is the only place that decides access. It default-exports `RootLayout`, which renders
+  `AppProviders` around one local, unexported `RootNavigator`. `RootNavigator` reads the session from the session
+  state hook and renders a `Stack` with `<Stack.Protected guard={signedIn}>` around `(app)` and
+  `<Stack.Protected guard={!signedIn}>` around `(auth)`.
+- No code navigates on sign-in, sign-out or failed refresh. The use case result changes the session state, the guard
+  flips, and Expo Router moves the user to the first available screen. `Redirect` and `router.replace` are never used
+  for access control.
+- While the session is being restored, the root layout keeps the native splash up: `SplashScreen.preventAutoHideAsync()`
+  at module scope and `SplashScreen.hide()` once the session state is known, both from `expo-router`. There is no
+  loading route.
+- Until the session state hook exists (the login slice), the root `Stack` is unguarded, but routes already sit in the
+  groups above.
+- `+not-found.tsx` sits at the root. No other `+` file is used (`+html`, `+middleware` and `+api` need web or a
+  server).
+
+Nested layouts and route files:
+
+- A nested `_layout.tsx` renders one navigator (`Stack` or `Tabs`) with its `Screen` declarations and options,
+  wrapped in at most one flow provider. Its only hooks are `useTranslation` for titles and labels and `useTheme` for
+  navigator colours; tab icons use Paper's `Icon`. Headers, drawers and menus are components in `presentation`,
+  passed through options, never defined in the layout file.
+- A layout default-exports a function named `<Name>Layout` (`AuthLayout`, `TabsLayout`).
+- A route file is exactly two statements: `import <Name>View from "@/presentation/<area>/views/<name>-view";` and
+  `export default <Name>View;`. It reads no params, sets no options and does not wrap the view.
+
+Navigation:
+
+- `experiments.typedRoutes` stays enabled in `app.json`. Hrefs are typed, absolute literals, written as
+  `{ pathname, params }` when they carry params, and never built by string concatenation.
+- Params carry ids and primitives only, never a serialised entity: the target view loads what it needs through a
+  use case. The view reads them with `useLocalSearchParams<{ ... }>()`, typed at the call.
+- Navigation calls (`router`, `Link`) live in views and components, after the `Result` they depend on. State hooks
+  and providers never navigate.
+
+#### Presentation
+
+- An area folder holds only `views`, `components`, `hooks` and `context`, each flat: no sub-areas and no
+  subfolders.
+- A view file is `<name>-view.tsx` and default-exports `<Name>View`.
+- A state hook is three files: `context/<name>-context.ts` (the `createContext` call), `context/<name>-provider.tsx`
+  (`<Name>Provider`) and `hooks/use-<name>.ts` (`use<Name>`), as `ContainerContext` does.
+- App-wide providers (container, i18n, theme, session) are composed in `app-providers.tsx`. A provider whose state
+  belongs to one flow is mounted in that flow's group layout, so its state resets when the user leaves the flow.
+  There is no third place.
+- State that one screen alone uses (field values, a submitting flag, the last error code) is `useState` in the view
+  or in a `hooks/use-<action>.ts` beside it. It becomes a state hook only when a second screen reads it. Hooks hold
+  `DomainError` codes, never translated text; the view translates them.
+- Loading, empty and error states and confirmation dialogs are components in `presentation/common/components`. The
+  first view that needs one creates it there; later views reuse it instead of building their own.
+- Dialogs, menus and snackbars render inside Paper's `Portal`.
+- Forms use Paper's `TextInput` with `error` set and a `HelperText type="error"` under the field, holding a
+  translated key. Values are trimmed before structural validation; any other normalisation is the API's. The
+  submit `Button` shows `loading` and is disabled while the request is pending. A form view is wrapped in
+  `KeyboardAvoidingView`.
+- The theme is the single `presentation/common/theme.ts`, built from Paper's `MD3LightTheme`. Views and components
+  read colours with `useTheme()`; no colour literal appears outside `theme.ts`.
+- Styles are a `StyleSheet.create` at the bottom of the file. Inline style objects are allowed only for values read
+  from the theme.
