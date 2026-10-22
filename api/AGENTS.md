@@ -117,6 +117,13 @@ dotnet test WeightTracker.slnx                        # unit + integration
   task runs clean, restore, build, `docker compose up -d`, then the migrator, stopping at the first
   failure. `Debug API (no prelaunch)` skips straight to build when you just want a fast restart.
 - Seeded credentials for development and tests live in `src/WeightTracker.Infra/Seed/SeedData.cs`.
+- **LAN access in Development**: CORS allows any origin and the API listens on all interfaces over
+  HTTP, so browsers and devices on the local network (Expo web, Expo Go) can call
+  `http://<machine-lan-ip>:5199` (VS Code debug configurations) or `:5000` (`http` profile). Do not use
+  the `https` profile from a LAN device, since it redirects to `https://localhost:5001`. Allow the macOS
+  firewall prompt the first time, or the device will time out. The development API and its seeded
+  credentials are then reachable by anyone on the network. Scalar stays at `http://localhost:5199/scalar`.
+  Nothing of this applies outside Development.
 - Outside Development, `Jwt:SigningKey` must be supplied (for example via the
   `Jwt__SigningKey` environment variable) or startup fails.
 
