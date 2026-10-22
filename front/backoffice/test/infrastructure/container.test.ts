@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { Dependencies } from "@weight-tracker/core/application";
 import container from "@/infrastructure/container";
 
-const keys: (keyof Dependencies)[] = ["httpClient", "keyValueStore", "notificationService"];
+const keys: (keyof Dependencies)[] = [
+  "httpClient",
+  "keyValueStore",
+  "notificationService",
+  "getSessionUseCase",
+];
 
 describe("container", () => {
   it.each(keys)("resolves %s", (key) => {
