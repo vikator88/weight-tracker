@@ -11,7 +11,7 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.infrastructure.json && tsc -p tsconfig.test.json",
     "openapi:refresh": "node scripts/openapi-refresh.mjs",
-    "openapi:generate": "openapi-typescript openapi/v1.json -o src/domain/generated/api.ts",
+    "openapi:generate": "openapi-typescript openapi/v1.json -o src/contract/generated/api.ts",
     "lint": "eslint",
     "test": "vitest run"
   },

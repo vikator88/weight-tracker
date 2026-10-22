@@ -12,8 +12,15 @@ const toLayer = (layer) => ({
   message: `This layer may not import ${layer} (see STPR_INVARIANTS.md, "The Dependency Rule").`,
 });
 
+const toContractSchemasOnly = {
+  regex: "(^|/)contract(/|$)",
+  allowImportNames: ["components"],
+  message:
+    'domain may import only `components` from contract (see STPR_INVARIANTS.md, "The Dependency Rule").',
+};
+
 export default defineConfig([
-  globalIgnores(["src/domain/generated/**"]),
+  globalIgnores(["src/contract/generated/**"]),
   tseslint.configs.recommended,
   {
     rules: {
@@ -25,14 +32,24 @@ export default defineConfig([
     rules: {
       "no-restricted-imports": [
         "error",
-        { patterns: [uiPackages, toLayer("application"), toLayer("infrastructure")] },
+        {
+          patterns: [
+            uiPackages,
+            toContractSchemasOnly,
+            toLayer("application"),
+            toLayer("infrastructure"),
+          ],
+        },
       ],
     },
   },
   {
     files: ["src/application/**"],
     rules: {
-      "no-restricted-imports": ["error", { patterns: [uiPackages, toLayer("infrastructure")] }],
+      "no-restricted-imports": [
+        "error",
+        { patterns: [uiPackages, toLayer("contract"), toLayer("infrastructure")] },
+      ],
     },
   },
   prettier,
