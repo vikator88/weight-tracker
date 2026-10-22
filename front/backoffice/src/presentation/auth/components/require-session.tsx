@@ -10,7 +10,7 @@ interface RequireSessionProps {
   children: ReactNode;
 }
 
-/** Renders its children only when a session is stored; otherwise sends the visitor to signup. */
+/** Renders its children only when a session is stored; otherwise sends the visitor to login. */
 export default function RequireSession({ children }: RequireSessionProps) {
   const container = useContainer();
   const router = useRouter();
@@ -29,7 +29,7 @@ export default function RequireSession({ children }: RequireSessionProps) {
         if (result.ok && result.value !== null) {
           setAuthorized(true);
         } else {
-          router.replace("/signup");
+          router.replace("/login");
         }
       });
 

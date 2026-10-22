@@ -24,6 +24,10 @@ class FakeAuthRepository implements AuthRepositoryInterface {
     this.requests.push(request);
     return this.result;
   }
+
+  async login(): Promise<Result<AuthResponse, DomainError>> {
+    return this.result;
+  }
 }
 
 class FakeKeyValueStore implements KeyValueStoreInterface {

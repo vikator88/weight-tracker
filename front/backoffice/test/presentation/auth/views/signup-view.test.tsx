@@ -123,4 +123,18 @@ describe("SignupView", () => {
     // Assert
     expect(screen.getByRole("button", { name: "Crear cuenta" })).toBeDisabled();
   });
+
+  it("links to the login screen", async () => {
+    // Arrange
+    const { rendered } = renderSignup();
+
+    // Act
+    await rendered;
+
+    // Assert
+    expect(screen.getByRole("link", { name: "¿Ya tienes cuenta? Inicia sesión" })).toHaveAttribute(
+      "href",
+      "/login",
+    );
+  });
 });

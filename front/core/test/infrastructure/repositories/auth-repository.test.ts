@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { HttpClientInterface, HttpRequest } from "../../../src/application";
-import { type AuthResponse, ok, type SignupRequest } from "../../../src/domain";
+import { type AuthResponse, type LoginRequest, ok, type SignupRequest } from "../../../src/domain";
 import { AuthRepository, HttpError } from "../../../src/infrastructure";
 
 const request: SignupRequest = { email: "athlete@example.com", password: "Str0ng!pass", role: 1 };
+
+const loginRequest: LoginRequest = { email: "athlete@example.com", password: "Str0ng!pass" };
 
 const tokens: AuthResponse = { accessToken: "access", refreshToken: "refresh", expiresIn: 900 };
 
@@ -94,6 +96,65 @@ describe("AuthRepository", () => {
         ok: false,
         error: expect.objectContaining({ message: "Email already exists" }),
       });
+    });
+  });
+
+  describe("login", () => {
+    it("posts the request to /auth/login", async () => {
+      // Arrange
+      const httpClient = new FakeHttpClient(async () => tokens);
+      const repository = new AuthRepository(httpClient);
+
+      // Act
+      await repository.login(loginRequest);
+
+      // Assert
+      expect(httpClient.requests).toEqual([
+        { method: "POST", path: "/auth/login", body: loginRequest },
+      ]);
+    });
+
+    it("returns the tokens on success", async () => {
+      // Arrange
+      const repository = new AuthRepository(new FakeHttpClient(async () => tokens));
+
+      // Act
+      const result = await repository.login(loginRequest);
+
+      // Assert
+      expect(result).toEqual(ok(tokens));
+    });
+
+    it.each([
+      [400, "VALIDATION"],
+      [401, "UNAUTHORIZED"],
+      [500, "UNEXPECTED"],
+    ])("maps status %i to %s", async (status, code) => {
+      // Arrange
+      const httpClient = new FakeHttpClient(async () => {
+        throw new HttpError(status, { status, detail: "Something failed" });
+      });
+      const repository = new AuthRepository(httpClient);
+
+      // Act
+      const result = await repository.login(loginRequest);
+
+      // Assert
+      expect(result).toEqual({ ok: false, error: expect.objectContaining({ code }) });
+    });
+
+    it("returns the network code when there is no response", async () => {
+      // Arrange
+      const httpClient = new FakeHttpClient(async () => {
+        throw new TypeError("Failed to fetch");
+      });
+      const repository = new AuthRepository(httpClient);
+
+      // Act
+      const result = await repository.login(loginRequest);
+
+      // Assert
+      expect(result).toEqual({ ok: false, error: expect.objectContaining({ code: "NETWORK" }) });
     });
   });
 });

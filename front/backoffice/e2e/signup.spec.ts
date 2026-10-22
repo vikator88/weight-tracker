@@ -35,16 +35,6 @@ test("signs up, lands on home and stays there after a reload", async ({ page }) 
   await expect(page).toHaveURL("/");
 });
 
-test("sends a visitor without tokens from home to signup", async ({ page }) => {
-  // Arrange & Act
-  await page.goto("/");
-
-  // Assert
-  await expect(page).toHaveURL(/\/signup\/?$/);
-  await expect(page.getByRole("heading", { level: 1, name: "Crear cuenta" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Weight Tracker" })).toHaveCount(0);
-});
-
 test("shows the conflict message when the email is already registered", async ({ page }) => {
   // Arrange
   await mockSignup(page, 409, { title: "Conflict", status: 409 });

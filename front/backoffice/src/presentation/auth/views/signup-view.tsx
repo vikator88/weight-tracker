@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Container from "@mui/material/Container";
+import Link from "@mui/material/Link";
 import Typography from "@mui/material/Typography";
+import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import type { DomainErrorCode } from "@weight-tracker/core/domain";
@@ -45,6 +47,9 @@ export default function SignupView() {
         {t("signup.title")}
       </Typography>
       <SignupForm submitting={submitting} errorMessage={errorMessage} onSubmit={handleSubmit} />
+      <Link component={NextLink} href="/login" sx={{ display: "inline-block", mt: 2 }}>
+        {t("signup.toLogin")}
+      </Link>
     </Container>
   );
 }
