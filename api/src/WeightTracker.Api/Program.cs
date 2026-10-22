@@ -101,6 +101,16 @@ builder
     });
 
 builder.Services.AddAuthorization();
+
+// Applied in Development only, so browsers and devices on the local network can call the API.
+const string DevelopmentCorsPolicy = "DevelopmentCors";
+builder.Services.AddCors(options =>
+    options.AddPolicy(
+        DevelopmentCorsPolicy,
+        policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()
+    )
+);
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi(options =>
 {
@@ -119,6 +129,10 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 
 if (app.Environment.IsDevelopment())
 {
+    // Must stay ahead of UseHttpsRedirection and UseAuthentication so preflight
+    // requests are answered without a redirect or a bearer token.
+    app.UseCors(DevelopmentCorsPolicy);
+
     app.MapScalarApiReference(options =>
         options
             .WithTitle("Weight Tracker API")

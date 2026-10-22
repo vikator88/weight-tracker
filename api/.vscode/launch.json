@@ -12,12 +12,12 @@
             "stopAtEntry": false,
             "env": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
-                "ASPNETCORE_URLS": "http://localhost:5199"
+                "ASPNETCORE_URLS": "http://0.0.0.0:5199"
             },
             "serverReadyAction": {
                 "action": "openExternally",
                 "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
-                "uriFormat": "%s/scalar"
+                "uriFormat": "http://localhost:5199/scalar"
             },
             "console": "internalConsole",
             "sourceFileMap": {
@@ -35,7 +35,7 @@
             "stopAtEntry": false,
             "env": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
-                "ASPNETCORE_URLS": "http://localhost:5199"
+                "ASPNETCORE_URLS": "http://0.0.0.0:5199"
             },
             "console": "internalConsole"
         },
