@@ -56,7 +56,7 @@ An anonymous athlete must NOT see any home content, not even briefly while token
   `app/src/presentation/common/views/home-view.tsx`
 - `NotFoundView` -> view -> `app/src/presentation/common/views/not-found-view.tsx`
 - `auth` translations -> i18n -> `app/src/i18n/{es,en}/auth.json`, registered in `app/src/i18n/resources.ts`
-- Test providers -> test support -> `app/test/support/render-with-providers.tsx` gains a session option
+- Test providers -> test support -> `app/test/support/render-with-providers.tsx` mounts `SessionProvider`
 
 No core piece, no adapter and no container registration is added. `InMemoryKeyValueStore` stays as the app store.
 
@@ -233,7 +233,7 @@ No new package. `Stack` and `Stack.Protected` come from `expo-router`.
   - app component: `home-view.test.tsx` still passes (heading and signed-in message).
   - app component: `test/presentation/common/views/not-found-view.test.tsx`: shows the message and the link to `/`.
   - The use cases are replaced through `render-with-providers.tsx`, which already registers `signupUseCase` and
-    `getSessionUseCase` fakes and gains a session option for views.
+    `getSessionUseCase` fakes and now mounts `SessionProvider`, fed by those fakes.
   - app translation parity test passes with the new `auth` namespace.
   - core and backoffice: no new tests; their suites still pass.
   - The root layout's gate is not tested at the component tier (`expo-router/testing-library` is not adopted yet; the

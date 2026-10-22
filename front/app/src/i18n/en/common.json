@@ -1,5 +1,10 @@
 {
   "home": {
-    "title": "Weight Tracker"
+    "title": "Weight Tracker",
+    "signedIn": "You are signed in."
+  },
+  "notFound": {
+    "title": "This screen does not exist.",
+    "goHome": "Go to home"
   }
 }
