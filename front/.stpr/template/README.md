@@ -29,37 +29,48 @@ When selecting a reference, first decide whether it is:
 ## Status
 
 **The template is not populated yet.** The first canonical slice is **login**, delivered by its own change under
-`.stpr/work/changes/`. Until it lands, entries marked `pending` below have no reference: a change that needs one
+`openspec/changes/`. Until it lands, entries marked `pending` below have no reference: a change that needs one
 must say so in its plan and establish the pattern there (see `STPR_INVARIANTS.md`, section 1, "Template").
+
+The `add-signup-usecase` change already set the shape of the `Auth` domain area in the skeleton. Its rows below are
+skeleton-backed: read them from the workspace sources and extend them, do not replace them:
+
+- `core/src/domain/auth/auth.ts`
+- `core/src/application/ports/auth-repository-interface.ts`
+- `core/src/application/use-cases/auth/signup-use-case.ts`
+- `core/src/infrastructure/repositories/auth-repository.ts`
+- `core/test/application/use-cases/auth/signup-use-case.test.ts`
+- `core/test/infrastructure/repositories/auth-repository.test.ts`
 
 When the login change is approved and verified, its files are copied into `.stpr/template/` under the same paths
 and every `pending` entry it covers is switched to `template-backed`.
 
 ## Canonical Items Classification
 
-| Item                                         | Building block                       | Why                                                                 | Origin                       |
-| -------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------- | ---------------------------- |
-| `Result` / `DomainError`                     | Domain common                        | The only success/failure contract                                   | skeleton                     |
-| `UseCaseInterface`                           | Use case contract                    | One public `execute`, returns `Result`                              | skeleton                     |
-| `KeyValueStoreInterface`                     | Platform port                        | Implemented differently per front                                   | skeleton                     |
-| `HttpClientInterface` / `FetchHttpClient`    | Repository transport                 | The only code that throws (`HttpError`)                             | skeleton                     |
-| HTTP error mapper                            | Infrastructure                       | Single status-to-`DomainError` mapping point                        | skeleton (from setup change) |
-| DI container                                 | Infrastructure                       | Typed registration, no decorators                                   | skeleton (from setup change) |
-| `Auth` entity aliases                        | Entity type                          | Aliases over the generated OpenAPI types                            | `pending` (login)            |
-| `AuthRepositoryInterface` / `AuthRepository` | Repository contract / implementation | Per-area port over `HttpClientInterface`, errors through the mapper | `pending` (login)            |
-| `LoginUseCase`                               | Use case                             | Calls a repository and a platform port, never throws                | `pending` (login)            |
-| `RefreshSessionUseCase`                      | Use case                             | Refresh-token rotation                                              | `pending` (login)            |
-| `LocalStorageKeyValueStore`                  | Platform adapter (backoffice)        | Browser-only API behind a port                                      | `pending` (login)            |
-| `SqliteKeyValueStore`                        | Platform adapter (app)               | Native storage behind a port                                        | `pending` (login)            |
-| `container.ts` (each front)                  | Composition root                     | Wires core and platform adapters                                    | `pending` (login)            |
-| `SessionProvider` / `useSession`             | State hook                           | Context state, reactive refresh-and-retry                           | `pending` (login)            |
-| Login view + form (each front)               | View / component                     | Structural validation, i18n, `Result` to UI                         | `pending` (login)            |
-| Login route (each front)                     | Route                                | Default-exports a view, nothing else                                | `pending` (login)            |
-| Use case test                                | Unit test                            | AAA, fakes for ports                                                | `pending` (login)            |
-| Repository test                              | Unit test                            | Faked `HttpClientInterface`, every error code                       | `pending` (login)            |
-| View test (each front)                       | Component test                       | Fakes through the container, success and failures                   | `pending` (login)            |
-| Login E2E (backoffice)                       | E2E test                             | Playwright with intercepted API calls                               | `pending` (login)            |
-| Translation parity test (each front)         | Unit test                            | Every key in `es` and `en`                                          | skeleton (from setup change) |
+| Item                                         | Building block                       | Why                                                                 | Origin                               |
+| -------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------- | ------------------------------------ |
+| `Result` / `DomainError`                     | Domain common                        | The only success/failure contract                                   | skeleton                             |
+| `UseCaseInterface`                           | Use case contract                    | One public `execute`, returns `Result`                              | skeleton                             |
+| `KeyValueStoreInterface`                     | Platform port                        | Implemented differently per front                                   | skeleton                             |
+| `HttpClientInterface` / `FetchHttpClient`    | Repository transport                 | The only code that throws (`HttpError`)                             | skeleton                             |
+| HTTP error mapper                            | Infrastructure                       | Single status-to-`DomainError` mapping point                        | skeleton (from setup change)         |
+| DI container                                 | Infrastructure                       | Typed registration, no decorators                                   | skeleton (from setup change)         |
+| `Auth` entity aliases                        | Entity type                          | Aliases over the generated OpenAPI types                            | skeleton (from `add-signup-usecase`) |
+| `AuthRepositoryInterface` / `AuthRepository` | Repository contract / implementation | Per-area port over `HttpClientInterface`, errors through the mapper | skeleton (from `add-signup-usecase`) |
+| `SignupUseCase`                              | Use case                             | One operation, role fixed at registration in each `container.ts`    | skeleton (from `add-signup-usecase`) |
+| `LoginUseCase`                               | Use case                             | Calls a repository and a platform port, never throws                | `pending` (login)                    |
+| `RefreshSessionUseCase`                      | Use case                             | Refresh-token rotation                                              | `pending` (login)                    |
+| `LocalStorageKeyValueStore`                  | Platform adapter (backoffice)        | Browser-only API behind a port                                      | `pending` (login)                    |
+| `SqliteKeyValueStore`                        | Platform adapter (app)               | Native storage behind a port                                        | `pending` (login)                    |
+| `container.ts` (each front)                  | Composition root                     | Wires core and platform adapters                                    | `pending` (login)                    |
+| `SessionProvider` / `useSession`             | State hook                           | Context state, reactive refresh-and-retry                           | `pending` (login)                    |
+| Login view + form (each front)               | View / component                     | Structural validation, i18n, `Result` to UI                         | `pending` (login)                    |
+| Login route (each front)                     | Route                                | Default-exports a view, nothing else                                | `pending` (login)                    |
+| Use case test                                | Unit test                            | AAA, fakes for ports                                                | skeleton (from `add-signup-usecase`) |
+| Repository test                              | Unit test                            | Faked `HttpClientInterface`, every error code                       | skeleton (from `add-signup-usecase`) |
+| View test (each front)                       | Component test                       | Fakes through the container, success and failures                   | `pending` (login)                    |
+| Login E2E (backoffice)                       | E2E test                             | Playwright with intercepted API calls                               | `pending` (login)                    |
+| Translation parity test (each front)         | Unit test                            | Every key in `es` and `en`                                          | skeleton (from setup change)         |
 
 ## Template Contents
 

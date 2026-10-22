@@ -13,6 +13,8 @@ const unusedDependencies: Registrations<Dependencies> = {
   httpClient: () => ({ request: async () => undefined as never }),
   keyValueStore: () => ({ get: async () => null, set: async () => {}, remove: async () => {} }),
   notificationService: () => ({ requestPermission: async () => false, notify: async () => {} }),
+  authRepository: () => ({ signup: async () => undefined as never }),
+  signupUseCase: () => ({ execute: async () => undefined as never }),
 };
 
 /** Renders a view in Spanish, with the real theme and a container of fakes. */
