@@ -31,7 +31,7 @@ or concrete UI library changes.
 - The plan must be sufficient to execute the work without hidden assumptions that materially affect scope, the
   affected front(s), role visibility, held state, the API contract, or test expectations.
 - A change that spans the API and the front is two plans: one under `api/.stpr/work/` and one under
-  `front/.stpr/work/`. The front plan names the API contract it depends on and never plans API code.
+  `front/openspec/changes/`. The front plan names the API contract it depends on and never plans API code.
 - If the plan artifacts conflict with the selected reference, these invariants, or the classification rules,
   planning must stop and request clarification before code generation.
 
@@ -63,7 +63,7 @@ or concrete UI library changes.
 
 - Final review must check architecture, layer placement, relevant coverage, and alignment with the plan.
 - Review does not validate only functionality; it also validates sustainability and fidelity to the correct pattern.
-- If recurrent deviations appear, improving the skeleton, template, invariants, or prompts must be evaluated.
+- If recurrent deviations appear, improving the skeleton, template, invariants, or plan artifacts must be evaluated.
 
 ### Mandatory Stop Cases
 

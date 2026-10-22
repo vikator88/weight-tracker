@@ -38,19 +38,14 @@ Core principle:
 
 - the change brief template for the OpenSpec route, and the filled briefs per change
 
-`plan/prompts/`
-
-- prompts for obtaining a plan with AI assistance
-- the AI asks using a constrained structure
-- the answers generate STPR work artifacts under `.stpr/work/`
-
 `review/`
 
 - the manual review checklist and the audit prompt
 
 `work/`
 
-- the plan and tasks produced for each change
+- the plan of the skeleton setup change, written before OpenSpec was adopted; new changes are planned in
+  `openspec/changes/`
 
 ## Skeleton
 
@@ -111,10 +106,8 @@ done
 
 The `plan` is required before generating non-trivial changes.
 
-This repository supports two routes. Both produce the Plan layer; pick one per change.
-
-**OpenSpec route** (direct): you write the plan brief yourself, and OpenSpec turns it into proposal, specs, design and
-tasks.
+Changes are planned with OpenSpec: you write the plan brief yourself, and OpenSpec turns it into proposal, specs,
+design and tasks.
 
 1. Copy [.stpr/plan/openspec/proposal-change-template.md](plan/openspec/proposal-change-template.md) to
    `.stpr/plan/openspec/proposal-change-<change-slug>.md` and fill it in.
@@ -122,24 +115,15 @@ tasks.
    and `AGENTS.md`.
 3. Review the artifacts in `openspec/changes/<change-slug>/`, then `/opsx:apply` and, once verified, `/opsx:archive`.
 
-**Prompts route** (guided): the AI asks a constrained set of questions and writes the plan.
+There is no new-project route: the front already exists and is extended only through changes.
 
-- [.stpr/plan/prompts/prompts-change.md](plan/prompts/prompts-change.md) — three prompts, used in order: discovery to
-  plan, plan to implementation, and finalization
-- artifacts go to `.stpr/work/changes/<change-slug>/` (`plan.md`, `tasks.md`)
-
-There is no new-project route on either path: the front already exists and is extended only through changes.
-
-Expected result, whatever the route:
+Expected result:
 
 - a plan precise enough to act as the execution plan
-- stored under `openspec/changes/<change-slug>/` (OpenSpec) or `.stpr/work/changes/<change-slug>/` (prompts)
+- stored under `openspec/changes/<change-slug>/`
 - never in a workspace `src/` or in `front/` root
 
 A change that also needs the API is planned twice: the API part in `api/` with its own STPR, the front part here.
-
-If a change is already clear and you want more manual control, write `plan.md` and `tasks.md` directly, following
-the same section order the prompts produce. The artifacts are what matter, not how they were written.
 
 ## Review
 
