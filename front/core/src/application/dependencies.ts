@@ -1,4 +1,4 @@
-import type { AuthResponse, SignupCredentials } from "../domain";
+import type { AuthResponse, Session, SignupCredentials } from "../domain";
 import type {
   AuthRepositoryInterface,
   HttpClientInterface,
@@ -14,4 +14,5 @@ export default interface Dependencies {
   notificationService: NotificationServiceInterface;
   authRepository: AuthRepositoryInterface;
   signupUseCase: UseCaseInterface<SignupCredentials, AuthResponse>;
+  getSessionUseCase: UseCaseInterface<void, Session | null>;
 }
