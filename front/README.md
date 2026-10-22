@@ -49,7 +49,7 @@ The domain types come from the API's OpenAPI document, committed as `core/openap
 
 ```bash
 pnpm --filter @weight-tracker/core openapi:refresh    # download from the running API (OPENAPI_URL overrides)
-pnpm --filter @weight-tracker/core openapi:generate   # regenerate core/src/domain/generated/api.ts
+pnpm --filter @weight-tracker/core openapi:generate   # regenerate core/src/contract/generated/api.ts
 ```
 
 The API serves the document only in Development, at `http://localhost:5199/openapi/v1.json`.

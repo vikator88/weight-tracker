@@ -30,7 +30,7 @@ but final validation remains manual.
 ## Domain
 
 - [ ] Entity types are aliases of generated OpenAPI types; no domain type was hand-written.
-- [ ] `core/src/domain/generated` was not edited by hand, and any snapshot refresh is its own reviewed step.
+- [ ] `core/src/contract/generated` was not edited by hand, and any snapshot refresh is its own reviewed step.
 - [ ] The domain holds no behaviour and no validation.
 
 ## Application And Infrastructure

@@ -56,7 +56,7 @@ Detailed architectural rules, classification and reference examples belong in `.
 
 - Run `pnpm --filter @weight-tracker/core openapi:refresh` with the API running, then `openapi:generate`; review the diff of `core/openapi/v1.json` and the regenerated
   types, and commit both as a step of their own.
-- Never edit `core/src/domain/generated` by hand.
+- Never edit `core/src/contract/generated` by hand.
 
 ### Fixing Bugs
 
@@ -174,7 +174,7 @@ done
 - [ ] The change follows `.stpr/template/STPR_INVARIANTS.md` without local exceptions.
 - [ ] Structure, naming and wiring match `.stpr/template/`.
 - [ ] No business rule was added to the front; form validation is structural only.
-- [ ] No domain type was hand-written, and `core/src/domain/generated` was not edited by hand.
+- [ ] No domain type was hand-written, and `core/src/contract/generated` was not edited by hand.
 - [ ] Every API interaction goes through a use case returning `Result`; nothing throws except `FetchHttpClient`
       and the wiring guard in `useContainer`.
 - [ ] Every new error code is mapped in the HTTP error mapper and translated in `es` and `en`.

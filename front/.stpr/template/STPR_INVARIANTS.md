@@ -81,19 +81,23 @@ or concrete UI library changes.
 ## 2. Architecture Invariants
 
 The reference architecture is a layered Clean Architecture with an **anemic domain**. There is no DDD on the front:
-the API owns every business rule, and the front's domain is the API contract.
+the API owns every business rule, and the front's domain is named from the API contract.
 
 ### The Dependency Rule
 
 | Code                        | May import                                                       |
 | --------------------------- | ---------------------------------------------------------------- |
-| `core/src/domain`           | nothing                                                          |
+| `core/src/contract`         | nothing                                                          |
+| `core/src/domain`           | `components` from `core/src/contract`, nothing else              |
 | `core/src/application`      | `core/src/domain`                                                |
-| `core/src/infrastructure`   | `core/src/domain`, `core/src/application`                        |
+| `core/src/infrastructure`   | `core/src/contract`, `core/src/domain`, `core/src/application`   |
 | `backoffice/src`, `app/src` | `@weight-tracker/core/domain`, `/application`, `/infrastructure` |
 
 - `core` never imports a front, React, Next, Expo, React Native, MUI, React Native Paper, or any UI library.
-- `core/src/domain` and `core/src/application` use no platform globals (no DOM, no Node, no React Native). Their
+- `core/src/contract` is the generated API contract. It sits beside the layers, not inside one: the domain reads only
+  its schemas (`components`), and its transport shapes (`paths`, `operations`) are for infrastructure alone. It is
+  not exported from `core/package.json`; fronts use the domain aliases.
+- `core/src/contract`, `core/src/domain` and `core/src/application` use no platform globals (no DOM, no Node, no React Native). Their
   `tsconfig` (`lib: ["ES2022"]`, `types: []`) enforces this; do not widen it.
 - `core/src/infrastructure` may use web-standard APIs present on both platforms (`fetch`, `URL`), nothing else.
 - `backoffice` and `app` never import each other. They are independent applications that share only `core`.
@@ -111,7 +115,7 @@ layer, not a module file.
 
 ```
 core/openapi/v1.json                                 committed snapshot of the API contract
-core/src/domain/generated/                           types generated from the snapshot (never edited by hand)
+core/src/contract/generated/                         types generated from the snapshot (never edited by hand)
 core/src/domain/<area>/                              named aliases of the generated types
 core/src/domain/common/                              DomainError, Result
 core/src/application/use-cases/<area>/               use cases
@@ -150,10 +154,12 @@ Classify every planned piece as exactly one of these before writing code.
 
 ### Domain: anemic, generated
 
-- The domain is the API contract. Entity types are generated from `core/openapi/v1.json` with `openapi-typescript`
-  and never written by hand.
+- The domain is named from the API contract. Entity types are generated from `core/openapi/v1.json` with
+  `openapi-typescript` into `core/src/contract/generated` and never written by hand.
 - Each domain area has a hand-written file that aliases the generated names into domain names, for example
   `export type Workout = components["schemas"]["WorkoutResponse"]`. Request bodies are aliased the same way.
+- Domain aliases import only `components` from the contract. Routes, methods and parameters (`paths`) are transport
+  details and never enter the domain.
 - The domain holds no rules, no classes with behaviour and no validation.
 - The snapshot is refreshed by script from the running API and committed, so contract changes appear in diffs.
   A refresh is its own reviewed step, never a side effect of another task.
@@ -304,7 +310,8 @@ Tests live outside `src`. In the app this is also required, because Expo Router 
   `core` must run unchanged on Hermes and in the browser, and the plan must name it.
 - The DI container uses no decorators and no `reflect-metadata`. Registrations are typed against `Dependencies`, so a
   missing or mistyped registration fails to compile and resolving can never fail at runtime.
-- `core/src/domain/generated` is produced by `openapi-typescript` from `core/openapi/v1.json` and never edited by hand.
+- `core/src/contract/generated` is produced by `openapi-typescript` from `core/openapi/v1.json` and never edited by
+  hand.
 
 ### 4.2 Backoffice: Next.js + MUI
 
