@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { fireEvent, screen, waitFor } from "@testing-library/react-native";
 import {
   DomainError,
@@ -8,6 +9,15 @@ import {
 } from "@weight-tracker/core/domain";
 import SignupView from "@/presentation/auth/views/signup-view";
 import renderWithProviders from "../../../support/render-with-providers";
+
+const mockLinks: { href: string; replace?: boolean }[] = [];
+
+jest.mock("expo-router", () => ({
+  Link: ({ children, href, replace }: { children: ReactNode; href: string; replace?: boolean }) => {
+    mockLinks.push({ href, replace });
+    return children;
+  },
+}));
 
 const authResponse: AuthResponse = {
   accessToken: "access",
@@ -156,4 +166,19 @@ describe("SignupView", () => {
       expect(screen.getByLabelText("Email").props.value).toBe("athlete@example.com");
     },
   );
+
+  it("links to the login screen, replacing signup in the history", async () => {
+    // Arrange
+    const { dependencies } = setup();
+    mockLinks.length = 0;
+
+    // Act
+    await renderWithProviders(<SignupView />, dependencies);
+
+    // Assert
+    expect(
+      screen.getByRole("button", { name: "¿Ya tienes cuenta? Inicia sesión" }),
+    ).toBeOnTheScreen();
+    expect(mockLinks).toContainEqual({ href: "/login", replace: true });
+  });
 });

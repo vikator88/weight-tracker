@@ -33,16 +33,16 @@ describe("HomeView", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it("redirects to signup and hides the content when there is no session", async () => {
+  it("redirects to login and hides the content when there is no session", async () => {
     // Arrange & Act
     await renderWithProviders(<HomeView />, getSession(Promise.resolve(ok(null))));
 
     // Assert
-    await waitFor(() => expect(replace).toHaveBeenCalledWith("/signup"));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
     expect(screen.queryByRole("heading", { name: "Weight Tracker" })).not.toBeInTheDocument();
   });
 
-  it("redirects to signup and hides the content when the session cannot be read", async () => {
+  it("redirects to login and hides the content when the session cannot be read", async () => {
     // Arrange & Act
     await renderWithProviders(
       <HomeView />,
@@ -50,7 +50,7 @@ describe("HomeView", () => {
     );
 
     // Assert
-    await waitFor(() => expect(replace).toHaveBeenCalledWith("/signup"));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
     expect(screen.queryByRole("heading", { name: "Weight Tracker" })).not.toBeInTheDocument();
   });
 

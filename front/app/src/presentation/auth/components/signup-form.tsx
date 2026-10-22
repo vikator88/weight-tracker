@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, HelperText, Text, TextInput } from "react-native-paper";
+import { Link } from "expo-router";
 import { useTranslation } from "react-i18next";
 
 interface SignupFormProps {
@@ -81,6 +82,11 @@ export default function SignupForm({ submitting, errorMessage, onSubmit }: Signu
       <Button mode="contained" onPress={handleSubmit} loading={submitting} disabled={submitting}>
         {t("signup.submit")}
       </Button>
+      <Link href="/login" replace asChild>
+        <Button mode="text" disabled={submitting}>
+          {t("signup.toLogin")}
+        </Button>
+      </Link>
     </View>
   );
 }

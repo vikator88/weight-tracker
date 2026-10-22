@@ -26,10 +26,14 @@ No core task: every use case and `Dependencies` key this change needs already ex
 - [x] 4.1 Move `app/src/app/index.tsx` to `app/src/app/(app)/index.tsx` and add `app/src/app/(auth)/signup.tsx` and `app/src/app/+not-found.tsx`, each exactly an import of the view and `export default`; verify `find app/src/app -name index.tsx` lists only `(app)/index.tsx`
 - [x] 4.2 Add `app/src/app/(auth)/_layout.tsx` (`AuthLayout`) and `app/src/app/(app)/_layout.tsx` (`AppLayout`), each a `Stack` with `headerShown: false` and no other hook or logic; verify with the app typecheck
 - [x] 4.3 Rewrite `app/src/app/_layout.tsx`: `SplashScreen.preventAutoHideAsync()` at module scope, `RootLayout` rendering `AppProviders` around a local `RootNavigator` and `StatusBar`, and `RootNavigator` returning `null` while `restoring`, hiding the splash once the status is known, and rendering the `Stack` with `Stack.Protected guard={signedIn}` around `(app)` and `guard={!signedIn}` around `(auth)`, as in `design.md`; verify with the app typecheck (typed routes regenerate) and lint
-- [ ] 4.4 Check from a running app (`pnpm dev:app`): launch with no session shows signup; a valid signup with the API mocked or running shows home and back does not return to signup; an unknown deep link shows the not-found screen; record the result in the change notes
+- [x] 4.4 Check from a running app (`pnpm dev:app`): launch with no session shows signup; a valid signup with the API mocked or running shows home and back does not return to signup; an unknown deep link shows the not-found screen; record the result in the change notes
 
 ## 5. Review
 
 - [x] 5.1 Review the app against `design.md` and `.stpr/template/STPR_INVARIANTS.md` section 4.3 ("Routing", "Presentation") and `.stpr/review/CHECKLIST_REVISION.md`: route files are two statements, layouts hold only a navigator, no `Redirect` / `router.replace`, state trio shape, no `throw` outside `useContainer`, kebab-case files, every string in `es` and `en`, no colour literal; verify by reading `git diff -- app/`
 - [x] 5.2 Confirm `core/`, `backoffice/` and `.stpr/template/` code copies are untouched and the template drift check prints nothing; verify with `git diff --stat -- core backoffice` and the drift loop in `AGENTS.md`
 - [x] 5.3 Run `pnpm typecheck && pnpm lint && pnpm test` from `front/`; verify it passes (no `pnpm test:e2e`: no backoffice flow changes)
+
+## Notes
+
+- 4.4: the manual check on a running app was reported completed by the maintainer on 2026-10-22. No further detail was recorded.
