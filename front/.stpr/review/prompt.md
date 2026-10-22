@@ -12,9 +12,8 @@ This step is not for finishing code. It is for evaluating whether the current ST
 1. Audit the last execution result against:
    - `.stpr/template/`
    - `.stpr/template/STPR_INVARIANTS.md`
-   - the relevant STPR work artifacts when they exist: `openspec/changes/<change-slug>/` with its brief in
-     `.stpr/plan/openspec/proposal-change-<change-slug>.md` (OpenSpec route), or `.stpr/work/changes/<change-slug>/`
-     (prompts route)
+   - the relevant plan artifacts when they exist: `openspec/changes/<change-slug>/` with its brief in
+     `.stpr/plan/openspec/proposal-change-<change-slug>.md`
 
 2. Verify the result using:
    - `.stpr/review/CHECKLIST_REVISION.md`
@@ -27,7 +26,7 @@ This step is not for finishing code. It is for evaluating whether the current ST
    - If something is correct in the current state, do not report it as a problem.
 
 5. If you find deviations, drift, repeated mistakes, or avoidable ambiguity:
-   - identify whether the problem belongs to the template, invariants, plan artifacts, prompts, or review artifacts
+   - identify whether the problem belongs to the template, invariants, plan artifacts, or review artifacts
    - explain which source artifact should have prevented the issue
    - propose concrete improvements in those artifacts for future executions
    - focus on improving the system that produced the result, not only the result itself
@@ -63,7 +62,6 @@ This step is not for finishing code. It is for evaluating whether the current ST
   - template
   - invariants
   - plan artifacts
-  - prompts
   - review artifacts
 
 ## Improvement Proposals
@@ -83,6 +81,6 @@ This step is not for finishing code. It is for evaluating whether the current ST
 
 - Prefer pointing to the source artifact that should prevent the issue in the future.
 - If the generated result is correct but the process was unnecessarily ambiguous, propose tightening the artifact that should have made the decision explicit.
-- Keep this prompt distinct from change-finalization prompts: this one is for audit and method improvement, not for completing implementation work.
+- Keep this prompt distinct from the plan artifacts and `/opsx:apply`: this one is for audit and method improvement, not for completing implementation work.
 - Do not mix already-fixed issues with current issues.
 - If there is no current problem in a file, do not invent one.

@@ -1,3 +1,4 @@
+export type { default as AuthRepositoryInterface } from "./auth-repository-interface";
 export type { default as ContainerInterface } from "./container-interface";
 export type { default as HttpClientInterface } from "./http-client-interface";
 export type { HttpMethod, HttpRequest } from "./http-request";

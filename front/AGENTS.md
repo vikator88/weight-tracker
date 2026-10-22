@@ -157,11 +157,9 @@ done
 ### Working process (for non-trivial changes)
 
 1. **Understand the request** and which fronts and roles it touches (see `.stpr/template/` for reference).
-2. **Plan** through one of the two routes in `.stpr/README.md`:
-   - OpenSpec: fill `.stpr/plan/openspec/proposal-change-template.md` as
-     `.stpr/plan/openspec/proposal-change-<change-slug>.md`, then `/opsx:propose`; artifacts go to
-     `openspec/changes/<change-slug>/`;
-   - prompts: `.stpr/plan/prompts/prompts-change.md`; artifacts go to `.stpr/work/changes/<change-slug>/`.
+2. **Plan** with OpenSpec (see `.stpr/README.md`): fill `.stpr/plan/openspec/proposal-change-template.md` as
+   `.stpr/plan/openspec/proposal-change-<change-slug>.md`, then `/opsx:propose`; artifacts go to
+   `openspec/changes/<change-slug>/`.
 
    If the API must change too, that is a separate plan in `api/`.
 
@@ -202,7 +200,6 @@ change workflow. Use this guide for anything that touches architecture, a new sc
 | Code structure and patterns              | `.stpr/template/`                                       |
 | STPR invariants and non-negotiable rules | `.stpr/template/STPR_INVARIANTS.md`                     |
 | Classification and reference selection   | `.stpr/template/README.md`                              |
-| Change planning prompts                  | `.stpr/plan/prompts/prompts-change.md`                  |
 | OpenSpec change brief template           | `.stpr/plan/openspec/proposal-change-template.md`       |
 | OpenSpec configuration                   | `openspec/config.yaml`                                  |
 | API contract                             | `core/openapi/v1.json`                                  |

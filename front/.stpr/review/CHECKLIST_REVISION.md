@@ -100,4 +100,4 @@ but final validation remains manual.
 ---
 
 **Resources:** `.stpr/README.md`, `AGENTS.md`, `.stpr/template/STPR_INVARIANTS.md`, `.stpr/template/README.md`,
-`.stpr/plan/prompts/`, `.stpr/plan/openspec/`, `openspec/config.yaml`.
+`.stpr/plan/openspec/`, `openspec/config.yaml`.
