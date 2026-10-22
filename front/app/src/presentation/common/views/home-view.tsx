@@ -10,6 +10,7 @@ export default function HomeView() {
       <Text variant="headlineLarge" role="heading" aria-level={1}>
         {t("home.title")}
       </Text>
+      <Text variant="bodyLarge">{t("home.signedIn")}</Text>
     </View>
   );
 }
