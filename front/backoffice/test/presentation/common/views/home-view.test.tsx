@@ -232,4 +232,49 @@ describe("HomeView", () => {
     expect(screen.queryByText("No hay conexión con el servidor.")).not.toBeInTheDocument();
     expect(read).toHaveBeenCalledTimes(2);
   });
+  it("refreshes the session and shows the profile when the access token has expired", async () => {
+    // Arrange
+    const read = vi
+      .fn<() => Promise<Result<UserProfile, DomainError>>>()
+      .mockResolvedValueOnce(fail(new DomainError("UNAUTHORIZED", "")))
+      .mockResolvedValue(ok(completeProfile));
+
+    // Act
+    await renderWithProviders(<HomeView />, {
+      ...signedIn,
+      getMyProfileUseCase: () => ({ execute: read }),
+      refreshSessionUseCase: () => ({
+        execute: async () => ok({ accessToken: "a2", refreshToken: "r2" }),
+      }),
+    });
+
+    // Assert
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Weight Tracker" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Ana García")).toBeInTheDocument();
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("redirects to login and shows no profile when the session cannot be refreshed", async () => {
+    // Arrange
+    const read = vi.fn(async () => fail(new DomainError("UNAUTHORIZED", "")));
+
+    // Act
+    await renderWithProviders(<HomeView />, {
+      ...signedIn,
+      getMyProfileUseCase: () => ({ execute: read }),
+      refreshSessionUseCase: () => ({
+        execute: async () => fail(new DomainError("UNAUTHORIZED", "")),
+      }),
+    });
+
+    // Assert
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
+    expect(screen.queryByRole("heading", { name: "Weight Tracker" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Ana García")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Tu sesión no es válida/)).not.toBeInTheDocument();
+    expect(read).toHaveBeenCalledTimes(1);
+  });
 });

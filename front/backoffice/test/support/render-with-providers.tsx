@@ -6,6 +6,7 @@ import type { Dependencies } from "@weight-tracker/core/application";
 import { ok, type UserProfile } from "@weight-tracker/core/domain";
 import { Container, type Registrations } from "@weight-tracker/core/infrastructure";
 import i18n from "@/infrastructure/i18n";
+import SessionProvider from "@/presentation/auth/components/session-provider";
 import CurrentUserProvider from "@/presentation/common/components/current-user-provider";
 import ContainerProvider from "@/presentation/common/context/container-provider";
 import theme from "@/presentation/common/theme";
@@ -27,6 +28,7 @@ const unusedDependencies: Registrations<Dependencies> = {
   authRepository: () => ({
     signup: async () => undefined as never,
     login: async () => undefined as never,
+    refresh: async () => undefined as never,
   }),
   userRepository: () => ({
     getMe: async () => undefined as never,
@@ -34,8 +36,9 @@ const unusedDependencies: Registrations<Dependencies> = {
   }),
   signupUseCase: () => ({ execute: async () => undefined as never }),
   loginUseCase: () => ({ execute: async () => undefined as never }),
-  getSessionUseCase: () => ({ execute: async () => undefined as never }),
+  getSessionUseCase: () => ({ execute: async () => ok(null) }),
   logoutUseCase: () => ({ execute: async () => undefined as never }),
+  refreshSessionUseCase: () => ({ execute: async () => undefined as never }),
   getPreferredLanguageUseCase: () => ({ execute: async () => ok(null) }),
   setPreferredLanguageUseCase: () => ({ execute: async () => ok(undefined) }),
   getMyProfileUseCase: () => ({ execute: async () => ok(completeProfile) }),
@@ -54,7 +57,9 @@ export default async function renderWithProviders(
     <ThemeProvider theme={theme}>
       <I18nextProvider i18n={i18n}>
         <ContainerProvider container={container}>
-          <CurrentUserProvider>{ui}</CurrentUserProvider>
+          <SessionProvider>
+            <CurrentUserProvider>{ui}</CurrentUserProvider>
+          </SessionProvider>
         </ContainerProvider>
       </I18nextProvider>
     </ThemeProvider>,

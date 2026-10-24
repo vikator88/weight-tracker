@@ -5,6 +5,7 @@ import {
   fail,
   type LoginRequest,
   ok,
+  type RefreshRequest,
   type Result,
   type SignupRequest,
 } from "../../domain";
@@ -32,6 +33,20 @@ export default class AuthRepository implements AuthRepositoryInterface {
       const response = await this.httpClient.request<AuthResponse>({
         method: "POST",
         path: "/auth/login",
+        body: request,
+      });
+
+      return ok(response);
+    } catch (error) {
+      return fail(mapHttpError(error));
+    }
+  }
+
+  async refresh(request: RefreshRequest): Promise<Result<AuthResponse, DomainError>> {
+    try {
+      const response = await this.httpClient.request<AuthResponse>({
+        method: "POST",
+        path: "/auth/refresh",
         body: request,
       });
 

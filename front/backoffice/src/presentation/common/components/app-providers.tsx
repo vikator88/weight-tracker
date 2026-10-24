@@ -7,6 +7,7 @@ import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { I18nextProvider } from "react-i18next";
 import container from "@/infrastructure/container";
 import i18n, { detectLanguage, supportedLanguages } from "@/infrastructure/i18n";
+import SessionProvider from "@/presentation/auth/components/session-provider";
 import ContainerProvider from "../context/container-provider";
 import CurrentUserProvider from "./current-user-provider";
 import theme from "../theme";
@@ -48,7 +49,9 @@ export default function AppProviders({ children }: AppProvidersProps) {
         <CssBaseline />
         <I18nextProvider i18n={i18n}>
           <ContainerProvider container={container}>
-            <CurrentUserProvider>{children}</CurrentUserProvider>
+            <SessionProvider>
+              <CurrentUserProvider>{children}</CurrentUserProvider>
+            </SessionProvider>
           </ContainerProvider>
         </I18nextProvider>
       </ThemeProvider>

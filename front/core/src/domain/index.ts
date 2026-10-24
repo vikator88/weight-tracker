@@ -4,6 +4,7 @@ export * from "./common/result";
 export type {
   AuthResponse,
   LoginRequest,
+  RefreshRequest,
   Role,
   Session,
   SignupCredentials,

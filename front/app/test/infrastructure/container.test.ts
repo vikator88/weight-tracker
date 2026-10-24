@@ -19,6 +19,7 @@ const keys: (keyof Dependencies)[] = [
   "httpClient",
   "keyValueStore",
   "notificationService",
+  "refreshSessionUseCase",
   "getMyProfileUseCase",
   "updateMyProfileUseCase",
 ];

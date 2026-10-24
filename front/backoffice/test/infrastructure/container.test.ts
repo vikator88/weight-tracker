@@ -7,6 +7,7 @@ const keys: (keyof Dependencies)[] = [
   "keyValueStore",
   "notificationService",
   "getSessionUseCase",
+  "refreshSessionUseCase",
   "getMyProfileUseCase",
   "updateMyProfileUseCase",
 ];

@@ -13,6 +13,9 @@ const preferred = vi.hoisted(() => ({
 vi.mock("@/infrastructure/container", () => ({
   default: {
     resolve: (key: string) => {
+      if (key === "getSessionUseCase") {
+        return { execute: async () => ok(null) };
+      }
       if (key !== "getPreferredLanguageUseCase") {
         throw new Error(`Unexpected dependency ${key}`);
       }
