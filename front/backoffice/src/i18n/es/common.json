@@ -1,6 +1,7 @@
 {
   "home": {
     "title": "Weight Tracker",
-    "signedIn": "Has iniciado sesión."
+    "signedIn": "Has iniciado sesión.",
+    "logout": "Cerrar sesión"
   }
 }

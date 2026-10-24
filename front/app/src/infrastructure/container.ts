@@ -2,6 +2,7 @@ import {
   type Dependencies,
   GetSessionUseCase,
   LoginUseCase,
+  LogoutUseCase,
   SignupUseCase,
 } from "@weight-tracker/core/application";
 import { AuthRepository, Container, FetchHttpClient } from "@weight-tracker/core/infrastructure";
@@ -18,6 +19,7 @@ const container = new Container<Dependencies>({
     new SignupUseCase(c.resolve("authRepository"), c.resolve("keyValueStore"), 1), // USER
   loginUseCase: (c) => new LoginUseCase(c.resolve("authRepository"), c.resolve("keyValueStore")),
   getSessionUseCase: (c) => new GetSessionUseCase(c.resolve("keyValueStore")),
+  logoutUseCase: (c) => new LogoutUseCase(c.resolve("keyValueStore")),
 });
 
 export default container;

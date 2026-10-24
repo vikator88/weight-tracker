@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { useRef, useState } from "react";
+import { StyleSheet, View, type TextInput as NativeTextInput } from "react-native";
 import { Button, HelperText, Text, TextInput } from "react-native-paper";
 import { Link } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -20,8 +20,13 @@ export default function LoginForm({ submitting, errorMessage, onSubmit }: LoginF
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState<FieldError>(null);
   const [passwordError, setPasswordError] = useState<FieldError>(null);
+  const passwordRef = useRef<NativeTextInput>(null);
 
   function handleSubmit() {
+    if (submitting) {
+      return;
+    }
+
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
     const nextEmailError: FieldError = !trimmedEmail
@@ -54,7 +59,9 @@ export default function LoginForm({ submitting, errorMessage, onSubmit }: LoginF
           keyboardType="email-address"
           autoCapitalize="none"
           autoComplete="email"
-          disabled={submitting}
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => passwordRef.current?.focus()}
         />
         <HelperText type="error" visible={emailError !== null}>
           {emailError ? t(`login.validation.${emailError}`) : ""}
@@ -62,6 +69,7 @@ export default function LoginForm({ submitting, errorMessage, onSubmit }: LoginF
       </View>
       <View>
         <TextInput
+          ref={passwordRef}
           label={t("login.password")}
           accessibilityLabel={t("login.password")}
           value={password}
@@ -70,7 +78,8 @@ export default function LoginForm({ submitting, errorMessage, onSubmit }: LoginF
           secureTextEntry
           autoCapitalize="none"
           autoComplete="current-password"
-          disabled={submitting}
+          returnKeyType="go"
+          onSubmitEditing={handleSubmit}
         />
         <HelperText type="error" visible={passwordError !== null}>
           {passwordError ? t(`login.validation.${passwordError}`) : ""}
