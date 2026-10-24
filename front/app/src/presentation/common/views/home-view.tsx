@@ -21,8 +21,8 @@ export default function HomeView() {
     const result = await container.resolve("logoutUseCase").execute();
 
     if (result.ok) {
-      // The session gate reacts to the refreshed state; nothing navigates here.
-      await session.refresh();
+      // The session gate reacts to the reloaded state; nothing navigates here.
+      await session.reload();
       return;
     }
 

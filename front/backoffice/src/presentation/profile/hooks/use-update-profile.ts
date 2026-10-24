@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { DomainErrorCode, UpdateProfileRequest } from "@weight-tracker/core/domain";
+import useSession from "@/presentation/auth/hooks/use-session";
 import useContainer from "@/presentation/common/hooks/use-container";
 import useCurrentUser from "@/presentation/common/hooks/use-current-user";
 
@@ -15,6 +16,7 @@ interface UpdateProfileState {
 export default function useUpdateProfile(): UpdateProfileState {
   const container = useContainer();
   const { replace } = useCurrentUser();
+  const { runWithSession } = useSession();
   const [saving, setSaving] = useState(false);
   const [errorCode, setErrorCode] = useState<DomainErrorCode | null>(null);
   const [saved, setSaved] = useState(false);
@@ -24,7 +26,9 @@ export default function useUpdateProfile(): UpdateProfileState {
     setErrorCode(null);
     setSaved(false);
 
-    const result = await container.resolve("updateMyProfileUseCase").execute(request);
+    const result = await runWithSession(() =>
+      container.resolve("updateMyProfileUseCase").execute(request),
+    );
 
     setSaving(false);
     if (result.ok) {

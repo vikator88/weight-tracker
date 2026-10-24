@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { DomainErrorCode, UserProfile } from "@weight-tracker/core/domain";
+import useSession from "@/presentation/auth/hooks/use-session";
 import CurrentUserContext, {
   type CurrentUserContextValue,
   type CurrentUserStatus,
@@ -15,6 +16,7 @@ interface CurrentUserProviderProps {
 /** Holds the signed-in user's profile for every signed-in screen. It reads nothing until `load` is called. */
 export default function CurrentUserProvider({ children }: CurrentUserProviderProps) {
   const container = useContainer();
+  const { runWithSession, onEnd } = useSession();
   const [status, setStatus] = useState<CurrentUserStatus>("idle");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [errorCode, setErrorCode] = useState<DomainErrorCode | null>(null);
@@ -32,22 +34,19 @@ export default function CurrentUserProvider({ children }: CurrentUserProviderPro
     changeStatus("loading");
     setErrorCode(null);
 
-    void container
-      .resolve("getMyProfileUseCase")
-      .execute()
-      .then((result) => {
-        if (current !== generation.current) {
-          return;
-        }
-        if (result.ok) {
-          setProfile(result.value);
-          changeStatus("loaded");
-        } else {
-          setErrorCode(result.error.code);
-          changeStatus("failed");
-        }
-      });
-  }, [container, changeStatus]);
+    void runWithSession(() => container.resolve("getMyProfileUseCase").execute()).then((result) => {
+      if (current !== generation.current) {
+        return;
+      }
+      if (result.ok) {
+        setProfile(result.value);
+        changeStatus("loaded");
+      } else {
+        setErrorCode(result.error.code);
+        changeStatus("failed");
+      }
+    });
+  }, [container, runWithSession, changeStatus]);
 
   const load = useCallback(() => {
     if (statusRef.current === "idle") {
@@ -71,6 +70,9 @@ export default function CurrentUserProvider({ children }: CurrentUserProviderPro
     setErrorCode(null);
     changeStatus("idle");
   }, [changeStatus]);
+
+  // A session that ends takes the profile with it, so the next user never sees it.
+  useEffect(() => onEnd(clear), [onEnd, clear]);
 
   const value = useMemo<CurrentUserContextValue>(
     () => ({ status, profile, errorCode, load, reload: read, replace, clear }),

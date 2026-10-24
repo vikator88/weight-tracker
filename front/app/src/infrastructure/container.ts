@@ -5,6 +5,7 @@ import {
   GetSessionUseCase,
   LoginUseCase,
   LogoutUseCase,
+  RefreshSessionUseCase,
   SetPreferredLanguageUseCase,
   UpdateMyProfileUseCase,
   SignupUseCase,
@@ -37,6 +38,8 @@ const container = new Container<Dependencies>({
   loginUseCase: (c) => new LoginUseCase(c.resolve("authRepository"), c.resolve("keyValueStore")),
   getSessionUseCase: (c) => new GetSessionUseCase(c.resolve("keyValueStore")),
   logoutUseCase: (c) => new LogoutUseCase(c.resolve("keyValueStore")),
+  refreshSessionUseCase: (c) =>
+    new RefreshSessionUseCase(c.resolve("authRepository"), c.resolve("keyValueStore")),
   getPreferredLanguageUseCase: (c) => new GetPreferredLanguageUseCase(c.resolve("keyValueStore")),
   setPreferredLanguageUseCase: (c) => new SetPreferredLanguageUseCase(c.resolve("keyValueStore")),
   getMyProfileUseCase: (c) => new GetMyProfileUseCase(c.resolve("userRepository")),

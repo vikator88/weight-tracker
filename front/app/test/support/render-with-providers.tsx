@@ -18,6 +18,7 @@ const unusedDependencies: Registrations<Dependencies> = {
   authRepository: () => ({
     signup: async () => undefined as never,
     login: async () => undefined as never,
+    refresh: async () => undefined as never,
   }),
   userRepository: () => ({
     getMe: async () => undefined as never,
@@ -27,6 +28,7 @@ const unusedDependencies: Registrations<Dependencies> = {
   loginUseCase: () => ({ execute: async () => undefined as never }),
   getSessionUseCase: () => ({ execute: async () => ok(null) }),
   logoutUseCase: () => ({ execute: async () => undefined as never }),
+  refreshSessionUseCase: () => ({ execute: async () => undefined as never }),
   getPreferredLanguageUseCase: () => ({ execute: async () => ok(null) }),
   setPreferredLanguageUseCase: () => ({ execute: async () => ok(undefined) }),
   getMyProfileUseCase: () => ({ execute: async () => undefined as never }),

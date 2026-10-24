@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import type { DomainErrorCode } from "@weight-tracker/core/domain";
 import useContainer from "@/presentation/common/hooks/use-container";
+import useSession from "../hooks/use-session";
 import LoginForm from "../components/login-form";
 
 const loginErrorCodes: DomainErrorCode[] = ["UNAUTHORIZED"];
@@ -16,6 +17,7 @@ const loginErrorCodes: DomainErrorCode[] = ["UNAUTHORIZED"];
 export default function LoginView() {
   const { t } = useTranslation("auth");
   const container = useContainer();
+  const { reload } = useSession();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [errorCode, setErrorCode] = useState<DomainErrorCode | null>(null);
@@ -27,6 +29,8 @@ export default function LoginView() {
     const result = await container.resolve("loginUseCase").execute(credentials);
 
     if (result.ok) {
+      // The guard reads the session state, so it must know about the new tokens before home opens.
+      await reload();
       router.replace("/");
       return;
     }

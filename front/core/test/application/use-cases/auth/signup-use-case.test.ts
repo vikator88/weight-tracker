@@ -28,6 +28,10 @@ class FakeAuthRepository implements AuthRepositoryInterface {
   async login(): Promise<Result<AuthResponse, DomainError>> {
     return this.result;
   }
+
+  async refresh(): Promise<Result<AuthResponse, DomainError>> {
+    return this.result;
+  }
 }
 
 class FakeKeyValueStore implements KeyValueStoreInterface {

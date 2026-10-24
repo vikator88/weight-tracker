@@ -28,8 +28,8 @@ export default function SignupView() {
     const result = await container.resolve("signupUseCase").execute(credentials);
 
     if (result.ok) {
-      // The session gate reacts to the refreshed state; nothing navigates here.
-      await session.refresh();
+      // The session gate reacts to the reloaded state; nothing navigates here.
+      await session.reload();
       return;
     }
 

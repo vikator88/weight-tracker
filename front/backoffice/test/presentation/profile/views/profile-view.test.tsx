@@ -2,7 +2,12 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DomainError, fail, ok } from "@weight-tracker/core/domain";
-import type { Result, UpdateProfileRequest, UserProfile } from "@weight-tracker/core/domain";
+import type {
+  Result,
+  Session,
+  UpdateProfileRequest,
+  UserProfile,
+} from "@weight-tracker/core/domain";
 import ProfileView from "@/presentation/profile/views/profile-view";
 import renderWithProviders, { completeProfile } from "../../../support/render-with-providers";
 
@@ -17,9 +22,11 @@ vi.mock("next/navigation", () => ({
 function renderProfileView({
   profile = completeProfile,
   update = async (request: UpdateProfileRequest) => ok({ ...completeProfile, ...request }),
+  refresh = async () => fail(new DomainError("UNAUTHORIZED", "")),
 }: {
   profile?: UserProfile;
   update?: (request: UpdateProfileRequest) => Promise<Result<UserProfile, DomainError>>;
+  refresh?: () => Promise<Result<Session, DomainError>>;
 } = {}) {
   const execute = vi.fn(update);
 
@@ -31,6 +38,7 @@ function renderProfileView({
       }),
       getMyProfileUseCase: () => ({ execute: async () => ok(profile) }),
       updateMyProfileUseCase: () => ({ execute }),
+      refreshSessionUseCase: () => ({ execute: refresh }),
     }),
   };
 }
@@ -118,6 +126,32 @@ describe("ProfileView", () => {
     expect(await screen.findByText("Perfil actualizado.")).toBeInTheDocument();
     expect(execute).toHaveBeenCalledWith({ name: "Lucía", surname: "García" });
     expect(screen.getByText("Lucía García")).toBeInTheDocument();
+  });
+
+  it("refreshes the session and saves again when the access token has expired", async () => {
+    // Arrange
+    const update = vi
+      .fn<(request: UpdateProfileRequest) => Promise<Result<UserProfile, DomainError>>>()
+      .mockResolvedValueOnce(fail(new DomainError("UNAUTHORIZED", "")))
+      .mockImplementation(async (request) => ok({ ...completeProfile, ...request }));
+    const { execute, rendered } = renderProfileView({
+      update,
+      refresh: async () => ok({ accessToken: "a2", refreshToken: "r2" }),
+    });
+    await rendered;
+    const user = userEvent.setup();
+    const name = await screen.findByRole("textbox", { name: "Nombre" });
+    await user.clear(name);
+    await user.type(name, "Lucía");
+
+    // Act
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+
+    // Assert
+    expect(await screen.findByText("Perfil actualizado.")).toBeInTheDocument();
+    expect(execute).toHaveBeenCalledTimes(2);
+    expect(screen.getByText("Lucía García")).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it("hides the confirmation when a field changes", async () => {

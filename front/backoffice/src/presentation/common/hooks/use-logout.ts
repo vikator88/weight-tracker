@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { DomainErrorCode } from "@weight-tracker/core/domain";
+import useSession from "@/presentation/auth/hooks/use-session";
 import useContainer from "./use-container";
 
 interface LogoutState {
@@ -11,6 +12,7 @@ interface LogoutState {
 
 export default function useLogout(): LogoutState {
   const container = useContainer();
+  const { end } = useSession();
   const [loggingOut, setLoggingOut] = useState(false);
   const [errorCode, setErrorCode] = useState<DomainErrorCode | null>(null);
 
@@ -21,6 +23,7 @@ export default function useLogout(): LogoutState {
     const result = await container.resolve("logoutUseCase").execute();
 
     if (result.ok) {
+      end();
       return true;
     }
     setErrorCode(result.error.code);
