@@ -1,7 +1,62 @@
 {
   "home": {
     "title": "Weight Tracker",
-    "signedIn": "You are signed in.",
-    "logout": "Log out"
+    "signedIn": "You are signed in."
+  },
+  "menu": {
+    "appName": "Weight Tracker",
+    "label": "Main menu",
+    "home": "Home",
+    "athletes": {
+      "title": "Athletes",
+      "all": "All athletes",
+      "pendingInvitations": "Pending invitations"
+    },
+    "programming": {
+      "title": "Programming",
+      "assignedPlans": "Assigned plans",
+      "calendar": "Calendar"
+    },
+    "library": {
+      "title": "Library",
+      "workoutTemplates": "Workout templates",
+      "exerciseCatalog": "Exercise catalog"
+    },
+    "tracking": {
+      "title": "Tracking",
+      "workoutFeedback": "Workout feedback",
+      "weeklyReviews": "Weekly reviews",
+      "pendingReview": "Pending review"
+    }
+  },
+  "header": {
+    "search": {
+      "placeholder": "Type for search...",
+      "label": "Search"
+    },
+    "language": {
+      "label": "Change language",
+      "es": "Español",
+      "en": "English"
+    },
+    "alerts": {
+      "label": "Alerts",
+      "title": "Alerts",
+      "mock": {
+        "workoutCompleted": "Juan Pérez completed a workout.",
+        "invitationAccepted": "María López accepted your invitation.",
+        "reviewPending": "Weekly review pending for Carlos Ruiz."
+      }
+    },
+    "user": {
+      "menuLabel": "User menu",
+      "roles": {
+        "TRAINER": "Trainer",
+        "ADMIN": "Administrator"
+      },
+      "profile": "My profile",
+      "preferences": "Preferences",
+      "logout": "Log out"
+    }
   }
 }

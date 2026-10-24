@@ -23,6 +23,8 @@ const unusedDependencies: Registrations<Dependencies> = {
   loginUseCase: () => ({ execute: async () => undefined as never }),
   getSessionUseCase: () => ({ execute: async () => ok(null) }),
   logoutUseCase: () => ({ execute: async () => undefined as never }),
+  getPreferredLanguageUseCase: () => ({ execute: async () => ok(null) }),
+  setPreferredLanguageUseCase: () => ({ execute: async () => ok(undefined) }),
 };
 
 /** Renders a view in Spanish, with the real theme and a container of fakes. */

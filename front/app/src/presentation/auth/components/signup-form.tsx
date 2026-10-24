@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { StyleSheet, View, type TextInput as NativeTextInput } from "react-native";
+import { StyleSheet, type TextInputInstance, View } from "react-native";
 import { Button, HelperText, Text, TextInput } from "react-native-paper";
 import { Link } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -20,7 +20,7 @@ export default function SignupForm({ submitting, errorMessage, onSubmit }: Signu
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState<FieldError>(null);
   const [passwordError, setPasswordError] = useState<FieldError>(null);
-  const passwordRef = useRef<NativeTextInput>(null);
+  const passwordRef = useRef<TextInputInstance>(null);
 
   function handleSubmit() {
     if (submitting) {

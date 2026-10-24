@@ -1,7 +1,62 @@
 {
   "home": {
     "title": "Weight Tracker",
-    "signedIn": "Has iniciado sesión.",
-    "logout": "Cerrar sesión"
+    "signedIn": "Has iniciado sesión."
+  },
+  "menu": {
+    "appName": "Weight Tracker",
+    "label": "Menú principal",
+    "home": "Inicio",
+    "athletes": {
+      "title": "Atletas",
+      "all": "Todos los atletas",
+      "pendingInvitations": "Invitaciones pendientes"
+    },
+    "programming": {
+      "title": "Programación",
+      "assignedPlans": "Planes asignados",
+      "calendar": "Calendario"
+    },
+    "library": {
+      "title": "Biblioteca",
+      "workoutTemplates": "Plantillas de entrenamiento",
+      "exerciseCatalog": "Catálogo de ejercicios"
+    },
+    "tracking": {
+      "title": "Seguimiento",
+      "workoutFeedback": "Feedback de entrenamientos",
+      "weeklyReviews": "Revisiones semanales",
+      "pendingReview": "Pendientes de revisión"
+    }
+  },
+  "header": {
+    "search": {
+      "placeholder": "Escribe para buscar...",
+      "label": "Buscar"
+    },
+    "language": {
+      "label": "Cambiar idioma",
+      "es": "Español",
+      "en": "English"
+    },
+    "alerts": {
+      "label": "Alertas",
+      "title": "Alertas",
+      "mock": {
+        "workoutCompleted": "Juan Pérez ha completado su entrenamiento.",
+        "invitationAccepted": "María López ha aceptado tu invitación.",
+        "reviewPending": "Revisión semanal pendiente de Carlos Ruiz."
+      }
+    },
+    "user": {
+      "menuLabel": "Menú de usuario",
+      "roles": {
+        "TRAINER": "Entrenador",
+        "ADMIN": "Administrador"
+      },
+      "profile": "Mi perfil",
+      "preferences": "Preferencias",
+      "logout": "Cerrar sesión"
+    }
   }
 }
