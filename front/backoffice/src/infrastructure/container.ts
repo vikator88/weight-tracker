@@ -1,8 +1,10 @@
 import {
   type Dependencies,
+  GetPreferredLanguageUseCase,
   GetSessionUseCase,
   LoginUseCase,
   LogoutUseCase,
+  SetPreferredLanguageUseCase,
   SignupUseCase,
 } from "@weight-tracker/core/application";
 import { AuthRepository, Container, FetchHttpClient } from "@weight-tracker/core/infrastructure";
@@ -20,6 +22,8 @@ const container = new Container<Dependencies>({
   loginUseCase: (c) => new LoginUseCase(c.resolve("authRepository"), c.resolve("keyValueStore")),
   getSessionUseCase: (c) => new GetSessionUseCase(c.resolve("keyValueStore")),
   logoutUseCase: (c) => new LogoutUseCase(c.resolve("keyValueStore")),
+  getPreferredLanguageUseCase: (c) => new GetPreferredLanguageUseCase(c.resolve("keyValueStore")),
+  setPreferredLanguageUseCase: (c) => new SetPreferredLanguageUseCase(c.resolve("keyValueStore")),
 });
 
 export default container;

@@ -17,4 +17,6 @@ export default interface Dependencies {
   loginUseCase: UseCaseInterface<LoginRequest, AuthResponse>;
   getSessionUseCase: UseCaseInterface<void, Session | null>;
   logoutUseCase: UseCaseInterface<void, void>;
+  getPreferredLanguageUseCase: UseCaseInterface<void, string | null>;
+  setPreferredLanguageUseCase: UseCaseInterface<string, void>;
 }

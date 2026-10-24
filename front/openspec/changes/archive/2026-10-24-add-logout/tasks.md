@@ -27,7 +27,7 @@
 - [x] 5.1 Add to `app/src/presentation/common/views/home-view.tsx` a Paper outlined `Button` with `t("home.logout")`, `disabled` and `loading` while logging out, that calls `logoutUseCase`, then `await session.refresh()` on success with no navigation call, and shows `<HelperText type="error">` with `errors:<code>` on failure; verify with the app typecheck and lint
 - [x] 5.2 Extend `app/test/presentation/common/views/home-view.test.tsx`: the button shows; press calls the use case and `getSessionUseCase` runs a second time; button disabled while pending; `UNEXPECTED` shows "Ha ocurrido un error inesperado."; AAA with one Act each; verify with `pnpm --filter app test`
 - [x] 5.0 Add `redirectTo="/login"` to the `(app)` guard in `app/src/app/_layout.tsx` so a signed-out athlete on `/` lands on login instead of `+not-found` (see design.md); verify with the app typecheck
-- [ ] 5.3 Check by hand on a running app (`pnpm dev:app`) that logging out shows login, and that login is still shown after a restart
+- [x] 5.3 Check by hand on a running app (`pnpm dev:app`) that logging out shows login, and that login is still shown after a restart
 - [x] 5.4 Review the app against its `login-view.tsx` handler and tests (state names, `session.refresh()` without navigation, error rendering, i18n); verify the quality checklist in `front/AGENTS.md` holds for the app
 
 ## 6. Verification
