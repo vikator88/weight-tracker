@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { mockUsersMe } from "./support/users-me";
 
 const loginUrl = "http://localhost:5199/auth/login";
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*" };
@@ -20,6 +21,7 @@ async function mockLogin(page: Page, status: number, body: object) {
 
 test("logs in, lands on home and stays there after a reload", async ({ page }) => {
   // Arrange
+  await mockUsersMe(page);
   await mockLogin(page, 200, { accessToken: "access", refreshToken: "refresh", expiresIn: 900 });
   await page.goto("/login");
 
@@ -37,6 +39,7 @@ test("logs in, lands on home and stays there after a reload", async ({ page }) =
 
 /** Logs in through the intercepted API and waits for home, with its navigation drawer. */
 async function logIn(page: Page) {
+  await mockUsersMe(page);
   await mockLogin(page, 200, { accessToken: "access", refreshToken: "refresh", expiresIn: 900 });
   await page.goto("/login");
   await page.getByLabel("Email").fill("trainer@example.com");

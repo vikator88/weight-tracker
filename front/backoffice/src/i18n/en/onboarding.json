@@ -1,0 +1,13 @@
+{
+  "stepTitle": "Step {{current}} of {{total}} · {{title}}",
+  "steps": {
+    "name": {
+      "title": "Tell us your name"
+    }
+  },
+  "actions": {
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish"
+  }
+}

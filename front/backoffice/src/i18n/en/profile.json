@@ -1,0 +1,16 @@
+{
+  "title": "My profile",
+  "fields": {
+    "name": "Name",
+    "surname": "Surname"
+  },
+  "validation": {
+    "required": "This field is required.",
+    "minLength": "Must be at least {{min}} characters.",
+    "maxLength": "Must be at most {{max}} characters."
+  },
+  "actions": {
+    "save": "Save"
+  },
+  "saved": "Profile updated."
+}

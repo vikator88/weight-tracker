@@ -49,18 +49,39 @@ describe("UpdateMyProfileUseCase", () => {
     expect(result).toEqual(ok(profile));
   });
 
-  it("forwards the name and surname unchanged, once", async () => {
+  it("sends the trimmed name and surname to the repository, once", async () => {
     // Arrange
     const repository = new FakeUserRepository(ok(profile));
     const useCase = new UpdateMyProfileUseCase(repository);
 
     // Act
-    await useCase.execute({ name: "  Ana ", surname: "" });
+    await useCase.execute({ name: "  Ana ", surname: "García  " });
 
     // Assert
-    expect(repository.updates).toEqual([{ name: "  Ana ", surname: "" }]);
+    expect(repository.updates).toEqual([{ name: "Ana", surname: "García" }]);
     expect(repository.getCalls).toBe(0);
   });
+
+  it.each([
+    ["name", { name: "Al", surname: "García" }],
+    ["surname", { name: "Ana", surname: "   " }],
+    ["name", { name: "a".repeat(101), surname: "García" }],
+  ] as const)(
+    "fails with VALIDATION on an invalid %s without calling the repository",
+    async (_field, invalid) => {
+      // Arrange
+      const repository = new FakeUserRepository(ok(profile));
+      const useCase = new UpdateMyProfileUseCase(repository);
+
+      // Act
+      const result = await useCase.execute(invalid);
+
+      // Assert
+      expect(result.ok).toBe(false);
+      expect(!result.ok && result.error.code).toBe("VALIDATION");
+      expect(repository.updates).toEqual([]);
+    },
+  );
 
   it.each(["VALIDATION", "UNAUTHORIZED"] as const)(
     "returns the repository failure %s unchanged",
