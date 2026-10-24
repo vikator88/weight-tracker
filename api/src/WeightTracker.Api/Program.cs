@@ -11,6 +11,7 @@ using WeightTracker.Application.Interfaces;
 using WeightTracker.Application.Services;
 using WeightTracker.Application.UseCases.Auth;
 using WeightTracker.Application.UseCases.Exercises;
+using WeightTracker.Application.UseCases.Users;
 using WeightTracker.Application.UseCases.Workouts;
 using WeightTracker.Infra.Persistence;
 using WeightTracker.Infra.Repositories;
@@ -73,6 +74,7 @@ builder.Services.AddScoped<LoginUseCase>();
 builder.Services.AddScoped<SignupUseCase>();
 builder.Services.AddScoped<RefreshTokenUseCase>();
 builder.Services.AddScoped<GetAuthenticatedUserUseCase>();
+builder.Services.AddScoped<UpdateMyProfileUseCase>();
 
 builder.Services.AddScoped<DatabaseSeeder>();
 builder.Services.AddScoped<ExceptionMapper>();

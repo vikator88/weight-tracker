@@ -19,12 +19,18 @@ const unusedDependencies: Registrations<Dependencies> = {
     signup: async () => undefined as never,
     login: async () => undefined as never,
   }),
+  userRepository: () => ({
+    getMe: async () => undefined as never,
+    updateMe: async () => undefined as never,
+  }),
   signupUseCase: () => ({ execute: async () => undefined as never }),
   loginUseCase: () => ({ execute: async () => undefined as never }),
   getSessionUseCase: () => ({ execute: async () => ok(null) }),
   logoutUseCase: () => ({ execute: async () => undefined as never }),
   getPreferredLanguageUseCase: () => ({ execute: async () => ok(null) }),
   setPreferredLanguageUseCase: () => ({ execute: async () => ok(undefined) }),
+  getMyProfileUseCase: () => ({ execute: async () => undefined as never }),
+  updateMyProfileUseCase: () => ({ execute: async () => undefined as never }),
 };
 
 /** Renders a view in Spanish, with the real theme and a container of fakes. */

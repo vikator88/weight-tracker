@@ -107,4 +107,43 @@ public class UserTests
         // Assert
         canTrain.Should().Be(expected);
     }
+
+    [Fact]
+    public void UpdateProfile_ShouldReplaceNameAndSurname()
+    {
+        // Arrange
+        var user = User.Create(
+            Email.From("user@weighttracker.test"), PersonName.From("Ada"), PersonName.From("Lovelace"),
+            Birth, Role.USER, PasswordHash.From("hash"), CreatedAt);
+
+        // Act
+        user.UpdateProfile(PersonName.From("Grace"), PersonName.From("Hopper"));
+
+        // Assert
+        user.Name.Should().Be(PersonName.From("Grace"));
+        user.Surname.Should().Be(PersonName.From("Hopper"));
+    }
+
+    [Fact]
+    public void UpdateProfile_ShouldLeaveEveryOtherFieldUntouched()
+    {
+        // Arrange
+        var id = Id.New();
+        var email = Email.From("trainer@weighttracker.test");
+        var user = User.Rehydrate(
+            id, email, PersonName.From("Ada"), PersonName.From("Lovelace"),
+            Birth, Role.TRAINER, PasswordHash.From("stored-hash"), CreatedAt);
+
+        // Act
+        user.UpdateProfile(PersonName.From("Grace"), PersonName.From("Hopper"));
+
+        // Assert
+        user.Id.Should().Be(id);
+        user.Email.Should().Be(email);
+        user.Role.Should().Be(Role.TRAINER);
+        user.DateBirth.Should().Be(Birth);
+        user.PasswordHash.Should().Be(PasswordHash.From("stored-hash"));
+        user.CreatedAt.Should().Be(CreatedAt);
+        user.IsNew.Should().BeFalse();
+    }
 }

@@ -7,6 +7,8 @@ const keys: (keyof Dependencies)[] = [
   "keyValueStore",
   "notificationService",
   "getSessionUseCase",
+  "getMyProfileUseCase",
+  "updateMyProfileUseCase",
 ];
 
 describe("container", () => {
