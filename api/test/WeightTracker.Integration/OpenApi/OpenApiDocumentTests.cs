@@ -190,6 +190,22 @@ public class OpenApiDocumentTests : IntegrationTest
             .Should().Contain(["200", "400", "401", "403", "404", "409"]);
     }
 
+    [Theory]
+    [InlineData("get", new[] { "200", "401" })]
+    [InlineData("put", new[] { "200", "400", "401" })]
+    public async Task MyProfile_ShouldDocumentItsSecurityAndResponses(string method, string[] statuses)
+    {
+        // Arrange & Act
+        var document = await Document();
+
+        // Assert
+        var operation = Operation(document, "/users/me", method);
+
+        operation.GetProperty("security")[0].TryGetProperty("Bearer", out _).Should().BeTrue();
+        operation.GetProperty("responses").EnumerateObject().Select(property => property.Name)
+            .Should().Contain(statuses);
+    }
+
     [Fact]
     public async Task WorkoutDetail_ShouldDocumentTheStatusField()
     {

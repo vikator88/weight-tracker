@@ -89,6 +89,16 @@ public sealed class User : AggregateRoot
     }
 
     /// <summary>
+    /// Replaces the name and surname, the only parts of the profile the user owns. Email and
+    /// role are never touched here.
+    /// </summary>
+    public void UpdateProfile(PersonName name, PersonName surname)
+    {
+        Name = name;
+        Surname = surname;
+    }
+
+    /// <summary>
     /// True when this user is allowed to be assigned as the trainer of a workout.
     /// </summary>
     public bool CanTrain() => Role is Role.TRAINER or Role.ADMIN;

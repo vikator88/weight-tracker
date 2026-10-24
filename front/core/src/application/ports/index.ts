@@ -6,3 +6,4 @@ export type { default as KeyValueStoreInterface } from "./key-value-store-interf
 export type { default as Notification } from "./notification";
 export type { default as NotificationServiceInterface } from "./notification-service-interface";
 export type { default as UseCaseInterface } from "./use-case-interface";
+export type { default as UserRepositoryInterface } from "./user-repository-interface";

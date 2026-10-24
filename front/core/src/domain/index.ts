@@ -9,3 +9,4 @@ export type {
   SignupCredentials,
   SignupRequest,
 } from "./auth/auth";
+export type { UpdateProfileRequest, UserProfile } from "./users/user";
