@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Dependencies } from "@weight-tracker/core/application";
 import container from "@/infrastructure/container";
 
@@ -18,5 +18,25 @@ describe("container", () => {
 
     // Assert
     expect(dependency).toBeDefined();
+  });
+
+  it("sends the stored access token with API requests", async () => {
+    // Arrange
+    localStorage.setItem("auth.accessToken", "stored-access");
+    localStorage.setItem("auth.refreshToken", "stored-refresh");
+    const fetch = vi.fn(async () => new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+
+    // Act
+    await container.resolve("httpClient").request({ method: "GET", path: "/users/me" });
+
+    // Assert
+    const [, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(init.headers).toMatchObject({ Authorization: "Bearer stored-access" });
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    vi.unstubAllGlobals();
   });
 });

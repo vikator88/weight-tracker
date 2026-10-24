@@ -58,5 +58,9 @@
       "preferences": "Preferencias",
       "logout": "Cerrar sesión"
     }
+  },
+  "loading": "Cargando",
+  "loadError": {
+    "retry": "Reintentar"
   }
 }

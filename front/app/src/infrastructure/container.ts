@@ -19,8 +19,15 @@ import NoOpNotificationService from "./no-op-notification-service";
 import SqliteKeyValueStore from "./sqlite-key-value-store";
 
 const container = new Container<Dependencies>({
-  httpClient: () =>
-    new FetchHttpClient({ baseUrl: process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:5199" }),
+  httpClient: (c) =>
+    new FetchHttpClient({
+      baseUrl: process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:5199",
+      // Every request carries the stored access token, when there is one.
+      getAccessToken: async () => {
+        const session = await c.resolve("getSessionUseCase").execute();
+        return session.ok ? (session.value?.accessToken ?? null) : null;
+      },
+    }),
   keyValueStore: () => new SqliteKeyValueStore(),
   notificationService: () => new NoOpNotificationService(),
   authRepository: (c) => new AuthRepository(c.resolve("httpClient")),

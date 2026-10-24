@@ -3,11 +3,21 @@ import { ThemeProvider } from "@mui/material/styles";
 import { render } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import type { Dependencies } from "@weight-tracker/core/application";
-import { ok } from "@weight-tracker/core/domain";
+import { ok, type UserProfile } from "@weight-tracker/core/domain";
 import { Container, type Registrations } from "@weight-tracker/core/infrastructure";
 import i18n from "@/infrastructure/i18n";
+import CurrentUserProvider from "@/presentation/common/components/current-user-provider";
 import ContainerProvider from "@/presentation/common/context/container-provider";
 import theme from "@/presentation/common/theme";
+
+/** The profile a signed-in view reads unless a test chooses another one. */
+export const completeProfile: UserProfile = {
+  id: "5f1c2f0e-9d5b-4a53-8c7e-0d6f7c1a2b3c",
+  email: "trainer@example.com",
+  name: "Ana",
+  surname: "García",
+  role: "TRAINER",
+};
 
 /** Registrations that do nothing; tests override the keys the view under test uses. */
 const unusedDependencies: Registrations<Dependencies> = {
@@ -28,7 +38,7 @@ const unusedDependencies: Registrations<Dependencies> = {
   logoutUseCase: () => ({ execute: async () => undefined as never }),
   getPreferredLanguageUseCase: () => ({ execute: async () => ok(null) }),
   setPreferredLanguageUseCase: () => ({ execute: async () => ok(undefined) }),
-  getMyProfileUseCase: () => ({ execute: async () => undefined as never }),
+  getMyProfileUseCase: () => ({ execute: async () => ok(completeProfile) }),
   updateMyProfileUseCase: () => ({ execute: async () => undefined as never }),
 };
 
@@ -43,7 +53,9 @@ export default async function renderWithProviders(
   return render(
     <ThemeProvider theme={theme}>
       <I18nextProvider i18n={i18n}>
-        <ContainerProvider container={container}>{ui}</ContainerProvider>
+        <ContainerProvider container={container}>
+          <CurrentUserProvider>{ui}</CurrentUserProvider>
+        </ContainerProvider>
       </I18nextProvider>
     </ThemeProvider>,
   );

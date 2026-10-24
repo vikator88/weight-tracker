@@ -1,0 +1,16 @@
+{
+  "title": "Mi perfil",
+  "fields": {
+    "name": "Nombre",
+    "surname": "Apellidos"
+  },
+  "validation": {
+    "required": "Este campo es obligatorio.",
+    "minLength": "Debe tener al menos {{min}} caracteres.",
+    "maxLength": "No puede superar los {{max}} caracteres."
+  },
+  "actions": {
+    "save": "Guardar"
+  },
+  "saved": "Perfil actualizado."
+}

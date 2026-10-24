@@ -2,22 +2,33 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DomainError, fail, ok } from "@weight-tracker/core/domain";
-import type { Result } from "@weight-tracker/core/domain";
+import type { Result, UserProfile } from "@weight-tracker/core/domain";
 import UserMenu from "@/presentation/common/components/user-menu";
-import renderWithProviders from "../../../support/render-with-providers";
+import LoadProfile from "../../../support/load-profile";
+import renderWithProviders, { completeProfile } from "../../../support/render-with-providers";
 
 const replace = vi.fn();
+const push = vi.fn();
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, push }) }));
 
 function renderUserMenu(
   logout: () => Promise<Result<void, DomainError>> = async () => ok(undefined),
+  getProfile: () => Promise<Result<UserProfile, DomainError>> = async () => ok(completeProfile),
 ) {
   const execute = vi.fn(logout);
 
   return {
     execute,
-    rendered: renderWithProviders(<UserMenu />, { logoutUseCase: () => ({ execute }) }),
+    rendered: renderWithProviders(
+      <LoadProfile>
+        <UserMenu />
+      </LoadProfile>,
+      {
+        logoutUseCase: () => ({ execute }),
+        getMyProfileUseCase: () => ({ execute: getProfile }),
+      },
+    ),
   };
 }
 
@@ -30,17 +41,66 @@ async function openMenu() {
 describe("UserMenu", () => {
   beforeEach(() => {
     replace.mockClear();
+    push.mockClear();
   });
 
-  it("shows the user's name, role and initials", async () => {
-    // Arrange & Act
+  it("shows the user's name, surname, role and initials", async () => {
+    // Arrange
     await renderUserMenu().rendered;
 
+    // Act
+    const name = await screen.findByText("Ana García");
+
     // Assert
-    expect(screen.getByText("Usuario de prueba")).toBeInTheDocument();
+    expect(name).toBeInTheDocument();
     expect(screen.getByText("Entrenador")).toBeInTheDocument();
-    expect(screen.getByText("UP")).toBeInTheDocument();
+    expect(screen.getByText("AG")).toBeInTheDocument();
   });
+
+  it("shows the administrator role", async () => {
+    // Arrange
+    await renderUserMenu(undefined, async () => ok({ ...completeProfile, role: "ADMIN" })).rendered;
+
+    // Act
+    const role = await screen.findByText("Administrador");
+
+    // Assert
+    expect(role).toBeInTheDocument();
+  });
+
+  it("shows skeletons and no name while the profile is loading", async () => {
+    // Arrange & Act
+    await renderUserMenu(undefined, () => new Promise(() => {})).rendered;
+
+    // Assert
+    expect(screen.getByLabelText("Cargando")).toBeInTheDocument();
+    expect(screen.queryByText("Ana García")).not.toBeInTheDocument();
+    expect(screen.queryByText("Usuario de prueba")).not.toBeInTheDocument();
+  });
+
+  it("shows skeletons and no name when the profile failed to load", async () => {
+    // Arrange & Act
+    await renderUserMenu(undefined, async () => fail(new DomainError("NETWORK", ""))).rendered;
+
+    // Assert
+    expect(await screen.findByLabelText("Cargando")).toBeInTheDocument();
+    expect(screen.queryByText("Entrenador")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["name", { name: "", surname: "García" }],
+    ["surname", { name: "Ana", surname: "   " }],
+  ])(
+    "shows skeletons and no name while onboarding is pending (empty %s)",
+    async (_field, names) => {
+      // Arrange & Act
+      await renderUserMenu(undefined, async () => ok({ ...completeProfile, ...names })).rendered;
+
+      // Assert
+      expect(await screen.findByLabelText("Cargando")).toBeInTheDocument();
+      expect(screen.queryByText("Entrenador")).not.toBeInTheDocument();
+    },
+  );
 
   it("lists profile, preferences, a separator and logout, in that order", async () => {
     // Arrange
@@ -58,10 +118,9 @@ describe("UserMenu", () => {
     expect(within(menu).getByRole("separator")).toBeInTheDocument();
   });
 
-  it("closes the menu and does nothing when a placeholder entry is chosen", async () => {
+  it("closes the menu and goes to the profile screen when Mi perfil is chosen", async () => {
     // Arrange
-    const { execute, rendered } = renderUserMenu();
-    await rendered;
+    await renderUserMenu().rendered;
     const { user, menu } = await openMenu();
 
     // Act
@@ -69,8 +128,23 @@ describe("UserMenu", () => {
 
     // Assert
     await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
+    expect(push).toHaveBeenCalledWith("/profile");
+  });
+
+  it("closes the menu and does nothing when Preferencias is chosen", async () => {
+    // Arrange
+    const { execute, rendered } = renderUserMenu();
+    await rendered;
+    const { user, menu } = await openMenu();
+
+    // Act
+    await user.click(within(menu).getByRole("menuitem", { name: "Preferencias" }));
+
+    // Assert
+    await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
     expect(execute).not.toHaveBeenCalled();
     expect(replace).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("logs out and goes to login", async () => {

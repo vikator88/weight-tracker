@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { mockUsersMe } from "./support/users-me";
 
 const signupUrl = "http://localhost:5199/auth/signup";
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*" };
@@ -20,6 +21,7 @@ async function mockSignup(page: Page, status: number, body: object) {
 
 test("signs up, lands on home and stays there after a reload", async ({ page }) => {
   // Arrange
+  await mockUsersMe(page);
   await mockSignup(page, 200, { accessToken: "access", refreshToken: "refresh", expiresIn: 900 });
   await page.goto("/signup");
 

@@ -8,6 +8,7 @@ import { I18nextProvider } from "react-i18next";
 import container from "@/infrastructure/container";
 import i18n, { detectLanguage, supportedLanguages } from "@/infrastructure/i18n";
 import ContainerProvider from "../context/container-provider";
+import CurrentUserProvider from "./current-user-provider";
 import theme from "../theme";
 
 interface AppProvidersProps {
@@ -46,7 +47,9 @@ export default function AppProviders({ children }: AppProvidersProps) {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <I18nextProvider i18n={i18n}>
-          <ContainerProvider container={container}>{children}</ContainerProvider>
+          <ContainerProvider container={container}>
+            <CurrentUserProvider>{children}</CurrentUserProvider>
+          </ContainerProvider>
         </I18nextProvider>
       </ThemeProvider>
     </AppRouterCacheProvider>

@@ -1,0 +1,13 @@
+{
+  "stepTitle": "Paso {{current}} de {{total}} · {{title}}",
+  "steps": {
+    "name": {
+      "title": "Dinos cómo te llamas"
+    }
+  },
+  "actions": {
+    "back": "Atrás",
+    "next": "Siguiente",
+    "finish": "Finalizar"
+  }
+}
