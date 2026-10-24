@@ -1,6 +1,7 @@
 {
   "home": {
     "title": "Weight Tracker",
-    "signedIn": "You are signed in."
+    "signedIn": "You are signed in.",
+    "logout": "Log out"
   }
 }
