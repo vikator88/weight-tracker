@@ -1,7 +1,10 @@
 using FluentAssertions;
 using Npgsql;
+using WeightTracker.Domain.Users;
+using WeightTracker.Infra.Services;
 using WeightTracker.Integration.Bootstrap;
 using WeightTracker.Migrations;
+using WeightTracker.Migrations.Migrations;
 using Xunit;
 
 namespace WeightTracker.Integration.Migrations;
@@ -18,6 +21,9 @@ public class MigrationsTests : IAsyncLifetime
 {
     private const string DatabaseName = "weight-tracker-migrations-test";
 
+    /// <summary>Last migration before <c>InsertAdminUser_202610080919</c> that it depends on.</summary>
+    private const long BeforeAdminUserVersion = 202610080917;
+
     /// <summary>Last migration before <c>AddEffortToWorkoutExercises_202610131437</c> that it depends on.</summary>
     private const long BeforeEffortVersion = 202610080944;
 
@@ -26,12 +32,12 @@ public class MigrationsTests : IAsyncLifetime
 
     private static readonly string[] ExpectedTables =
     [
-        "users",
-        "exercises",
-        "workouts",
-        "workout_exercises",
-        "workout_exercise_sets",
-        "refresh_tokens",
+        "Users",
+        "Exercises",
+        "Workouts",
+        "WorkoutExercises",
+        "WorkoutExerciseSets",
+        "RefreshTokens",
     ];
 
     private readonly string _maintenanceConnectionString;
@@ -59,7 +65,7 @@ public class MigrationsTests : IAsyncLifetime
     public void MigrateUp_ShouldCreateEveryTableFromAnEmptyDatabase()
     {
         // Arrange & Act
-        DatabaseMigrator.MigrateUp(_connectionString);
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
 
         // Assert
         foreach (var table in ExpectedTables)
@@ -70,10 +76,10 @@ public class MigrationsTests : IAsyncLifetime
     public void MigrateUp_ShouldBeIdempotentWhenRunTwice()
     {
         // Arrange
-        DatabaseMigrator.MigrateUp(_connectionString);
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
 
         // Act
-        var act = () => DatabaseMigrator.MigrateUp(_connectionString);
+        var act = () => DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
 
         // Assert
         act.Should().NotThrow();
@@ -83,7 +89,7 @@ public class MigrationsTests : IAsyncLifetime
     public void MigrateDown_ShouldRemoveEveryTable()
     {
         // Arrange
-        DatabaseMigrator.MigrateUp(_connectionString);
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
 
         // Act
         DatabaseMigrator.MigrateDown(_connectionString);
@@ -97,37 +103,37 @@ public class MigrationsTests : IAsyncLifetime
     public async Task AddEffort_ShouldBackfillExistingRowsWithMid()
     {
         // Arrange
-        DatabaseMigrator.MigrateUp(_connectionString, BeforeEffortVersion);
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser, BeforeEffortVersion);
         await Execute(_connectionString, """
-            INSERT INTO users (id, email, name, surname, date_birth, role, password_hash, created_at)
+            INSERT INTO "Users" ("Id", "Email", "Name", "Surname", "DateBirth", "Role", "PasswordHash", "CreatedAt")
             VALUES ('00000000-0000-0000-0000-0000000000a1', 'legacy@weighttracker.test', 'Legacy', 'User',
                     '1990-01-01', 1, 'hash', now());
-            INSERT INTO exercises (id, name, video_url, body_part)
+            INSERT INTO "Exercises" ("Id", "Name", "VideoUrl", "BodyPart")
             VALUES ('00000000-0000-0000-0000-0000000000a2', 'Press Banca', NULL, 3);
-            INSERT INTO workouts (id, user_id, trainer_id, workout_date)
+            INSERT INTO "Workouts" ("Id", "UserId", "TrainerId", "WorkoutDate")
             VALUES ('00000000-0000-0000-0000-0000000000a3', '00000000-0000-0000-0000-0000000000a1', NULL, '2026-10-01');
-            INSERT INTO workout_exercises (id, workout_id, exercise_id, position)
+            INSERT INTO "WorkoutExercises" ("Id", "WorkoutId", "ExerciseId", "Position")
             VALUES ('00000000-0000-0000-0000-0000000000a4', '00000000-0000-0000-0000-0000000000a3',
                     '00000000-0000-0000-0000-0000000000a2', 0);
             """);
 
         // Act
-        DatabaseMigrator.MigrateUp(_connectionString);
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
 
         // Assert
-        (await Scalar<int>("SELECT effort FROM workout_exercises")).Should().Be(3);
+        (await Scalar<int>("SELECT \"Effort\" FROM \"WorkoutExercises\"")).Should().Be(3);
     }
 
     [Fact]
     public async Task AddEffort_ShouldLeaveNoDefaultForNewRows()
     {
         // Arrange & Act
-        DatabaseMigrator.MigrateUp(_connectionString);
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
 
         // Assert
         (await Scalar<bool>("""
             SELECT column_default IS NULL FROM information_schema.columns
-            WHERE table_name = 'workout_exercises' AND column_name = 'effort'
+            WHERE table_name = 'WorkoutExercises' AND column_name = 'Effort'
             """)).Should().BeTrue();
     }
 
@@ -135,7 +141,7 @@ public class MigrationsTests : IAsyncLifetime
     public async Task AddEffort_Down_ShouldRemoveTheColumn()
     {
         // Arrange
-        DatabaseMigrator.MigrateUp(_connectionString);
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
 
         // Act
         DatabaseMigrator.MigrateDown(_connectionString, BeforeEffortVersion);
@@ -143,7 +149,7 @@ public class MigrationsTests : IAsyncLifetime
         // Assert
         (await Scalar<bool>("""
             SELECT EXISTS (SELECT 1 FROM information_schema.columns
-            WHERE table_name = 'workout_exercises' AND column_name = 'effort')
+            WHERE table_name = 'WorkoutExercises' AND column_name = 'Effort')
             """)).Should().BeFalse();
     }
 
@@ -151,32 +157,32 @@ public class MigrationsTests : IAsyncLifetime
     public async Task AddStatus_ShouldBackfillExistingRowsWithDraft()
     {
         // Arrange
-        DatabaseMigrator.MigrateUp(_connectionString, BeforeStatusVersion);
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser, BeforeStatusVersion);
         await Execute(_connectionString, """
-            INSERT INTO users (id, email, name, surname, date_birth, role, password_hash, created_at)
+            INSERT INTO "Users" ("Id", "Email", "Name", "Surname", "DateBirth", "Role", "PasswordHash", "CreatedAt")
             VALUES ('00000000-0000-0000-0000-0000000000b1', 'legacy-status@weighttracker.test', 'Legacy', 'User',
                     '1990-01-01', 1, 'hash', now());
-            INSERT INTO workouts (id, user_id, trainer_id, workout_date)
+            INSERT INTO "Workouts" ("Id", "UserId", "TrainerId", "WorkoutDate")
             VALUES ('00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-0000000000b1', NULL, '2026-10-01');
             """);
 
         // Act
-        DatabaseMigrator.MigrateUp(_connectionString);
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
 
         // Assert
-        (await Scalar<int>("SELECT status FROM workouts")).Should().Be(1);
+        (await Scalar<int>("SELECT \"Status\" FROM \"Workouts\"")).Should().Be(1);
     }
 
     [Fact]
     public async Task AddStatus_ShouldLeaveNoDefaultForNewRows()
     {
         // Arrange & Act
-        DatabaseMigrator.MigrateUp(_connectionString);
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
 
         // Assert
         (await Scalar<bool>("""
             SELECT column_default IS NULL FROM information_schema.columns
-            WHERE table_name = 'workouts' AND column_name = 'status'
+            WHERE table_name = 'Workouts' AND column_name = 'Status'
             """)).Should().BeTrue();
     }
 
@@ -184,7 +190,7 @@ public class MigrationsTests : IAsyncLifetime
     public async Task AddStatus_Down_ShouldRemoveTheColumn()
     {
         // Arrange
-        DatabaseMigrator.MigrateUp(_connectionString);
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
 
         // Act
         DatabaseMigrator.MigrateDown(_connectionString, BeforeStatusVersion);
@@ -192,9 +198,51 @@ public class MigrationsTests : IAsyncLifetime
         // Assert
         (await Scalar<bool>("""
             SELECT EXISTS (SELECT 1 FROM information_schema.columns
-            WHERE table_name = 'workouts' AND column_name = 'status')
+            WHERE table_name = 'Workouts' AND column_name = 'Status')
             """)).Should().BeFalse();
     }
+
+    [Fact]
+    public async Task InsertAdminUser_ShouldInsertTheConfiguredAdmin()
+    {
+        // Arrange & Act
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Assert
+        (await Scalar<string>(AdminColumn("Email"))).Should().Be(ApiFactory.AdminUser.Email);
+        (await Scalar<int>(AdminColumn("Role"))).Should().Be((int)Role.ADMIN);
+        new PasswordHasher().Verify(ApiFactory.AdminUser.Password, PasswordHash.From(await Scalar<string>(AdminColumn("PasswordHash"))))
+            .Should().BeTrue("login must be able to verify the stored hash");
+    }
+
+    [Fact]
+    public void InsertAdminUser_ShouldFailWithoutConfiguredCredentials()
+    {
+        // Arrange
+        var missingCredentials = new AdminUserOptions();
+
+        // Act
+        var act = () => DatabaseMigrator.MigrateUp(_connectionString, missingCredentials);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>().WithMessage("*AdminUser:Email*");
+    }
+
+    [Fact]
+    public async Task InsertAdminUser_Down_ShouldRemoveTheAdmin()
+    {
+        // Arrange
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Act
+        DatabaseMigrator.MigrateDown(_connectionString, BeforeAdminUserVersion);
+
+        // Assert
+        (await Scalar<long>("SELECT count(*) FROM \"Users\"")).Should().Be(0);
+    }
+
+    private static string AdminColumn(string column) =>
+        $"SELECT \"{column}\" FROM \"Users\" WHERE \"Id\" = '{InsertAdminUser_202610080919.AdminId}'";
 
     private async Task<T> Scalar<T>(string sql)
     {
@@ -213,7 +261,7 @@ public class MigrationsTests : IAsyncLifetime
 
         using var command = new NpgsqlCommand(
             "SELECT to_regclass(@table) IS NOT NULL", connection);
-        command.Parameters.AddWithValue("table", $"public.{table}");
+        command.Parameters.AddWithValue("table", $"public.\"{table}\"");
 
         return (bool)command.ExecuteScalar()!;
     }

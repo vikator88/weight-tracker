@@ -32,38 +32,38 @@ public class WeightTrackerDbContext : DbContext
     {
         modelBuilder.Entity<UserEntity>(entity =>
         {
-            entity.ToTable("users");
+            entity.ToTable("Users");
             entity.HasKey(user => user.Id);
-            entity.Property(user => user.Id).HasColumnName("id").ValueGeneratedNever();
-            entity.Property(user => user.Email).HasColumnName("email").HasMaxLength(254).IsRequired();
-            entity.Property(user => user.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
-            entity.Property(user => user.Surname).HasColumnName("surname").HasMaxLength(100).IsRequired();
-            entity.Property(user => user.DateBirth).HasColumnName("date_birth").HasColumnType("date");
-            entity.Property(user => user.Role).HasColumnName("role");
-            entity.Property(user => user.PasswordHash).HasColumnName("password_hash").HasMaxLength(500).IsRequired();
-            entity.Property(user => user.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz");
+            entity.Property(user => user.Id).HasColumnName("Id").ValueGeneratedNever();
+            entity.Property(user => user.Email).HasColumnName("Email").HasMaxLength(254).IsRequired();
+            entity.Property(user => user.Name).HasColumnName("Name").HasMaxLength(100).IsRequired();
+            entity.Property(user => user.Surname).HasColumnName("Surname").HasMaxLength(100).IsRequired();
+            entity.Property(user => user.DateBirth).HasColumnName("DateBirth").HasColumnType("date");
+            entity.Property(user => user.Role).HasColumnName("Role");
+            entity.Property(user => user.PasswordHash).HasColumnName("PasswordHash").HasMaxLength(500).IsRequired();
+            entity.Property(user => user.CreatedAt).HasColumnName("CreatedAt").HasColumnType("timestamptz");
             entity.HasIndex(user => user.Email).IsUnique();
         });
 
         modelBuilder.Entity<ExerciseEntity>(entity =>
         {
-            entity.ToTable("exercises");
+            entity.ToTable("Exercises");
             entity.HasKey(exercise => exercise.Id);
-            entity.Property(exercise => exercise.Id).HasColumnName("id").ValueGeneratedNever();
-            entity.Property(exercise => exercise.Name).HasColumnName("name").HasMaxLength(ExerciseName.MaxLength).IsRequired();
-            entity.Property(exercise => exercise.VideoUrl).HasColumnName("video_url").HasMaxLength(Url.MaxLength);
-            entity.Property(exercise => exercise.BodyPart).HasColumnName("body_part");
+            entity.Property(exercise => exercise.Id).HasColumnName("Id").ValueGeneratedNever();
+            entity.Property(exercise => exercise.Name).HasColumnName("Name").HasMaxLength(ExerciseName.MaxLength).IsRequired();
+            entity.Property(exercise => exercise.VideoUrl).HasColumnName("VideoUrl").HasMaxLength(Url.MaxLength);
+            entity.Property(exercise => exercise.BodyPart).HasColumnName("BodyPart");
         });
 
         modelBuilder.Entity<WorkoutEntity>(entity =>
         {
-            entity.ToTable("workouts");
+            entity.ToTable("Workouts");
             entity.HasKey(workout => workout.Id);
-            entity.Property(workout => workout.Id).HasColumnName("id").ValueGeneratedNever();
-            entity.Property(workout => workout.UserId).HasColumnName("user_id");
-            entity.Property(workout => workout.TrainerId).HasColumnName("trainer_id");
-            entity.Property(workout => workout.WorkoutDate).HasColumnName("workout_date").HasColumnType("date");
-            entity.Property(workout => workout.Status).HasColumnName("status");
+            entity.Property(workout => workout.Id).HasColumnName("Id").ValueGeneratedNever();
+            entity.Property(workout => workout.UserId).HasColumnName("UserId");
+            entity.Property(workout => workout.TrainerId).HasColumnName("TrainerId");
+            entity.Property(workout => workout.WorkoutDate).HasColumnName("WorkoutDate").HasColumnType("date");
+            entity.Property(workout => workout.Status).HasColumnName("Status");
 
             // Declared without navigation properties: the User aggregate stays referenced by
             // identifier only, while EF still orders writes to satisfy the real constraints.
@@ -85,14 +85,14 @@ public class WeightTrackerDbContext : DbContext
 
         modelBuilder.Entity<WorkoutExerciseEntity>(entity =>
         {
-            entity.ToTable("workout_exercises");
+            entity.ToTable("WorkoutExercises");
             entity.HasKey(workoutExercise => workoutExercise.Id);
-            entity.Property(workoutExercise => workoutExercise.Id).HasColumnName("id").ValueGeneratedNever();
-            entity.Property(workoutExercise => workoutExercise.WorkoutId).HasColumnName("workout_id");
-            entity.Property(workoutExercise => workoutExercise.ExerciseId).HasColumnName("exercise_id");
-            entity.Property(workoutExercise => workoutExercise.Position).HasColumnName("position");
-            entity.Property(workoutExercise => workoutExercise.Effort).HasColumnName("effort");
-            entity.Property(workoutExercise => workoutExercise.SuperSeriesId).HasColumnName("super_series_id");
+            entity.Property(workoutExercise => workoutExercise.Id).HasColumnName("Id").ValueGeneratedNever();
+            entity.Property(workoutExercise => workoutExercise.WorkoutId).HasColumnName("WorkoutId");
+            entity.Property(workoutExercise => workoutExercise.ExerciseId).HasColumnName("ExerciseId");
+            entity.Property(workoutExercise => workoutExercise.Position).HasColumnName("Position");
+            entity.Property(workoutExercise => workoutExercise.Effort).HasColumnName("Effort");
+            entity.Property(workoutExercise => workoutExercise.SuperSeriesId).HasColumnName("SuperSeriesId");
 
             entity.HasIndex(workoutExercise => new { workoutExercise.WorkoutId, workoutExercise.ExerciseId }).IsUnique();
 
@@ -110,28 +110,28 @@ public class WeightTrackerDbContext : DbContext
 
         modelBuilder.Entity<WorkoutExerciseSetEntity>(entity =>
         {
-            entity.ToTable("workout_exercise_sets");
+            entity.ToTable("WorkoutExerciseSets");
             entity.HasKey(set => set.Id);
-            entity.Property(set => set.Id).HasColumnName("id").ValueGeneratedNever();
-            entity.Property(set => set.WorkoutExerciseId).HasColumnName("workout_exercise_id");
-            entity.Property(set => set.Position).HasColumnName("position");
-            entity.Property(set => set.Count).HasColumnName("count");
-            entity.Property(set => set.TargetType).HasColumnName("target_type").HasMaxLength(20).IsRequired();
-            entity.Property(set => set.TargetValue).HasColumnName("target_value");
-            entity.Property(set => set.TargetMaxValue).HasColumnName("target_max_value");
+            entity.Property(set => set.Id).HasColumnName("Id").ValueGeneratedNever();
+            entity.Property(set => set.WorkoutExerciseId).HasColumnName("WorkoutExerciseId");
+            entity.Property(set => set.Position).HasColumnName("Position");
+            entity.Property(set => set.Count).HasColumnName("Count");
+            entity.Property(set => set.TargetType).HasColumnName("TargetType").HasMaxLength(20).IsRequired();
+            entity.Property(set => set.TargetValue).HasColumnName("TargetValue");
+            entity.Property(set => set.TargetMaxValue).HasColumnName("TargetMaxValue");
         });
 
         modelBuilder.Entity<RefreshTokenEntity>(entity =>
         {
-            entity.ToTable("refresh_tokens");
+            entity.ToTable("RefreshTokens");
             entity.HasKey(token => token.Id);
-            entity.Property(token => token.Id).HasColumnName("id").ValueGeneratedNever();
-            entity.Property(token => token.UserId).HasColumnName("user_id");
-            entity.Property(token => token.TokenHash).HasColumnName("token_hash").HasMaxLength(128).IsRequired();
-            entity.Property(token => token.ExpiresAt).HasColumnName("expires_at").HasColumnType("timestamptz");
-            entity.Property(token => token.RevokedAt).HasColumnName("revoked_at").HasColumnType("timestamptz");
-            entity.Property(token => token.ReplacedByTokenId).HasColumnName("replaced_by_token_id");
-            entity.Property(token => token.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz");
+            entity.Property(token => token.Id).HasColumnName("Id").ValueGeneratedNever();
+            entity.Property(token => token.UserId).HasColumnName("UserId");
+            entity.Property(token => token.TokenHash).HasColumnName("TokenHash").HasMaxLength(128).IsRequired();
+            entity.Property(token => token.ExpiresAt).HasColumnName("ExpiresAt").HasColumnType("timestamptz");
+            entity.Property(token => token.RevokedAt).HasColumnName("RevokedAt").HasColumnType("timestamptz");
+            entity.Property(token => token.ReplacedByTokenId).HasColumnName("ReplacedByTokenId");
+            entity.Property(token => token.CreatedAt).HasColumnName("CreatedAt").HasColumnType("timestamptz");
             entity.HasIndex(token => token.TokenHash).IsUnique();
 
             entity.HasOne<UserEntity>()

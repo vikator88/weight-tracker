@@ -8,15 +8,15 @@ public sealed class AddStatusToWorkouts_202610182247 : Migration
     public override void Up()
     {
         // 1 is WorkoutStatus.DRAFT. The default only backfills the rows that already exist
-        Alter.Table("workouts")
-            .AddColumn("status").AsInt32().NotNullable().WithDefaultValue(1);
+        Alter.Table("Workouts")
+            .AddColumn("Status").AsInt32().NotNullable().WithDefaultValue(1);
 
         // Dropped afterwards so the database never invents a status for a new row
-        Delete.DefaultConstraint().OnTable("workouts").OnColumn("status");
+        Delete.DefaultConstraint().OnTable("Workouts").OnColumn("Status");
     }
 
     public override void Down()
     {
-        Delete.Column("status").FromTable("workouts");
+        Delete.Column("Status").FromTable("Workouts");
     }
 }

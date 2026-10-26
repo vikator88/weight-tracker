@@ -21,9 +21,13 @@ using WeightTracker.Migrations;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString =
-    builder.Configuration.GetConnectionString("Default")
-    ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured");
+var connectionString = builder.Configuration.GetConnectionString("Default");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException(
+        "ConnectionStrings:Default is not configured. "
+            + "Supply it through configuration or the ConnectionStrings__Default environment variable."
+    );
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 
@@ -142,7 +146,10 @@ if (app.Environment.IsDevelopment())
             .EnablePersistentAuthentication()
     );
 
-    DatabaseMigrator.MigrateUp(connectionString);
+    DatabaseMigrator.MigrateUp(
+        connectionString,
+        builder.Configuration.GetSection(AdminUserOptions.SectionName).Get<AdminUserOptions>() ?? new AdminUserOptions()
+    );
 
     using var scope = app.Services.CreateScope();
     await scope.ServiceProvider.GetRequiredService<DatabaseSeeder>().Seed(CancellationToken.None);

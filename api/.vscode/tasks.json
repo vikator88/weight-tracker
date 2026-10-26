@@ -46,8 +46,15 @@
                 "${workspaceFolder}/src/WeightTracker.Migrations",
                 "--no-build",
                 "--",
-                "Host=localhost;Port=5432;Database=weight-tracker;Username=admin;Password=admin"
+                "Host=localhost;Port=5432;Database=WeightTracker;Username=admin;Password=admin"
             ],
+            "// options": "Development admin, the same values as appsettings.Development.json.",
+            "options": {
+                "env": {
+                    "AdminUser__Email": "victor@codelatte.es",
+                    "AdminUser__Password": "Aa1234567!"
+                }
+            },
             "problemMatcher": []
         },
         {
