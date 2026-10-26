@@ -51,7 +51,7 @@ This file is intentionally concise. It should capture project-level rules, workf
 
 - Add new keys to **`appsettings.json`**, with development-only values in `appsettings.Development.json`.
 - Never hardcode ports, connection strings, or JWT settings in code. Read them from configuration.
-- Secrets must not be committed. The only exception is the development-only `Jwt:SigningKey`; every other environment supplies it through `Jwt__SigningKey`.
+- Secrets must not be committed. The only exceptions are the development-only `ConnectionStrings:Default`, `Jwt:SigningKey` and `AdminUser:Email`/`AdminUser:Password`; every other environment supplies them through `ConnectionStrings__Default`, `Jwt__SigningKey`, `AdminUser__Email` and `AdminUser__Password`.
 
 ## Testing Guidelines
 
@@ -108,7 +108,8 @@ dotnet test WeightTracker.slnx                        # unit + integration
   kept across page refreshes and expires after 15 minutes, after which you log in again. Neither the
   UI nor the document is served in production.
 - To apply migrations without starting the API, run the migrator directly. It takes the connection
-  string as its first argument or from `ConnectionStrings__Default`, and exits non-zero on failure:
+  string as its first argument or from `ConnectionStrings__Default`, and the admin user it inserts from
+  `AdminUser__Email` and `AdminUser__Password`. It exits non-zero on failure:
   ```bash
   dotnet run --project src/WeightTracker.Migrations -- "Host=localhost;Port=5432;Database=weight-tracker;Username=admin;Password=admin"
   ```

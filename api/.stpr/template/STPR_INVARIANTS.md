@@ -173,6 +173,7 @@ but **no dispatcher exists**. Events raised today would never be delivered.
 - Migrations:
    - Fluent migrator
    - migration class name shape: ActionObject_YYYYMMDDHHmm. Example: AddWorkoutsTable_202610171342
+   - migration file name shape: YYYYMMDDHHmm_ActionObject.cs, so files sort chronologically. Example: 202610171342_AddWorkoutsTable.cs (the class keeps the shape above, since C# identifiers cannot start with a digit)
      - Timestamp is the id of the migration
        - try to use random times, not just 1200. If everybody uses the same time, migrations created the same day will conflict
    - Entities and Aggregates Id must be Guids. Other stuff can be auto-increments (i.e. logs, histories, etc...) 

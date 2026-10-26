@@ -13,6 +13,8 @@
     <PackageReference Include="FluentMigrator.Runner" Version="6.*" />
     <PackageReference Include="FluentMigrator.Runner.Postgres" Version="6.*" />
     <PackageReference Include="FluentMigrator.Runner.SqlServer" Version="6.*" />
+    <!-- Hashes the configured admin password in the same format Infra's PasswordHasher verifies -->
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.*" />
     <!-- FluentMigrator.Runner.Postgres resolves the Npgsql provider reflectively at
          runtime, so the driver must be referenced explicitly. -->
     <PackageReference Include="Npgsql" Version="10.0.*" />

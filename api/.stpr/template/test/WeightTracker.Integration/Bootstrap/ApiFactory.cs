@@ -39,6 +39,16 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     }
 
     /// <summary>
+    /// Credentials of the administrator the migrations insert. <see cref="ResetDatabase"/>
+    /// truncates that row, so tests authenticate as the seeded users instead.
+    /// </summary>
+    public static readonly AdminUserOptions AdminUser = new()
+    {
+        Email = "owner@weighttracker.test",
+        Password = "Owner1234!",
+    };
+
+    /// <summary>
     /// Connection string of the suite's database. Only valid once the container has started.
     /// </summary>
     public string ConnectionString => _postgres.GetConnectionString();
@@ -75,7 +85,7 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         // the first CreateClient, after this fixture is initialised, so Program still sees it.
         Environment.SetEnvironmentVariable("ConnectionStrings__Default", ConnectionString);
 
-        DatabaseMigrator.MigrateUp(ConnectionString);
+        DatabaseMigrator.MigrateUp(ConnectionString, AdminUser);
     }
 
     /// <summary>
@@ -102,12 +112,12 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await context.Database.ExecuteSqlRawAsync(
             """
             TRUNCATE TABLE
-                refresh_tokens,
-                workout_exercise_sets,
-                workout_exercises,
-                workouts,
-                users,
-                exercises
+                "RefreshTokens",
+                "WorkoutExerciseSets",
+                "WorkoutExercises",
+                "Workouts",
+                "Users",
+                "Exercises"
             RESTART IDENTITY CASCADE
             """);
 
@@ -127,13 +137,13 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
         await context.Database.ExecuteSqlInterpolatedAsync(
             $"""
-            DELETE FROM workouts
-            WHERE user_id IN (SELECT id FROM users WHERE email = {email.ToLowerInvariant()})
-               OR trainer_id IN (SELECT id FROM users WHERE email = {email.ToLowerInvariant()})
+            DELETE FROM "Workouts"
+            WHERE "UserId" IN (SELECT "Id" FROM "Users" WHERE "Email" = {email.ToLowerInvariant()})
+               OR "TrainerId" IN (SELECT "Id" FROM "Users" WHERE "Email" = {email.ToLowerInvariant()})
             """);
 
         await context.Database.ExecuteSqlInterpolatedAsync(
-            $"DELETE FROM users WHERE email = {email.ToLowerInvariant()}");
+            $"""DELETE FROM "Users" WHERE "Email" = {email.ToLowerInvariant()}""");
     }
 
     // Removing the container drops the database with it, so the next run starts fresh

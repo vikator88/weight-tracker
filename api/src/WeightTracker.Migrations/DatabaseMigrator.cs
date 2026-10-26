@@ -12,9 +12,9 @@ namespace WeightTracker.Migrations;
 /// </remarks>
 public static class DatabaseMigrator
 {
-    public static void MigrateUp(string connectionString)
+    public static void MigrateUp(string connectionString, AdminUserOptions adminUser)
     {
-        using var serviceProvider = BuildServiceProvider(connectionString);
+        using var serviceProvider = BuildServiceProvider(connectionString, adminUser);
         using var scope = serviceProvider.CreateScope();
 
         scope.ServiceProvider.GetRequiredService<IMigrationRunner>().MigrateUp();
@@ -24,9 +24,9 @@ public static class DatabaseMigrator
     /// Applies migrations up to and including <paramref name="targetVersion"/>. Used to verify
     /// how a migration treats rows that already exist.
     /// </summary>
-    public static void MigrateUp(string connectionString, long targetVersion)
+    public static void MigrateUp(string connectionString, AdminUserOptions adminUser, long targetVersion)
     {
-        using var serviceProvider = BuildServiceProvider(connectionString);
+        using var serviceProvider = BuildServiceProvider(connectionString, adminUser);
         using var scope = serviceProvider.CreateScope();
 
         scope.ServiceProvider.GetRequiredService<IMigrationRunner>().MigrateUp(targetVersion);
@@ -38,15 +38,17 @@ public static class DatabaseMigrator
     /// </summary>
     public static void MigrateDown(string connectionString, long targetVersion = 0)
     {
-        using var serviceProvider = BuildServiceProvider(connectionString);
+        // Rolling back never reads the admin credentials: the admin row is removed by its fixed id
+        using var serviceProvider = BuildServiceProvider(connectionString, new AdminUserOptions());
         using var scope = serviceProvider.CreateScope();
 
         scope.ServiceProvider.GetRequiredService<IMigrationRunner>().MigrateDown(targetVersion);
     }
 
-    private static ServiceProvider BuildServiceProvider(string connectionString)
+    private static ServiceProvider BuildServiceProvider(string connectionString, AdminUserOptions adminUser)
     {
         return new ServiceCollection()
+            .AddSingleton(adminUser)
             .AddFluentMigratorCore()
             .ConfigureRunner(runner => runner
                 .AddPostgres()

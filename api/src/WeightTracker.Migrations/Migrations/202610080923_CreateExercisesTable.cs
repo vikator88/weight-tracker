@@ -7,17 +7,17 @@ public sealed class CreateExercisesTable_202610080923 : Migration
 {
     public override void Up()
     {
-        Create.Table("exercises")
-            .WithColumn("id").AsGuid().NotNullable().PrimaryKey("pk_exercises")
+        Create.Table("Exercises")
+            .WithColumn("Id").AsGuid().NotNullable().PrimaryKey("PK_Exercises")
             // Length aligned with ExerciseName.MaxLength
-            .WithColumn("name").AsString(150).NotNullable()
+            .WithColumn("Name").AsString(150).NotNullable()
             // Length aligned with Url.MaxLength
-            .WithColumn("video_url").AsString(500).Nullable()
-            .WithColumn("body_part").AsInt32().NotNullable();
+            .WithColumn("VideoUrl").AsString(500).Nullable()
+            .WithColumn("BodyPart").AsInt32().NotNullable();
     }
 
     public override void Down()
     {
-        Delete.Table("exercises");
+        Delete.Table("Exercises");
     }
 }

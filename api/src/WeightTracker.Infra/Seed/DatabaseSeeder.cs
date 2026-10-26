@@ -31,7 +31,8 @@ public class DatabaseSeeder
 
     public async Task Seed(CancellationToken cancellationToken)
     {
-        if (await _context.Users.AnyAsync(cancellationToken))
+        // Keyed on a seeded row, not on any user: the migrations already insert the configured admin
+        if (await _context.Users.AnyAsync(user => user.Id == SeedData.AdminId, cancellationToken))
             return;
 
         await SeedExercises(cancellationToken);
