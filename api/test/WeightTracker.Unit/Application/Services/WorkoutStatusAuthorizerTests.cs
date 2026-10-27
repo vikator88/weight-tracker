@@ -14,6 +14,8 @@ public class WorkoutStatusAuthorizerTests
 
     private static readonly DateTime WorkoutDate = new(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc);
 
+    private static readonly WorkoutName Name = WorkoutName.From("Leg day");
+
     private static readonly Id AthleteId = Id.New();
 
     private static readonly Id TrainerId = Id.New();
@@ -21,10 +23,10 @@ public class WorkoutStatusAuthorizerTests
     private readonly WorkoutStatusAuthorizer _authorizer = new();
 
     private static Workout APrescribedWorkoutIn(WorkoutStatus status)
-        => Workout.Rehydrate(Id.New(), AthleteId, TrainerId, WorkoutDate, status, []);
+        => Workout.Rehydrate(Id.New(), AthleteId, TrainerId, Name, null, WorkoutDate, status, []);
 
     private static Workout ASelfPlannedWorkoutIn(WorkoutStatus status)
-        => Workout.Rehydrate(Id.New(), AthleteId, null, WorkoutDate, status, []);
+        => Workout.Rehydrate(Id.New(), AthleteId, null, Name, null, WorkoutDate, status, []);
 
     private void Ensure(Workout workout, Id callerId, Role role, WorkoutStatus target)
         => _authorizer.EnsureCanChange(workout, callerId, role, target, Operation);

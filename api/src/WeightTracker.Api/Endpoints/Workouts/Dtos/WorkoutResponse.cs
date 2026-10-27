@@ -8,6 +8,8 @@ namespace WeightTracker.Api.Endpoints.Workouts.Dtos;
 
 public sealed record WorkoutResponse(
     Guid Id,
+    string Name,
+    string? Description,
     DateOnly WorkoutDate,
     Guid UserId,
     Guid? TrainerId,
@@ -19,6 +21,8 @@ public sealed record WorkoutResponse(
     public static WorkoutResponse From(Workout workout, IReadOnlyDictionary<Id, Exercise> exercises)
         => new(
             workout.Id.Value,
+            workout.Name.Value,
+            workout.Description?.Value,
             DateOnly.FromDateTime(workout.WorkoutDate),
             workout.UserId.Value,
             workout.TrainerId?.Value,
@@ -34,6 +38,8 @@ public sealed record WorkoutResponse(
 /// </summary>
 public sealed record WorkoutDetailResponse(
     Guid Id,
+    string Name,
+    string? Description,
     DateOnly WorkoutDate,
     Guid UserId,
     Guid? TrainerId,
@@ -43,6 +49,8 @@ public sealed record WorkoutDetailResponse(
     public static WorkoutDetailResponse From(Workout workout)
         => new(
             workout.Id.Value,
+            workout.Name.Value,
+            workout.Description?.Value,
             DateOnly.FromDateTime(workout.WorkoutDate),
             workout.UserId.Value,
             workout.TrainerId?.Value,

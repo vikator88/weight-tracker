@@ -17,6 +17,7 @@ namespace WeightTracker.Unit.Application.Workouts;
 public class AddWorkoutExerciseUseCaseTests
 {
     private static readonly DateTime WorkoutDate = new(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly WorkoutName Name = WorkoutName.From("Leg day");
 
     private static readonly Id OwnerId = Id.New();
 
@@ -29,7 +30,7 @@ public class AddWorkoutExerciseUseCaseTests
 
     /// <summary>A stored workout prescribed by the trainer, with one exercise.</summary>
     private static Workout AStoredWorkout(Id exerciseId)
-        => Workout.Rehydrate(Id.New(), OwnerId, TrainerId, WorkoutDate, WorkoutStatus.DRAFT,
+        => Workout.Rehydrate(Id.New(), OwnerId, TrainerId, Name, null, WorkoutDate, WorkoutStatus.DRAFT,
             [WorkoutExercise.Rehydrate(Id.New(), exerciseId, Effort.MID, [ThreeByTen])]);
 
     private void GivenStored(Workout workout)

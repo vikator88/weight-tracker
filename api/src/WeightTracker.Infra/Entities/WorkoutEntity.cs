@@ -15,6 +15,10 @@ public class WorkoutEntity
 
     public DateOnly WorkoutDate { get; set; }
 
+    public string Name { get; set; } = string.Empty;
+
+    public string? Description { get; set; }
+
     /// <summary>Stored as the integer value of the domain <c>WorkoutStatus</c>.</summary>
     public int Status { get; set; }
 

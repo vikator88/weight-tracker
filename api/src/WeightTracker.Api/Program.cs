@@ -59,12 +59,14 @@ builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<WorkoutEditAuthorizer>();
 builder.Services.AddScoped<WorkoutStatusAuthorizer>();
+builder.Services.AddScoped<WorkoutAssignmentValidator>();
 
 builder.Services.AddScoped<GetAllExercisesUseCase>();
 builder.Services.AddScoped<GetExerciseByIdUseCase>();
 builder.Services.AddScoped<GetAllWorkoutsUseCase>();
 builder.Services.AddScoped<GetWorkoutByIdUseCase>();
 builder.Services.AddScoped<CreateWorkoutUseCase>();
+builder.Services.AddScoped<UpdateWorkoutUseCase>();
 builder.Services.AddScoped<AddWorkoutExerciseUseCase>();
 builder.Services.AddScoped<UpdateWorkoutExerciseUseCase>();
 builder.Services.AddScoped<RemoveWorkoutExerciseUseCase>();

@@ -14,15 +14,17 @@ public class WorkoutEditAuthorizerTests
 
     private static readonly DateTime WorkoutDate = new(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc);
 
+    private static readonly WorkoutName Name = WorkoutName.From("Leg day");
+
     private static readonly Id OwnerId = Id.New();
 
     private static readonly Id TrainerId = Id.New();
 
     private readonly WorkoutEditAuthorizer _authorizer = new();
 
-    private static Workout APrescribedWorkout() => Workout.Create(OwnerId, TrainerId, WorkoutDate);
+    private static Workout APrescribedWorkout() => Workout.Create(OwnerId, TrainerId, Name, null, WorkoutDate);
 
-    private static Workout ASelfCreatedWorkout() => Workout.Create(OwnerId, null, WorkoutDate);
+    private static Workout ASelfCreatedWorkout() => Workout.Create(OwnerId, null, Name, null, WorkoutDate);
 
     [Fact]
     public void EnsureCanEdit_ShouldAllowAnAdminOnAPrescribedWorkout()
@@ -142,7 +144,7 @@ public class WorkoutEditAuthorizerTests
     }
 
     private static Workout AWorkoutIn(WorkoutStatus status, Id? trainerId)
-        => Workout.Rehydrate(Id.New(), OwnerId, trainerId, WorkoutDate, status, []);
+        => Workout.Rehydrate(Id.New(), OwnerId, trainerId, Name, null, WorkoutDate, status, []);
 
     [Theory]
     [InlineData(WorkoutStatus.STARTED)]

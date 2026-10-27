@@ -118,6 +118,8 @@ public class DatabaseSeeder
             Id.From(SeedData.OwnedWorkoutId),
             Id.From(SeedData.UserId),
             null,
+            WorkoutName.From(SeedData.OwnedWorkoutName),
+            WorkoutDescription.From(SeedData.OwnedWorkoutDescription),
             new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc),
             WorkoutStatus.DRAFT,
             [
@@ -130,6 +132,8 @@ public class DatabaseSeeder
             Id.From(SeedData.TrainedWorkoutId),
             Id.From(SeedData.UserId),
             Id.From(SeedData.TrainerId),
+            WorkoutName.From(SeedData.TrainedWorkoutName),
+            null,
             new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc),
             WorkoutStatus.PUBLISHED,
             [
@@ -145,6 +149,8 @@ public class DatabaseSeeder
             Id.From(SeedData.TrainerOwnWorkoutId),
             Id.From(SeedData.TrainerId),
             null,
+            WorkoutName.From("Trainer chest day"),
+            null,
             new DateTime(2026, 10, 5, 0, 0, 0, DateTimeKind.Utc),
             WorkoutStatus.DRAFT,
             [
@@ -159,6 +165,8 @@ public class DatabaseSeeder
             Id.From(SeedData.PrescribedPairWorkoutId),
             Id.From(SeedData.UserId),
             Id.From(SeedData.TrainerId),
+            WorkoutName.From("Prescribed pair"),
+            null,
             new DateTime(2026, 10, 7, 0, 0, 0, DateTimeKind.Utc),
             WorkoutStatus.PUBLISHED,
             [
@@ -174,6 +182,8 @@ public class DatabaseSeeder
             Id.From(SeedData.PrescribedSuperSeriesWorkoutId),
             Id.From(SeedData.UserId),
             Id.From(SeedData.TrainerId),
+            WorkoutName.From("Prescribed superseries"),
+            null,
             new DateTime(2026, 10, 9, 0, 0, 0, DateTimeKind.Utc),
             WorkoutStatus.PUBLISHED,
             [
@@ -192,6 +202,8 @@ public class DatabaseSeeder
             Id.From(SeedData.SelfCreatedPairWorkoutId),
             Id.From(SeedData.UserId),
             null,
+            WorkoutName.From("Self-planned pair"),
+            null,
             new DateTime(2026, 10, 11, 0, 0, 0, DateTimeKind.Utc),
             WorkoutStatus.DRAFT,
             [
@@ -206,6 +218,8 @@ public class DatabaseSeeder
         var selfCreatedSuperSeriesWorkout = Workout.Rehydrate(
             Id.From(SeedData.SelfCreatedSuperSeriesWorkoutId),
             Id.From(SeedData.UserId),
+            null,
+            WorkoutName.From("Self-planned superseries"),
             null,
             new DateTime(2026, 10, 13, 0, 0, 0, DateTimeKind.Utc),
             WorkoutStatus.DRAFT,
@@ -222,6 +236,8 @@ public class DatabaseSeeder
             Id.From(SeedData.PrescribedDraftWorkoutId),
             Id.From(SeedData.UserId),
             Id.From(SeedData.TrainerId),
+            WorkoutName.From("Prescribed draft"),
+            null,
             new DateTime(2026, 10, 15, 0, 0, 0, DateTimeKind.Utc),
             WorkoutStatus.DRAFT,
             [
@@ -234,6 +250,8 @@ public class DatabaseSeeder
             Id.From(SeedData.PrescribedStartedWorkoutId),
             Id.From(SeedData.UserId),
             Id.From(SeedData.TrainerId),
+            WorkoutName.From("Prescribed started"),
+            null,
             new DateTime(2026, 10, 17, 0, 0, 0, DateTimeKind.Utc),
             WorkoutStatus.STARTED,
             [

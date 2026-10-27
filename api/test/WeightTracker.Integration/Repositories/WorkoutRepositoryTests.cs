@@ -19,6 +19,8 @@ public class WorkoutRepositoryTests : IntegrationTest
     public WorkoutRepositoryTests(ApiFactory factory) : base(factory)
     { }
 
+    private static readonly WorkoutName Name = WorkoutName.From("Leg day");
+
     private static readonly Id PressBanca = Id.From(SeedData.PressBancaId);
 
     private static readonly Id Sentadilla = Id.From(SeedData.SentadillaId);
@@ -46,7 +48,7 @@ public class WorkoutRepositoryTests : IntegrationTest
     {
         // Arrange
         var workout = Workout.Create(
-            Id.From(SeedData.UserId), Id.From(SeedData.TrainerId), new DateTime(2026, 11, 2));
+            Id.From(SeedData.UserId), Id.From(SeedData.TrainerId), Name, null, new DateTime(2026, 11, 2));
         workout.AddExercise(PressBanca, Effort.HIGH,
         [
             new SetPrescription(4, new SetTarget.Reps(10)),
@@ -73,7 +75,7 @@ public class WorkoutRepositoryTests : IntegrationTest
     public async Task Save_ShouldPersistAWorkoutWithoutATrainer()
     {
         // Arrange
-        var workout = Workout.Create(Id.From(SeedData.UserId), null, new DateTime(2026, 11, 3));
+        var workout = Workout.Create(Id.From(SeedData.UserId), null, Name, null, new DateTime(2026, 11, 3));
         workout.AddExercise(Sentadilla, Effort.MID, [new SetPrescription(5, new SetTarget.Duration(30))]);
 
         await Write(repository => repository.Save(workout, CancellationToken.None));
@@ -90,7 +92,7 @@ public class WorkoutRepositoryTests : IntegrationTest
     public async Task Save_ShouldPersistBothBoundsOfARepsRange()
     {
         // Arrange
-        var workout = Workout.Create(Id.From(SeedData.UserId), null, new DateTime(2026, 11, 3));
+        var workout = Workout.Create(Id.From(SeedData.UserId), null, Name, null, new DateTime(2026, 11, 3));
         workout.AddExercise(Sentadilla, Effort.MID, [new SetPrescription(3, new SetTarget.RepsRange(8, 12))]);
 
         await Write(repository => repository.Save(workout, CancellationToken.None));
@@ -100,6 +102,28 @@ public class WorkoutRepositoryTests : IntegrationTest
 
         // Assert
         EntryFor(stored!, Sentadilla).Sets.Single().Should().Be(new SetPrescription(3, new SetTarget.RepsRange(8, 12)));
+    }
+
+    [Fact]
+    public async Task Save_ShouldPersistUpdatedDetailsAndAssignmentOfAnExistingAggregate()
+    {
+        // Arrange
+        var stored = await Read(Id.From(SeedData.OwnedWorkoutId));
+        stored!.UpdateDetails(WorkoutName.From("Push day"), WorkoutDescription.From("Heavy presses"), new DateTime(2026, 11, 5));
+        stored.Reassign(Id.From(SeedData.TrainerId), Id.From(SeedData.AdminId));
+
+        await Write(repository => repository.Save(stored, CancellationToken.None));
+
+        // Act
+        var reloaded = await Read(Id.From(SeedData.OwnedWorkoutId));
+
+        // Assert
+        reloaded!.Name.Should().Be(WorkoutName.From("Push day"));
+        reloaded.Description.Should().Be(WorkoutDescription.From("Heavy presses"));
+        reloaded.WorkoutDate.Should().Be(new DateTime(2026, 11, 5));
+        reloaded.UserId.Should().Be(Id.From(SeedData.TrainerId));
+        reloaded.TrainerId.Should().Be(Id.From(SeedData.AdminId));
+        reloaded.Exercises.Should().ContainSingle().Which.ExerciseId.Should().Be(PressBanca);
     }
 
     [Fact]
@@ -125,7 +149,7 @@ public class WorkoutRepositoryTests : IntegrationTest
     public async Task Save_ShouldPersistTheEffortOfEachExercise()
     {
         // Arrange
-        var workout = Workout.Create(Id.From(SeedData.UserId), null, new DateTime(2026, 11, 4));
+        var workout = Workout.Create(Id.From(SeedData.UserId), null, Name, null, new DateTime(2026, 11, 4));
         workout.AddExercise(PressBanca, Effort.MIDLOW, [new SetPrescription(4, new SetTarget.Reps(10))]);
         workout.AddExercise(Sentadilla, Effort.HIGH, [new SetPrescription(5, new SetTarget.Reps(5))]);
 
@@ -144,7 +168,7 @@ public class WorkoutRepositoryTests : IntegrationTest
     public async Task Save_ShouldPersistANewWorkoutAsDraft()
     {
         // Arrange
-        var workout = Workout.Create(Id.From(SeedData.UserId), null, new DateTime(2026, 11, 5));
+        var workout = Workout.Create(Id.From(SeedData.UserId), null, Name, null, new DateTime(2026, 11, 5));
 
         await Write(repository => repository.Save(workout, CancellationToken.None));
 
@@ -212,7 +236,7 @@ public class WorkoutRepositoryTests : IntegrationTest
     public async Task Save_ShouldPersistTheSuperSeriesOfANewAggregate()
     {
         // Arrange
-        var workout = Workout.Create(Id.From(SeedData.UserId), null, new DateTime(2026, 11, 5));
+        var workout = Workout.Create(Id.From(SeedData.UserId), null, Name, null, new DateTime(2026, 11, 5));
         workout.AddExercise(PressBanca, Effort.MID, [new SetPrescription(4, new SetTarget.Reps(10))]);
         workout.AddExercise(Sentadilla, Effort.MID, [new SetPrescription(4, new SetTarget.Reps(8))]);
         workout.AddExercise(Plancha, Effort.LOW, [new SetPrescription(3, new SetTarget.Duration(40))]);

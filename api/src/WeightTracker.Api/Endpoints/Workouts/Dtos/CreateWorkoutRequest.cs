@@ -21,6 +21,17 @@ public sealed record CreateWorkoutRequest
     public Guid? TrainerId { get; init; }
 
     /// <summary>
+    /// Name the workout is listed by. Trimmed; it cannot be blank or longer than 256 characters.
+    /// </summary>
+    [Required]
+    public string? Name { get; init; }
+
+    /// <summary>
+    /// Optional free text, up to 1024 characters once trimmed. A blank value is stored as <c>null</c>.
+    /// </summary>
+    public string? Description { get; init; }
+
+    /// <summary>
     /// Day of the workout, as <c>yyyy-MM-dd</c>. Time is not kept.
     /// </summary>
     [Required]

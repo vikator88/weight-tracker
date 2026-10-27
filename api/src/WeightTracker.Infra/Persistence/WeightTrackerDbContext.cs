@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WeightTracker.Domain.Exercises;
+using WeightTracker.Domain.Workouts;
 using WeightTracker.Infra.Entities;
 
 namespace WeightTracker.Infra.Persistence;
@@ -84,6 +85,8 @@ public class WeightTrackerDbContext : DbContext
             entity.Property(workout => workout.UserId).HasColumnName("UserId");
             entity.Property(workout => workout.TrainerId).HasColumnName("TrainerId");
             entity.Property(workout => workout.WorkoutDate).HasColumnName("WorkoutDate").HasColumnType("date");
+            entity.Property(workout => workout.Name).HasColumnName("Name").HasMaxLength(WorkoutName.MaxLength).IsRequired();
+            entity.Property(workout => workout.Description).HasColumnName("Description").HasMaxLength(WorkoutDescription.MaxLength);
             entity.Property(workout => workout.Status).HasColumnName("Status");
 
             // Declared without navigation properties: the User aggregate stays referenced by

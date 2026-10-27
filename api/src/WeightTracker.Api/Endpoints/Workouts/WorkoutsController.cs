@@ -5,6 +5,7 @@ using WeightTracker.Application.UseCases.Auth;
 using WeightTracker.Application.UseCases.Workouts;
 using WeightTracker.Domain.Common;
 using WeightTracker.Domain.Exercises;
+using WeightTracker.Domain.Workouts;
 
 namespace WeightTracker.Api.Endpoints.Workouts;
 
@@ -15,6 +16,7 @@ public class WorkoutsController : AuthorizedController
     private readonly GetAllWorkoutsUseCase _getAllWorkouts;
     private readonly GetWorkoutByIdUseCase _getWorkoutById;
     private readonly CreateWorkoutUseCase _createWorkout;
+    private readonly UpdateWorkoutUseCase _updateWorkout;
     private readonly CreateSuperSeriesUseCase _createSuperSeries;
     private readonly BreakSuperSeriesUseCase _breakSuperSeries;
     private readonly AddWorkoutExerciseUseCase _addExercise;
@@ -26,6 +28,7 @@ public class WorkoutsController : AuthorizedController
         GetAllWorkoutsUseCase getAllWorkouts,
         GetWorkoutByIdUseCase getWorkoutById,
         CreateWorkoutUseCase createWorkout,
+        UpdateWorkoutUseCase updateWorkout,
         CreateSuperSeriesUseCase createSuperSeries,
         BreakSuperSeriesUseCase breakSuperSeries,
         AddWorkoutExerciseUseCase addExercise,
@@ -38,6 +41,7 @@ public class WorkoutsController : AuthorizedController
         _getAllWorkouts = getAllWorkouts;
         _getWorkoutById = getWorkoutById;
         _createWorkout = createWorkout;
+        _updateWorkout = updateWorkout;
         _createSuperSeries = createSuperSeries;
         _breakSuperSeries = breakSuperSeries;
         _addExercise = addExercise;
@@ -114,11 +118,48 @@ public class WorkoutsController : AuthorizedController
                 CurrentUser.Role,
                 request.UserId is null ? null : Id.From(request.UserId.Value),
                 request.TrainerId is null ? null : Id.From(request.TrainerId.Value),
+                WorkoutName.From(request.Name),
+                WorkoutDescription.From(request.Description),
                 request.WorkoutDate!.Value.ToDateTime(TimeOnly.MinValue),
                 cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetById), new { id = workout.Id.Value }, WorkoutResponse.From(workout, new Dictionary<Id, Exercise>()));
+        }
+        catch (Exception exception)
+        {
+            return ExceptionMapper.Map(exception);
+        }
+    }
+
+    /// <summary>
+    /// Replaces the name, description and day of the workout, and its owner and trainer. Send back what
+    /// <c>GET /workouts/{id}</c> returned with your changes: only an admin may change <c>userId</c> or
+    /// <c>trainerId</c>. Status and exercises are not changed here.
+    /// </summary>
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType<WorkoutDetailResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateWorkoutRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var workout = await _updateWorkout.Execute(
+                CurrentUser!.Id,
+                CurrentUser.Role,
+                Id.From(id),
+                WorkoutName.From(request.Name),
+                WorkoutDescription.From(request.Description),
+                request.WorkoutDate!.Value.ToDateTime(TimeOnly.MinValue),
+                Id.From(request.UserId!.Value),
+                request.TrainerId is null ? null : Id.From(request.TrainerId.Value),
+                cancellationToken);
+
+            return Ok(WorkoutDetailResponse.From(workout));
         }
         catch (Exception exception)
         {
