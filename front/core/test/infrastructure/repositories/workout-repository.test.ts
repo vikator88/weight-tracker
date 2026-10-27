@@ -4,6 +4,7 @@ import {
   ok,
   type AddExerciseRequest,
   type CreateWorkoutRequest,
+  type ReorderWorkoutExercisesRequest,
   type UpdateWorkoutRequest,
   type Workout,
   type WorkoutDetail,
@@ -53,6 +54,10 @@ const addExerciseRequest: AddExerciseRequest = {
   exerciseId: workoutExercise.exerciseId,
   effort: "HIGH",
   sets: [{ count: 3, targetType: "REPS", target: 10 }],
+};
+
+const reorderRequest: ReorderWorkoutExercisesRequest = {
+  exerciseIds: [workoutExercise.exerciseId, "2a3b4c5d-6e7f-4809-9a1b-2c3d4e5f6a7b"],
 };
 
 class FakeHttpClient implements HttpClientInterface {
@@ -486,6 +491,66 @@ describe("WorkoutRepository", () => {
 
       // Act
       const result = await repository.removeExercise(workout.id, workoutExercise.exerciseId);
+
+      // Assert
+      expect(result).toEqual({ ok: false, error: expect.objectContaining({ code: "NETWORK" }) });
+    });
+  });
+
+  describe("reorderExercises", () => {
+    it("puts the request to /workouts/{workoutId}/exercises/order unchanged", async () => {
+      // Arrange
+      const httpClient = new FakeHttpClient(async () => workoutDetail);
+      const repository = new WorkoutRepository(httpClient);
+
+      // Act
+      await repository.reorderExercises(workout.id, reorderRequest);
+
+      // Assert
+      expect(httpClient.requests).toEqual([
+        {
+          method: "PUT",
+          path: `/workouts/${workout.id}/exercises/order`,
+          body: reorderRequest,
+        },
+      ]);
+    });
+
+    it("returns the reordered workout on success", async () => {
+      // Arrange
+      const repository = new WorkoutRepository(new FakeHttpClient(async () => workoutDetail));
+
+      // Act
+      const result = await repository.reorderExercises(workout.id, reorderRequest);
+
+      // Assert
+      expect(result).toEqual(ok(workoutDetail));
+    });
+
+    it.each([
+      [400, "VALIDATION"],
+      [401, "UNAUTHORIZED"],
+      [403, "FORBIDDEN"],
+      [404, "NOT_FOUND"],
+      [409, "CONFLICT"],
+      [500, "UNEXPECTED"],
+    ])("maps status %i to %s", async (status, code) => {
+      // Arrange
+      const repository = new WorkoutRepository(failingWith(status));
+
+      // Act
+      const result = await repository.reorderExercises(workout.id, reorderRequest);
+
+      // Assert
+      expect(result).toEqual({ ok: false, error: expect.objectContaining({ code }) });
+    });
+
+    it("returns the network code when there is no response", async () => {
+      // Arrange
+      const repository = new WorkoutRepository(unreachable());
+
+      // Act
+      const result = await repository.reorderExercises(workout.id, reorderRequest);
 
       // Assert
       expect(result).toEqual({ ok: false, error: expect.objectContaining({ code: "NETWORK" }) });

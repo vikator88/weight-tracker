@@ -58,7 +58,7 @@ An edit aimed at a workout that does not exist SHALL fail with `404 Not Found` f
 - **THEN** the response is `404 Not Found`
 
 ### Requirement: Started and finished workouts are locked for non-admins
-Every workout-editing operation (updating the name, description or date, adding, updating or removing exercises, creating or breaking superseries) on a `STARTED` or `FINISHED` workout SHALL be rejected with `409 Conflict` for every non-admin caller, including one the edit rule would otherwise allow. The workout SHALL be unchanged. Status changes are not edits and follow the workout status rules instead.
+Every workout-editing operation (updating the name, description or date, adding, updating, removing or reordering exercises, creating or breaking superseries) on a `STARTED` or `FINISHED` workout SHALL be rejected with `409 Conflict` for every non-admin caller, including one the edit rule would otherwise allow. The workout SHALL be unchanged. Status changes are not edits and follow the workout status rules instead.
 
 #### Scenario: Trainer edits a started workout
 - **WHEN** the prescribing trainer adds an exercise to a `STARTED` workout
@@ -77,6 +77,11 @@ Every workout-editing operation (updating the name, description or date, adding,
 #### Scenario: Unauthorized caller on a locked workout
 - **WHEN** a caller the edit rule rejects tries to edit a `STARTED` workout
 - **THEN** the response is `403 Forbidden`
+
+#### Scenario: Trainer reorders a started workout
+- **WHEN** the prescribing trainer sends a new exercise order for a `STARTED` workout
+- **THEN** the response is `409 Conflict`
+- **AND** the order is unchanged
 
 ### Requirement: Admins bypass the edit lock
 A caller with the `ADMIN` role SHALL be allowed to edit a workout in any status.

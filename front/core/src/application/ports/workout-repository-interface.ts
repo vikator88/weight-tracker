@@ -2,6 +2,7 @@ import type {
   AddExerciseRequest,
   CreateWorkoutRequest,
   DomainError,
+  ReorderWorkoutExercisesRequest,
   Result,
   UpdateWorkoutRequest,
   Workout,
@@ -24,4 +25,8 @@ export default interface WorkoutRepositoryInterface {
     request: AddExerciseRequest,
   ): Promise<Result<WorkoutExerciseDetail, DomainError>>;
   removeExercise(workoutId: string, exerciseId: string): Promise<Result<void, DomainError>>;
+  reorderExercises(
+    workoutId: string,
+    request: ReorderWorkoutExercisesRequest,
+  ): Promise<Result<WorkoutDetail, DomainError>>;
 }

@@ -29,6 +29,7 @@ const keys: (keyof Dependencies)[] = [
   "addExerciseToWorkoutUseCase",
   "updateWorkoutExerciseUseCase",
   "removeExerciseFromWorkoutUseCase",
+  "reorderWorkoutExercisesUseCase",
   "getExercisesUseCase",
 ];
 

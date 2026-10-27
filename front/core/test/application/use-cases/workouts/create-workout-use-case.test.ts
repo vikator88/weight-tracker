@@ -63,6 +63,11 @@ class FakeWorkoutRepository implements WorkoutRepositoryInterface {
     this.otherCalls += 1;
     return fail(new DomainError("UNEXPECTED", "Not used"));
   }
+
+  async reorderExercises(): Promise<Result<WorkoutDetail, DomainError>> {
+    this.otherCalls += 1;
+    return fail(new DomainError("UNEXPECTED", "Not used"));
+  }
 }
 
 describe("CreateWorkoutUseCase", () => {

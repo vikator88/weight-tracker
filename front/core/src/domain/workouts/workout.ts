@@ -7,6 +7,8 @@ export type CreateWorkoutRequest = components["schemas"]["CreateWorkoutRequest"]
 export type UpdateWorkoutRequest = components["schemas"]["UpdateWorkoutRequest"];
 export type AddExerciseRequest = components["schemas"]["AddOrUpdateExerciseRequest"];
 export type SetPrescription = components["schemas"]["SetPrescriptionRequest"];
+export type ReorderWorkoutExercisesRequest =
+  components["schemas"]["ReorderWorkoutExercisesRequest"];
 
 /** The workout id travels in the path, the rest of the input in the body. */
 export type UpdateWorkoutInput = UpdateWorkoutRequest & { id: string };
@@ -19,3 +21,5 @@ export type UpdateWorkoutExerciseInput = AddExerciseRequest & {
   workoutId: string;
   exerciseId: string;
 };
+/** The workout id travels in the path; the body holds every catalog exercise id of the workout, in the new order. */
+export type ReorderWorkoutExercisesInput = ReorderWorkoutExercisesRequest & { workoutId: string };

@@ -5,6 +5,7 @@ import {
   type DomainError,
   fail,
   ok,
+  type ReorderWorkoutExercisesRequest,
   type Result,
   type UpdateWorkoutRequest,
   type Workout,
@@ -113,6 +114,23 @@ export default class WorkoutRepository implements WorkoutRepositoryInterface {
       });
 
       return ok(undefined);
+    } catch (error) {
+      return fail(mapHttpError(error));
+    }
+  }
+
+  async reorderExercises(
+    workoutId: string,
+    request: ReorderWorkoutExercisesRequest,
+  ): Promise<Result<WorkoutDetail, DomainError>> {
+    try {
+      const response = await this.httpClient.request<WorkoutDetail>({
+        method: "PUT",
+        path: `/workouts/${workoutId}/exercises/order`,
+        body: request,
+      });
+
+      return ok(response);
     } catch (error) {
       return fail(mapHttpError(error));
     }

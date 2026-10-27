@@ -50,7 +50,16 @@
       "title": "Exercises",
       "pending": "Pending",
       "setsLine": "Sets: {{sets}}",
-      "effortLine": "Effort: {{effort}}"
+      "effortLine": "Effort: {{effort}}",
+      "reorder": "Reorder exercise",
+      "dnd": {
+        "roleDescription": "reorderable exercise",
+        "instructions": "Press space or enter to pick up an exercise, the arrow keys to move it, space or enter to drop it, and escape to cancel.",
+        "picked": "Picked up {{name}}.",
+        "over": "{{name}} is at position {{position}}.",
+        "dropped": "{{name}} was dropped at position {{position}}.",
+        "cancelled": "Moving {{name}} was cancelled."
+      }
     },
     "configuration": {
       "empty": "Select an exercise to configure it.",

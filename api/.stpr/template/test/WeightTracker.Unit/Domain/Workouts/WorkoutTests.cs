@@ -1030,4 +1030,130 @@ public class WorkoutTests
         workout.UserId.Should().Be(ownerId);
         workout.TrainerId.Should().Be(trainerId);
     }
+
+    [Fact]
+    public void ReorderExercises_ShouldPutTheExercisesInTheGivenOrder()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids);
+        var exercises = ids.Select(entryId => ExerciseOf(workout, entryId)).ToArray();
+
+        // Act
+        workout.ReorderExercises([exercises[2], exercises[0], exercises[1]]);
+
+        // Assert
+        workout.Exercises.Select(entry => entry.ExerciseId).Should().Equal(exercises[2], exercises[0], exercises[1]);
+    }
+
+    [Fact]
+    public void ReorderExercises_ShouldKeepTheEntryIdEffortSetsAndSuperSeries()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids);
+        var superSeriesId = workout.CreateSuperSeries([ids[0], ids[1]]);
+        var exercises = ids.Select(entryId => ExerciseOf(workout, entryId)).ToArray();
+        var before = workout.Exercises.ToDictionary(entry => entry.Id);
+
+        // Act
+        workout.ReorderExercises([exercises[1], exercises[2], exercises[0]]);
+
+        // Assert
+        workout.Exercises.Select(entry => entry.Id).Should().Equal(ids[1], ids[2], ids[0]);
+        workout.Exercises.Should().AllSatisfy(entry =>
+        {
+            entry.Effort.Should().Be(before[entry.Id].Effort);
+            entry.Sets.Should().Equal(before[entry.Id].Sets);
+        });
+        SuperSeriesOf(workout, ids[0]).Should().Be(superSeriesId);
+        SuperSeriesOf(workout, ids[1]).Should().Be(superSeriesId);
+        SuperSeriesOf(workout, ids[2]).Should().BeNull();
+    }
+
+    [Fact]
+    public void ReorderExercises_ShouldAcceptAnEmptyOrderOnAWorkoutWithoutExercises()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
+
+        // Act
+        workout.ReorderExercises([]);
+
+        // Assert
+        workout.Exercises.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ReorderExercises_ShouldRejectAMissingExerciseAndKeepTheOrder()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids);
+        var exercises = ids.Select(entryId => ExerciseOf(workout, entryId)).ToArray();
+
+        // Act
+        var act = () => workout.ReorderExercises([exercises[1], exercises[0]]);
+
+        // Assert
+        act.Should().Throw<WorkoutExerciseOrderMismatchException>();
+        workout.Exercises.Select(entry => entry.ExerciseId).Should().Equal(exercises);
+    }
+
+    [Fact]
+    public void ReorderExercises_ShouldRejectAnExtraExerciseAndKeepTheOrder()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids);
+        var exercises = ids.Select(entryId => ExerciseOf(workout, entryId)).ToArray();
+
+        // Act
+        var act = () => workout.ReorderExercises([exercises[2], exercises[1], exercises[0], Id.New()]);
+
+        // Assert
+        act.Should().Throw<WorkoutExerciseOrderMismatchException>();
+        workout.Exercises.Select(entry => entry.ExerciseId).Should().Equal(exercises);
+    }
+
+    [Fact]
+    public void ReorderExercises_ShouldRejectAnExerciseNotInTheWorkoutAndKeepTheOrder()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids);
+        var exercises = ids.Select(entryId => ExerciseOf(workout, entryId)).ToArray();
+
+        // Act
+        var act = () => workout.ReorderExercises([exercises[2], exercises[1], Id.New()]);
+
+        // Assert
+        act.Should().Throw<WorkoutExerciseOrderMismatchException>();
+        workout.Exercises.Select(entry => entry.ExerciseId).Should().Equal(exercises);
+    }
+
+    [Fact]
+    public void ReorderExercises_ShouldRejectARepeatedExerciseAndKeepTheOrder()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids);
+        var exercises = ids.Select(entryId => ExerciseOf(workout, entryId)).ToArray();
+
+        // Act
+        var act = () => workout.ReorderExercises([exercises[2], exercises[2], exercises[0]]);
+
+        // Assert
+        act.Should().Throw<WorkoutExerciseOrderMismatchException>();
+        workout.Exercises.Select(entry => entry.ExerciseId).Should().Equal(exercises);
+    }
+
+    [Fact]
+    public void ReorderExercises_ShouldRejectTheWorkoutEntryIdsInPlaceOfTheCatalogExercises()
+    {
+        // Arrange
+        var workout = WorkoutWithExercises(out var ids);
+        var exercises = ids.Select(entryId => ExerciseOf(workout, entryId)).ToArray();
+
+        // Act
+        var act = () => workout.ReorderExercises([ids[2], ids[1], ids[0]]);
+
+        // Assert
+        act.Should().Throw<WorkoutExerciseOrderMismatchException>();
+        workout.Exercises.Select(entry => entry.ExerciseId).Should().Equal(exercises);
+    }
 }

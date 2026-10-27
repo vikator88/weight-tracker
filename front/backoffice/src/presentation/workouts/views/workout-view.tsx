@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useId, useMemo, useState } from "react";
+import { arrayMove } from "@dnd-kit/sortable";
 import ArrowBackOutlined from "@mui/icons-material/ArrowBackOutlined";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
@@ -32,6 +33,7 @@ import WorkoutExercisesList, {
 } from "@/presentation/workouts/components/organisms/workout-exercises-list";
 import useExercises from "@/presentation/workouts/hooks/use-exercises";
 import useRemoveWorkoutExercise from "@/presentation/workouts/hooks/use-remove-workout-exercise";
+import useReorderWorkoutExercises from "@/presentation/workouts/hooks/use-reorder-workout-exercises";
 import useUpdateWorkout from "@/presentation/workouts/hooks/use-update-workout";
 import useWorkout from "@/presentation/workouts/hooks/use-workout";
 
@@ -102,6 +104,15 @@ function pendingItemOf(exercise: Exercise): WorkoutExerciseItem {
   };
 }
 
+/** The entries sorted by their place in `ids`; any entry not in `ids` goes last, in its current order. */
+function inOrderOf(entries: WorkoutExerciseDetail[], ids: string[]) {
+  const placeOf = (entry: WorkoutExerciseDetail) => {
+    const index = ids.indexOf(entry.id);
+    return index === -1 ? ids.length : index;
+  };
+  return [...entries].sort((a, b) => placeOf(a) - placeOf(b));
+}
+
 /** The editor once both reads are in: it owns the workout's form, its save, and the screen's local selections. */
 function LoadedWorkout({ workout, exercises }: { workout: WorkoutDetail; exercises: Exercise[] }) {
   const { t: tc } = useTranslation();
@@ -124,6 +135,7 @@ function LoadedWorkout({ workout, exercises }: { workout: WorkoutDetail; exercis
   const [savedExercises, setSavedExercises] = useState<WorkoutExerciseDetail[]>(workout.exercises);
   const [lastSavedId, setLastSavedId] = useState<string | null>(null);
   const removal = useRemoveWorkoutExercise();
+  const reordering = useReorderWorkoutExercises();
 
   const catalogById = useMemo(
     () => new Map<string, Exercise>(exercises.map((exercise) => [exercise.id, exercise])),
@@ -183,6 +195,31 @@ function LoadedWorkout({ workout, exercises }: { workout: WorkoutDetail; exercis
       return;
     }
     setSelectedId((current) => (current === id ? null : current));
+  }
+
+  /**
+   * The dropped exercise moves at once and the full saved order is sent. A refused order is put back by entry id, so
+   * an exercise saved or removed while the request was in flight is kept as it is.
+   */
+  async function handleReorder(activeId: string, overId: string) {
+    const from = savedExercises.findIndex((entry) => entry.id === activeId);
+    const to = savedExercises.findIndex((entry) => entry.id === overId);
+    if (from === -1 || to === -1 || from === to) {
+      return;
+    }
+
+    const previousIds = savedExercises.map((entry) => entry.id);
+    const next = arrayMove(savedExercises, from, to);
+    setSavedExercises(next);
+
+    if (
+      !(await reordering.reorder(
+        workout.id,
+        next.map((entry) => entry.exerciseId),
+      ))
+    ) {
+      setSavedExercises((current) => inOrderOf(current, previousIds));
+    }
   }
 
   function handleChange(field: keyof WorkoutDetailsFormValues, value: string) {
@@ -251,6 +288,9 @@ function LoadedWorkout({ workout, exercises }: { workout: WorkoutDetail; exercis
               onRemove={(item) => void handleRemove(item)}
               removingId={removal.removingId}
               removeErrorCode={removal.errorCode}
+              onReorder={(activeId, overId) => void handleReorder(activeId, overId)}
+              reordering={reordering.reordering}
+              reorderErrorCode={reordering.errorCode}
             />
           </WorkoutDetailsCard>
         </Box>
