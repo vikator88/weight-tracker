@@ -8,6 +8,7 @@ import {
   type Result,
   type UpdateWorkoutRequest,
   type Workout,
+  type WorkoutDetail,
   type WorkoutExerciseDetail,
 } from "../../../../src/domain";
 
@@ -35,6 +36,16 @@ class FakeWorkoutRepository implements WorkoutRepositoryInterface {
 
   constructor(private readonly result: Result<Workout, DomainError>) {}
 
+  async getAll(): Promise<Result<Workout[], DomainError>> {
+    this.otherCalls += 1;
+    return fail(new DomainError("UNEXPECTED", "Not used"));
+  }
+
+  async getById(): Promise<Result<WorkoutDetail, DomainError>> {
+    this.otherCalls += 1;
+    return fail(new DomainError("UNEXPECTED", "Not used"));
+  }
+
   async create(): Promise<Result<Workout, DomainError>> {
     this.otherCalls += 1;
     return this.result;
@@ -46,6 +57,16 @@ class FakeWorkoutRepository implements WorkoutRepositoryInterface {
   }
 
   async addExercise(): Promise<Result<WorkoutExerciseDetail, DomainError>> {
+    this.otherCalls += 1;
+    return fail(new DomainError("UNEXPECTED", "Not used"));
+  }
+
+  async updateExercise(): Promise<Result<WorkoutExerciseDetail, DomainError>> {
+    this.otherCalls += 1;
+    return fail(new DomainError("UNEXPECTED", "Not used"));
+  }
+
+  async removeExercise(): Promise<Result<void, DomainError>> {
     this.otherCalls += 1;
     return fail(new DomainError("UNEXPECTED", "Not used"));
   }

@@ -3,11 +3,13 @@ import enCommon from "./en/common.json";
 import enErrors from "./en/errors.json";
 import enOnboarding from "./en/onboarding.json";
 import enProfile from "./en/profile.json";
+import enWorkouts from "./en/workouts.json";
 import esAuth from "./es/auth.json";
 import esCommon from "./es/common.json";
 import esErrors from "./es/errors.json";
 import esOnboarding from "./es/onboarding.json";
 import esProfile from "./es/profile.json";
+import esWorkouts from "./es/workouts.json";
 
 const resources = {
   es: {
@@ -16,6 +18,7 @@ const resources = {
     errors: esErrors,
     onboarding: esOnboarding,
     profile: esProfile,
+    workouts: esWorkouts,
   },
   en: {
     auth: enAuth,
@@ -23,6 +26,7 @@ const resources = {
     errors: enErrors,
     onboarding: enOnboarding,
     profile: enProfile,
+    workouts: enWorkouts,
   },
 };
 

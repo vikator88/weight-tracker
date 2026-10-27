@@ -1,0 +1,112 @@
+# Spec Delta
+
+## Purpose
+
+Lets trainers and admins see, in one table, the workouts they have assigned in the backoffice, as a starting point to
+create new ones.
+
+## ADDED Requirements
+
+### Requirement: Signed-in staff reach the assigned plans screen
+
+The backoffice SHALL offer a signed-in screen at `/assigned-plans` with the heading "Planes asignados", shown with the
+navigation drawer and header like every signed-in screen. A visitor without a session SHALL end on `/login`.
+
+#### Scenario: Trainer opens the screen
+
+- **WHEN** a trainer with a stored session opens `/assigned-plans`
+- **THEN** the heading "Planes asignados" is shown beside the navigation drawer
+
+#### Scenario: Visitor without a session
+
+- **WHEN** a visitor with no stored session opens `/assigned-plans`
+- **THEN** the visitor ends on `/login`
+- **AND** no workout request is sent
+
+### Requirement: The screen lists every workout the API returns
+
+On opening, the screen SHALL request the caller's workouts once and SHALL show one table row per workout, in the order
+the API returns them. It SHALL NOT filter, sort or hide rows itself.
+
+#### Scenario: Two workouts returned
+
+- **WHEN** the API returns two workouts
+- **THEN** the table shows exactly two rows, in that order
+
+### Requirement: Each row shows the workout's name, date, athlete and exercise count
+
+Each row SHALL show the workout's name, its date formatted as a calendar date in the active language, the athlete's id
+and the number of exercises in the workout.
+
+#### Scenario: Row content in Spanish
+
+- **WHEN** the API returns a workout named "Pierna" dated 2026-10-27 for athlete id `u-1` with three exercises
+- **THEN** its row shows "Pierna", the date 27 October 2026 formatted for Spanish, `u-1` and `3`
+
+#### Scenario: Date does not shift with the time zone
+
+- **WHEN** a workout dated 2026-10-27 is shown in a time zone behind UTC
+- **THEN** its row shows 27 October 2026, not 26 October
+
+#### Scenario: Workout without exercises
+
+- **WHEN** a workout has no exercises
+- **THEN** its exercise count shows `0`
+
+### Requirement: Only admins see the trainer column
+
+For an `ADMIN`, the table SHALL show a trainer column with each workout's trainer id, empty when the workout has none.
+For a `TRAINER`, the table SHALL NOT render the trainer column, neither its header nor its cells.
+
+#### Scenario: Admin sees the trainer
+
+- **WHEN** an admin opens the screen and a workout has trainer id `t-1`
+- **THEN** the table shows the header "Entrenador" and `t-1` in that workout's row
+
+#### Scenario: Workout without trainer for an admin
+
+- **WHEN** an admin opens the screen and a workout has no trainer
+- **THEN** that row's trainer cell is empty
+
+#### Scenario: Trainer does not see the trainer column
+
+- **WHEN** a trainer opens the screen and a workout has trainer id `t-1`
+- **THEN** no "Entrenador" header is shown
+- **AND** `t-1` is not shown anywhere in the table
+
+### Requirement: The screen shows loading, empty and failure states
+
+While the workouts load, the screen SHALL show a loading placeholder instead of the table. An empty list SHALL show the
+message "Todavía no hay entrenamientos asignados." instead of rows. A failed load SHALL show the error for its code with
+a retry action that requests the workouts again.
+
+#### Scenario: Empty list
+
+- **WHEN** the API returns no workouts
+- **THEN** "Todavía no hay entrenamientos asignados." is shown and no workout row is rendered
+
+#### Scenario: Load fails and the user retries
+
+- **WHEN** the workout request fails with no response
+- **THEN** the network error message and a retry action are shown
+- **AND** activating retry sends the workout request again and shows the table when it succeeds
+
+### Requirement: The screen offers a new workout button
+
+The screen SHALL show a "Nuevo entrenamiento" button with a plus icon above the table, for both admins and trainers.
+Until the create workout screen exists, activating it SHALL NOT navigate or trigger any request.
+
+#### Scenario: Button shown and inert
+
+- **WHEN** a trainer clicks "Nuevo entrenamiento"
+- **THEN** the trainer stays on `/assigned-plans`
+- **AND** no request is sent
+
+### Requirement: The screen is translated
+
+Every text on the screen SHALL be available in Spanish and English and SHALL follow the active language.
+
+#### Scenario: Screen in English
+
+- **WHEN** the active language is English
+- **THEN** the screen shows "Assigned plans", "New workout" and the column headers "Name", "Date", "Athlete" and "Exercises"

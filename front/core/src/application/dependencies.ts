@@ -3,13 +3,17 @@ import type {
   AuthResponse,
   CreateWorkoutRequest,
   Exercise,
+  GetWorkoutByIdInput,
+  RemoveExerciseFromWorkoutInput,
   LoginRequest,
   Session,
   SignupCredentials,
   UpdateProfileRequest,
+  UpdateWorkoutExerciseInput,
   UpdateWorkoutInput,
   UserProfile,
   Workout,
+  WorkoutDetail,
   WorkoutExerciseDetail,
 } from "../domain";
 import type {
@@ -41,8 +45,12 @@ export default interface Dependencies {
   setPreferredLanguageUseCase: UseCaseInterface<string, void>;
   getMyProfileUseCase: UseCaseInterface<void, UserProfile>;
   updateMyProfileUseCase: UseCaseInterface<UpdateProfileRequest, UserProfile>;
+  getWorkoutsUseCase: UseCaseInterface<void, Workout[]>;
+  getWorkoutByIdUseCase: UseCaseInterface<GetWorkoutByIdInput, WorkoutDetail>;
   createWorkoutUseCase: UseCaseInterface<CreateWorkoutRequest, Workout>;
   updateWorkoutUseCase: UseCaseInterface<UpdateWorkoutInput, Workout>;
   addExerciseToWorkoutUseCase: UseCaseInterface<AddExerciseToWorkoutInput, WorkoutExerciseDetail>;
+  updateWorkoutExerciseUseCase: UseCaseInterface<UpdateWorkoutExerciseInput, WorkoutExerciseDetail>;
+  removeExerciseFromWorkoutUseCase: UseCaseInterface<RemoveExerciseFromWorkoutInput, void>;
   getExercisesUseCase: UseCaseInterface<void, Exercise[]>;
 }

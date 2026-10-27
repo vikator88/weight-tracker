@@ -35,9 +35,13 @@ const unusedDependencies: Registrations<Dependencies> = {
     updateMe: async () => undefined as never,
   }),
   workoutRepository: () => ({
+    getAll: async () => undefined as never,
+    getById: async () => undefined as never,
     create: async () => undefined as never,
     update: async () => undefined as never,
     addExercise: async () => undefined as never,
+    updateExercise: async () => undefined as never,
+    removeExercise: async () => undefined as never,
   }),
   exerciseRepository: () => ({ getAll: async () => undefined as never }),
   signupUseCase: () => ({ execute: async () => undefined as never }),
@@ -49,9 +53,13 @@ const unusedDependencies: Registrations<Dependencies> = {
   setPreferredLanguageUseCase: () => ({ execute: async () => ok(undefined) }),
   getMyProfileUseCase: () => ({ execute: async () => ok(completeProfile) }),
   updateMyProfileUseCase: () => ({ execute: async () => undefined as never }),
+  getWorkoutsUseCase: () => ({ execute: async () => undefined as never }),
+  getWorkoutByIdUseCase: () => ({ execute: async () => undefined as never }),
   createWorkoutUseCase: () => ({ execute: async () => undefined as never }),
   updateWorkoutUseCase: () => ({ execute: async () => undefined as never }),
   addExerciseToWorkoutUseCase: () => ({ execute: async () => undefined as never }),
+  updateWorkoutExerciseUseCase: () => ({ execute: async () => undefined as never }),
+  removeExerciseFromWorkoutUseCase: () => ({ execute: async () => undefined as never }),
   getExercisesUseCase: () => ({ execute: async () => undefined as never }),
 };
 

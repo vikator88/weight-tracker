@@ -1,0 +1,133 @@
+{
+  "assignedPlans": {
+    "title": "Planes asignados",
+    "newWorkout": "Nuevo entrenamiento",
+    "columns": {
+      "name": "Nombre",
+      "date": "Fecha",
+      "athlete": "Atleta",
+      "trainer": "Entrenador",
+      "exercises": "Ejercicios"
+    },
+    "empty": "Todavía no hay entrenamientos asignados.",
+    "edit": "Editar {{name}}"
+  },
+  "createWorkout": {
+    "title": "Nuevo entrenamiento",
+    "fields": {
+      "name": "Nombre",
+      "description": "Descripción",
+      "date": "Fecha",
+      "userId": "ID del atleta",
+      "trainerId": "ID del entrenador"
+    },
+    "actions": {
+      "cancel": "Cancelar",
+      "create": "Crear"
+    },
+    "validation": {
+      "required": "Este campo es obligatorio.",
+      "maxLength": "No puede superar los {{max}} caracteres.",
+      "date": "Introduce una fecha válida.",
+      "uuid": "Introduce un identificador válido."
+    }
+  },
+  "workout": {
+    "catalog": {
+      "filter": "Buscar ejercicio",
+      "empty": "Ningún ejercicio coincide con el filtro.",
+      "add": "Añadir ejercicio",
+      "title": "Catálogo de ejercicios"
+    },
+    "details": {
+      "save": "Guardar",
+      "saved": "Entrenamiento guardado."
+    },
+    "exercises": {
+      "empty": "Este entrenamiento aún no tiene ejercicios.",
+      "remove": "Quitar ejercicio",
+      "edit": "Editar ejercicio",
+      "title": "Ejercicios",
+      "pending": "Pendiente",
+      "setsLine": "Series: {{sets}}",
+      "effortLine": "Esfuerzo: {{effort}}"
+    },
+    "configuration": {
+      "empty": "Selecciona un ejercicio para configurarlo.",
+      "effort": "Esfuerzo",
+      "sets": "Series",
+      "setCount": "Series",
+      "targetType": "Tipo",
+      "targetValue": "Valor",
+      "targetMaxValue": "Máximo",
+      "video": "Vídeo",
+      "openVideo": "Ver vídeo",
+      "title": "Detalles del ejercicio",
+      "removeSet": "Quitar serie",
+      "addSet": "Añadir serie",
+      "save": "Guardar",
+      "saved": "Ejercicio guardado.",
+      "noSets": "Todavía no hay series.",
+      "validation": {
+        "positiveInteger": "Introduce un número entero mayor que 0.",
+        "effort": "Elige un esfuerzo.",
+        "sets": "Añade al menos una serie."
+      },
+      "summary": {
+        "Reps": "{{series}} × {{value}} repeticiones",
+        "RepsRange": "{{series}} × {{value}}–{{max}} repeticiones",
+        "Duration": "{{series}} × {{value}} s",
+        "MaxReps": "{{series}} × máximo",
+        "other": "{{series}} × {{value}}"
+      }
+    },
+    "notFound": "No hemos encontrado este entrenamiento.",
+    "backToList": "Volver a planes asignados",
+    "structure": {
+      "title": "Estructura del entrenamiento"
+    },
+    "back": "Volver",
+    "editTitle": "Editar entrenamiento"
+  },
+  "muscles": {
+    "ABDOMINALS": "Abdominales",
+    "ABDUCTORS": "Abductores",
+    "ADDUCTORS": "Aductores",
+    "BICEPS": "Bíceps",
+    "CALVES": "Gemelos",
+    "CHEST": "Pecho",
+    "FOREARMS": "Antebrazos",
+    "GLUTES": "Glúteos",
+    "HAMSTRINGS": "Isquiotibiales",
+    "LATS": "Dorsales",
+    "LOWER_BACK": "Zona lumbar",
+    "MIDDLE_BACK": "Espalda media",
+    "NECK": "Cuello",
+    "QUADRICEPS": "Cuádriceps",
+    "SHOULDERS": "Hombros",
+    "TRAPS": "Trapecios",
+    "TRICEPS": "Tríceps"
+  },
+  "bodyParts": {
+    "ARMS": "Brazos",
+    "LEGS": "Piernas",
+    "CHEST": "Pecho",
+    "BACK": "Espalda",
+    "SHOULDERS": "Hombros",
+    "CORE": "Core",
+    "NECK": "Cuello"
+  },
+  "efforts": {
+    "LOW": "Bajo",
+    "MIDLOW": "Medio-bajo",
+    "MID": "Medio",
+    "MIDHIGH": "Medio-alto",
+    "HIGH": "Alto"
+  },
+  "targetTypes": {
+    "Reps": "Repeticiones",
+    "Duration": "Segundos",
+    "MaxReps": "Máximas repeticiones",
+    "RepsRange": "Rango de repeticiones"
+  }
+}
