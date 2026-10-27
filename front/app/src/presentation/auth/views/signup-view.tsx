@@ -9,7 +9,7 @@ import {
 import { useTranslation } from "react-i18next";
 import type { DomainErrorCode } from "@weight-tracker/core/domain";
 import useContainer from "@/presentation/common/hooks/use-container";
-import SignupForm from "../components/signup-form";
+import SignupForm from "../components/organisms/signup-form";
 import useSession from "../hooks/use-session";
 
 const SIGNUP_ERROR_CODES: readonly DomainErrorCode[] = ["VALIDATION", "UNAUTHORIZED", "CONFLICT"];

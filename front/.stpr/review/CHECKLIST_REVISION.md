@@ -24,7 +24,7 @@ but final validation remains manual.
 
 - [ ] Code sits in the layer and domain-area folder its building block requires (`STPR_INVARIANTS.md`, "Workspace layout").
 - [ ] Files under `src/app` are routes and layouts only: each route imports one view and default-exports it.
-- [ ] Views, components, hooks and context live under `src/presentation/<area>` or `src/presentation/common`.
+- [ ] Views, components (by level), hooks and context live under `src/presentation/<area>` or `src/presentation/common`.
 - [ ] Platform adapters and `container.ts` live under the front's `src/infrastructure`.
 
 ## Domain
@@ -48,6 +48,9 @@ but final validation remains manual.
 ## Presentation
 
 - [ ] Presentation reaches use cases through the container only.
+- [ ] Every component sits in the folder of its level (`atoms`, `molecules`, `organisms`); providers and gates stay at the root of `components/`.
+- [ ] Imports flow downward only (view, organism, molecule, atom), and no file mixes levels.
+- [ ] Only atoms import the UI library's widgets; other levels import atoms plus layout primitives.
 - [ ] State is held in Context API providers exposed through custom hooks; no other state library was added.
 - [ ] Failed `Result` values are rendered as UI; no `try/catch` is used for flow control.
 - [ ] No user-visible string is hard-coded; every new key exists in `es` and `en`.

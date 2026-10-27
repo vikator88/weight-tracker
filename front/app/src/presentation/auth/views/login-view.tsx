@@ -9,7 +9,7 @@ import {
 import { useTranslation } from "react-i18next";
 import type { DomainErrorCode } from "@weight-tracker/core/domain";
 import useContainer from "@/presentation/common/hooks/use-container";
-import LoginForm from "../components/login-form";
+import LoginForm from "../components/organisms/login-form";
 import useSession from "../hooks/use-session";
 
 const LOGIN_ERROR_CODES: readonly DomainErrorCode[] = ["UNAUTHORIZED"];

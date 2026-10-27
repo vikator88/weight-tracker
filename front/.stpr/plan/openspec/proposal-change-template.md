@@ -46,7 +46,7 @@ role must NOT see.
 
 ## Classification
 
-- <Piece> -> <entity type | repository contract | platform port | use case | repository implementation | platform adapter | route | view | component | state hook> -> <workspace and folder>
+- <Piece> -> <entity type | repository contract | platform port | use case | repository implementation | platform adapter | route | view | atom | molecule | organism | state hook> -> <workspace and folder>
 - <Piece> -> <building block> -> <workspace and folder>
 
 Use the building blocks and the workspace layout in `.stpr/template/STPR_INVARIANTS.md`. Use cases and repositories
@@ -58,7 +58,7 @@ shared by both fronts live once in `core`.
 - <Piece> -> <canonical template reference path> -> <reason this is the nearest reference>
 
 Every affected piece must name its canonical reference explicitly. UI pieces take their reference from the same front,
-never from the other one. If the reference is `pending` in `.stpr/template/README.md`, say so here: this change
+never from the other one, and name their atomic level. If the reference is `pending` in `.stpr/template/README.md`, say so here: this change
 then establishes the pattern.
 
 ## Screens And Navigation

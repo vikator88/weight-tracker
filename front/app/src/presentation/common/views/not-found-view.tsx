@@ -1,5 +1,6 @@
 import { StyleSheet, View } from "react-native";
-import { Button, Text } from "react-native-paper";
+import Button from "@/presentation/common/components/atoms/button";
+import Text from "@/presentation/common/components/atoms/text";
 import { Link } from "expo-router";
 import { useTranslation } from "react-i18next";
 

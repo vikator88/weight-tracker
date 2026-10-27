@@ -3,7 +3,7 @@ import { validateUpdateProfileRequest } from "@weight-tracker/core/application";
 import type {
   ProfileNameErrors,
   ProfileNameValues,
-} from "@/presentation/profile/components/profile-name-fields";
+} from "@/presentation/common/components/molecules/profile-name-fields";
 import useUpdateProfile from "@/presentation/profile/hooks/use-update-profile";
 
 export interface OnboardingStepProps {

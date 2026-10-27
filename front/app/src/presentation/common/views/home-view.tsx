@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { Button, HelperText, Text } from "react-native-paper";
+import Button from "@/presentation/common/components/atoms/button";
+import HelperText from "@/presentation/common/components/atoms/helper-text";
+import Text from "@/presentation/common/components/atoms/text";
 import { useTranslation } from "react-i18next";
 import type { DomainErrorCode } from "@weight-tracker/core/domain";
 import useSession from "@/presentation/auth/hooks/use-session";
