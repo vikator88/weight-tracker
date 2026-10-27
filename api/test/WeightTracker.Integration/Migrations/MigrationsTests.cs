@@ -363,6 +363,33 @@ public class MigrationsTests : IAsyncLifetime
                 && name.Length >= ExerciseName.MinLength && name.Length <= ExerciseName.MaxLength);
     }
 
+    [Fact]
+    public async Task ImportCatalog_ShouldStoreOnlyVideoUrlsThatPassTheDomainRules()
+    {
+        // Arrange & Act
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Assert
+        var stored = await Strings("SELECT \"VideoUrl\" FROM \"Exercises\" WHERE \"VideoUrl\" IS NOT NULL");
+        stored.Should().NotBeEmpty();
+        stored.Should().OnlyContain(videoUrl => videoUrl.StartsWith("https://www.youtube.com/watch?v="));
+        foreach (var videoUrl in stored)
+            Url.From(videoUrl).Value.Should().Be(videoUrl);
+    }
+
+    [Fact]
+    public async Task ImportCatalog_ShouldStoreTheVideoOfAnEntryThatHasOne()
+    {
+        // Arrange
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Act
+        var videoUrl = await Scalar<string>("""SELECT "VideoUrl" FROM "Exercises" WHERE "FreeExerciseDbId" = 'Barbell_Squat'""");
+
+        // Assert
+        videoUrl.Should().Be("https://www.youtube.com/watch?v=eFYv8Skf66g");
+    }
+
     [Theory]
     [InlineData("Barbell_Squat", Muscles.QUADRICEPS, "Barbell Squat", "Sentadilla con barra")]
     [InlineData("Barbell_Bench_Press_-_Medium_Grip", Muscles.CHEST, "Barbell Bench Press - Medium Grip", "Press de banca")]
