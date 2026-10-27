@@ -24,6 +24,12 @@ const unusedDependencies: Registrations<Dependencies> = {
     getMe: async () => undefined as never,
     updateMe: async () => undefined as never,
   }),
+  workoutRepository: () => ({
+    create: async () => undefined as never,
+    update: async () => undefined as never,
+    addExercise: async () => undefined as never,
+  }),
+  exerciseRepository: () => ({ getAll: async () => undefined as never }),
   signupUseCase: () => ({ execute: async () => undefined as never }),
   loginUseCase: () => ({ execute: async () => undefined as never }),
   getSessionUseCase: () => ({ execute: async () => ok(null) }),
@@ -33,6 +39,10 @@ const unusedDependencies: Registrations<Dependencies> = {
   setPreferredLanguageUseCase: () => ({ execute: async () => ok(undefined) }),
   getMyProfileUseCase: () => ({ execute: async () => undefined as never }),
   updateMyProfileUseCase: () => ({ execute: async () => undefined as never }),
+  createWorkoutUseCase: () => ({ execute: async () => undefined as never }),
+  updateWorkoutUseCase: () => ({ execute: async () => undefined as never }),
+  addExerciseToWorkoutUseCase: () => ({ execute: async () => undefined as never }),
+  getExercisesUseCase: () => ({ execute: async () => undefined as never }),
 };
 
 /** Renders a view in Spanish, with the real theme and a container of fakes. */
