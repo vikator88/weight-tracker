@@ -11,3 +11,14 @@ export type {
   SignupRequest,
 } from "./auth/auth";
 export type { UpdateProfileRequest, UserProfile } from "./users/user";
+export type {
+  AddExerciseRequest,
+  AddExerciseToWorkoutInput,
+  CreateWorkoutRequest,
+  SetPrescription,
+  UpdateWorkoutInput,
+  UpdateWorkoutRequest,
+  Workout,
+  WorkoutExerciseDetail,
+} from "./workouts/workout";
+export type { Exercise } from "./exercises/exercise";

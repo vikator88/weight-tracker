@@ -1,5 +1,8 @@
 import {
+  AddExerciseToWorkoutUseCase,
+  CreateWorkoutUseCase,
   type Dependencies,
+  GetExercisesUseCase,
   GetMyProfileUseCase,
   GetPreferredLanguageUseCase,
   GetSessionUseCase,
@@ -8,13 +11,16 @@ import {
   RefreshSessionUseCase,
   SetPreferredLanguageUseCase,
   UpdateMyProfileUseCase,
+  UpdateWorkoutUseCase,
   SignupUseCase,
 } from "@weight-tracker/core/application";
 import {
   AuthRepository,
   Container,
+  ExerciseRepository,
   FetchHttpClient,
   UserRepository,
+  WorkoutRepository,
 } from "@weight-tracker/core/infrastructure";
 import LocalStorageKeyValueStore from "./local-storage-key-value-store";
 import NoOpNotificationService from "./no-op-notification-service";
@@ -33,6 +39,8 @@ const container = new Container<Dependencies>({
   notificationService: () => new NoOpNotificationService(),
   authRepository: (c) => new AuthRepository(c.resolve("httpClient")),
   userRepository: (c) => new UserRepository(c.resolve("httpClient")),
+  workoutRepository: (c) => new WorkoutRepository(c.resolve("httpClient")),
+  exerciseRepository: (c) => new ExerciseRepository(c.resolve("httpClient")),
   signupUseCase: (c) =>
     new SignupUseCase(c.resolve("authRepository"), c.resolve("keyValueStore"), 2), // TRAINER
   loginUseCase: (c) => new LoginUseCase(c.resolve("authRepository"), c.resolve("keyValueStore")),
@@ -44,6 +52,11 @@ const container = new Container<Dependencies>({
   setPreferredLanguageUseCase: (c) => new SetPreferredLanguageUseCase(c.resolve("keyValueStore")),
   getMyProfileUseCase: (c) => new GetMyProfileUseCase(c.resolve("userRepository")),
   updateMyProfileUseCase: (c) => new UpdateMyProfileUseCase(c.resolve("userRepository")),
+  createWorkoutUseCase: (c) => new CreateWorkoutUseCase(c.resolve("workoutRepository")),
+  updateWorkoutUseCase: (c) => new UpdateWorkoutUseCase(c.resolve("workoutRepository")),
+  addExerciseToWorkoutUseCase: (c) =>
+    new AddExerciseToWorkoutUseCase(c.resolve("workoutRepository")),
+  getExercisesUseCase: (c) => new GetExercisesUseCase(c.resolve("exerciseRepository")),
 });
 
 export default container;

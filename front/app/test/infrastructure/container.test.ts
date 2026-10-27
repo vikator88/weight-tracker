@@ -22,6 +22,10 @@ const keys: (keyof Dependencies)[] = [
   "refreshSessionUseCase",
   "getMyProfileUseCase",
   "updateMyProfileUseCase",
+  "createWorkoutUseCase",
+  "updateWorkoutUseCase",
+  "addExerciseToWorkoutUseCase",
+  "getExercisesUseCase",
 ];
 
 describe("container", () => {

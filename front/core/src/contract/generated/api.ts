@@ -198,7 +198,91 @@ export interface paths {
                 };
             };
         };
-        put?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateWorkoutRequest"];
+                    "text/json": components["schemas"]["UpdateWorkoutRequest"];
+                    "application/*+json": components["schemas"]["UpdateWorkoutRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["WorkoutDetailResponse"];
+                        "application/json": components["schemas"]["WorkoutDetailResponse"];
+                        "text/json": components["schemas"]["WorkoutDetailResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -900,67 +984,7 @@ export interface paths {
             };
         };
         put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["ExerciseRequest"];
-                    "text/json": components["schemas"]["ExerciseRequest"];
-                    "application/*+json": components["schemas"]["ExerciseRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ExerciseResponse"];
-                        "application/json": components["schemas"]["ExerciseResponse"];
-                        "text/json": components["schemas"]["ExerciseResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ValidationProblemDetails"];
-                        "application/json": components["schemas"]["ValidationProblemDetails"];
-                        "text/json": components["schemas"]["ValidationProblemDetails"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
-                        "application/json": components["schemas"]["ProblemDetails"];
-                        "text/json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
-                        "application/json": components["schemas"]["ProblemDetails"];
-                        "text/json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1009,145 +1033,9 @@ export interface paths {
                 };
             };
         };
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["ExerciseRequest"];
-                    "text/json": components["schemas"]["ExerciseRequest"];
-                    "application/*+json": components["schemas"]["ExerciseRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ExerciseResponse"];
-                        "application/json": components["schemas"]["ExerciseResponse"];
-                        "text/json": components["schemas"]["ExerciseResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ValidationProblemDetails"];
-                        "application/json": components["schemas"]["ValidationProblemDetails"];
-                        "text/json": components["schemas"]["ValidationProblemDetails"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
-                        "application/json": components["schemas"]["ProblemDetails"];
-                        "text/json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
-                        "application/json": components["schemas"]["ProblemDetails"];
-                        "text/json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
-                        "application/json": components["schemas"]["ProblemDetails"];
-                        "text/json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
+        put?: never;
         post?: never;
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description No Content */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
-                        "application/json": components["schemas"]["ProblemDetails"];
-                        "text/json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
-                        "application/json": components["schemas"]["ProblemDetails"];
-                        "text/json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
-                        "application/json": components["schemas"]["ProblemDetails"];
-                        "text/json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
-                        "application/json": components["schemas"]["ProblemDetails"];
-                        "text/json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1353,7 +1241,6 @@ export interface components {
             /** Format: int32 */
             expiresIn: number | string;
         };
-        BodyParts: number;
         ChangeWorkoutStatusRequest: {
             status: null | components["schemas"]["WorkoutStatus"];
         };
@@ -1365,22 +1252,25 @@ export interface components {
             userId?: null | string;
             /** Format: uuid */
             trainerId?: null | string;
+            name: null | string;
+            description?: null | string;
             /** Format: date */
             workoutDate: null | string;
         };
         /** @enum {unknown} */
         Effort: "LOW" | "MIDLOW" | "MID" | "MIDHIGH" | "HIGH" | null;
-        ExerciseRequest: {
-            name: string;
-            videoUrl?: null | string;
-            bodyPart: components["schemas"]["BodyParts"];
-        };
         ExerciseResponse: {
             /** Format: uuid */
             id: string;
-            name: string;
+            freeExerciseDbId: null | string;
             videoUrl: null | string;
+            muscle: string;
             bodyPart: string;
+            translations: components["schemas"]["ExerciseTranslationResponse"][];
+        };
+        ExerciseTranslationResponse: {
+            languageCode: string;
+            name: string;
         };
         LoginRequest: {
             email: string;
@@ -1432,6 +1322,16 @@ export interface components {
             name: string;
             surname: string;
         };
+        UpdateWorkoutRequest: {
+            name: null | string;
+            description?: null | string;
+            /** Format: date */
+            workoutDate: null | string;
+            /** Format: uuid */
+            userId: null | string;
+            /** Format: uuid */
+            trainerId?: null | string;
+        };
         UserProfileResponse: {
             /** Format: uuid */
             id: string;
@@ -1454,6 +1354,8 @@ export interface components {
         WorkoutDetailResponse: {
             /** Format: uuid */
             id: string;
+            name: string;
+            description: null | string;
             /** Format: date */
             workoutDate: string;
             /** Format: uuid */
@@ -1478,7 +1380,8 @@ export interface components {
             id: string;
             /** Format: uuid */
             exerciseId: string;
-            name: string;
+            translations: components["schemas"]["ExerciseTranslationResponse"][];
+            muscle: string;
             bodyPart: string;
             effort: string;
             sets: components["schemas"]["SetResponse"][];
@@ -1488,6 +1391,8 @@ export interface components {
         WorkoutResponse: {
             /** Format: uuid */
             id: string;
+            name: string;
+            description: null | string;
             /** Format: date */
             workoutDate: string;
             /** Format: uuid */
