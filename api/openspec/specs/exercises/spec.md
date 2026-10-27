@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the exercises that workouts are built from: their names per language, the muscle they work and the body part derived from it, and their link to the free exercise dataset, as read anonymously and written by admins through `/exercises`.
+Defines the exercises that workouts are built from: their names per language, the muscle they work and the body part derived from it, and their link to the free exercise dataset, as a read-only catalog served anonymously through `/exercises` and changed only through migrations or direct database edits.
 
 ## Requirements
 

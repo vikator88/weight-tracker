@@ -5,7 +5,8 @@ namespace WeightTracker.Migrations.Migrations;
 
 /// <summary>
 /// Inserts every exercise of the free exercise dataset (<c>infra/exercises.json</c>) with its
-/// dataset id, its primary muscle and its names in English and Spanish.
+/// dataset id, its primary muscle, its names in English and Spanish and, when one was found, a
+/// YouTube technique video.
 /// </summary>
 /// <remarks>
 /// The rows come from <c>Data/ExerciseCatalog.json</c>, embedded in this assembly. Every id in it is
@@ -55,7 +56,8 @@ public sealed class ImportFreeExerciseCatalog_202610271200 : Migration
             {
                 exercise.Id,
                 exercise.FreeExerciseDbId,
-                VideoUrl = (string?)null,
+                // Null when no clear technique video was found. Length aligned with Url.MaxLength
+                exercise.VideoUrl,
                 Muscle = muscle,
             });
 
@@ -92,6 +94,7 @@ public sealed class ImportFreeExerciseCatalog_202610271200 : Migration
         Guid Id,
         string FreeExerciseDbId,
         string Muscle,
+        string? VideoUrl,
         IReadOnlyList<CatalogTranslation> Translations);
 
     public sealed record CatalogTranslation(Guid Id, string LanguageCode, string Name);
