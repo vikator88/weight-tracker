@@ -12,6 +12,7 @@ import {
   LogoutUseCase,
   RefreshSessionUseCase,
   RemoveExerciseFromWorkoutUseCase,
+  ReorderWorkoutExercisesUseCase,
   SetPreferredLanguageUseCase,
   UpdateMyProfileUseCase,
   UpdateWorkoutExerciseUseCase,
@@ -66,6 +67,8 @@ const container = new Container<Dependencies>({
     new UpdateWorkoutExerciseUseCase(c.resolve("workoutRepository")),
   removeExerciseFromWorkoutUseCase: (c) =>
     new RemoveExerciseFromWorkoutUseCase(c.resolve("workoutRepository")),
+  reorderWorkoutExercisesUseCase: (c) =>
+    new ReorderWorkoutExercisesUseCase(c.resolve("workoutRepository")),
   getExercisesUseCase: (c) => new GetExercisesUseCase(c.resolve("exerciseRepository")),
 });
 

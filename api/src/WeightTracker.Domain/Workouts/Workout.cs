@@ -254,6 +254,27 @@ public sealed class Workout : AggregateRoot
     }
 
     /// <summary>
+    /// Puts the exercises of this workout in the given order. Entry ids, effort, sets and superseries are kept.
+    /// </summary>
+    /// <param name="exerciseIds">Catalog exercises of this workout, every one exactly once, in the new order.</param>
+    /// <exception cref="WorkoutExerciseOrderMismatchException">When the ids are not exactly the exercises of the workout.</exception>
+    public void ReorderExercises(IEnumerable<Id> exerciseIds)
+    {
+        var requested = exerciseIds.ToList();
+
+        var matches = requested.Count == _exercises.Count
+            && requested.Distinct().Count() == requested.Count
+            && requested.All(exerciseId => _exercises.Any(entry => entry.ExerciseId == exerciseId));
+
+        if (matches == false)
+            throw new WorkoutExerciseOrderMismatchException(this.Id);
+
+        _exercises = requested
+            .Select(exerciseId => _exercises.First(entry => entry.ExerciseId == exerciseId))
+            .ToList();
+    }
+
+    /// <summary>
     /// Groups exercises of this workout into a superseries: the first set of every exercise is done
     /// back to back, then rest, then the next set of every exercise.
     /// </summary>

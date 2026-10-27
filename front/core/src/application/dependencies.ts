@@ -5,6 +5,7 @@ import type {
   Exercise,
   GetWorkoutByIdInput,
   RemoveExerciseFromWorkoutInput,
+  ReorderWorkoutExercisesInput,
   LoginRequest,
   Session,
   SignupCredentials,
@@ -52,5 +53,6 @@ export default interface Dependencies {
   addExerciseToWorkoutUseCase: UseCaseInterface<AddExerciseToWorkoutInput, WorkoutExerciseDetail>;
   updateWorkoutExerciseUseCase: UseCaseInterface<UpdateWorkoutExerciseInput, WorkoutExerciseDetail>;
   removeExerciseFromWorkoutUseCase: UseCaseInterface<RemoveExerciseFromWorkoutInput, void>;
+  reorderWorkoutExercisesUseCase: UseCaseInterface<ReorderWorkoutExercisesInput, WorkoutDetail>;
   getExercisesUseCase: UseCaseInterface<void, Exercise[]>;
 }

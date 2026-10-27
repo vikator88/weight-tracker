@@ -22,6 +22,7 @@ public class WorkoutsController : AuthorizedController
     private readonly AddWorkoutExerciseUseCase _addExercise;
     private readonly UpdateWorkoutExerciseUseCase _updateExercise;
     private readonly RemoveWorkoutExerciseUseCase _removeExercise;
+    private readonly ReorderWorkoutExercisesUseCase _reorderExercises;
     private readonly ChangeWorkoutStatusUseCase _changeStatus;
 
     public WorkoutsController(
@@ -34,6 +35,7 @@ public class WorkoutsController : AuthorizedController
         AddWorkoutExerciseUseCase addExercise,
         UpdateWorkoutExerciseUseCase updateExercise,
         RemoveWorkoutExerciseUseCase removeExercise,
+        ReorderWorkoutExercisesUseCase reorderExercises,
         ChangeWorkoutStatusUseCase changeStatus,
         GetAuthenticatedUserUseCase getAuthenticatedUser,
         ExceptionMapper exceptionMapper) : base(getAuthenticatedUser, exceptionMapper)
@@ -47,6 +49,7 @@ public class WorkoutsController : AuthorizedController
         _addExercise = addExercise;
         _updateExercise = updateExercise;
         _removeExercise = removeExercise;
+        _reorderExercises = reorderExercises;
         _changeStatus = changeStatus;
     }
 
@@ -315,6 +318,37 @@ public class WorkoutsController : AuthorizedController
             await _removeExercise.Execute(CurrentUser!.Id, CurrentUser.Role, Id.From(workoutId), Id.From(exerciseId), cancellationToken);
 
             return NoContent();
+        }
+        catch (Exception exception)
+        {
+            return ExceptionMapper.Map(exception);
+        }
+    }
+
+    /// <summary>
+    /// Puts the exercises of the workout in a new order. <c>exerciseIds</c> are catalog exercises and must
+    /// list every exercise of the workout exactly once. Entry ids, effort, sets and superseries are kept.
+    /// </summary>
+    [HttpPut("{workoutId:guid}/exercises/order")]
+    [ProducesResponseType<WorkoutDetailResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ReorderExercises(
+        Guid workoutId, [FromBody] ReorderWorkoutExercisesRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var workout = await _reorderExercises.Execute(
+                CurrentUser!.Id,
+                CurrentUser.Role,
+                Id.From(workoutId),
+                request.ExerciseIds!.Select(Id.From).ToList(),
+                cancellationToken);
+
+            return Ok(WorkoutDetailResponse.From(workout));
         }
         catch (Exception exception)
         {

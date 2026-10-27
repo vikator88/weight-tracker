@@ -50,7 +50,16 @@
       "title": "Ejercicios",
       "pending": "Pendiente",
       "setsLine": "Series: {{sets}}",
-      "effortLine": "Esfuerzo: {{effort}}"
+      "effortLine": "Esfuerzo: {{effort}}",
+      "reorder": "Reordenar ejercicio",
+      "dnd": {
+        "roleDescription": "ejercicio reordenable",
+        "instructions": "Pulsa espacio o intro para coger un ejercicio, las flechas para moverlo, espacio o intro para soltarlo y escape para cancelar.",
+        "picked": "Has cogido {{name}}.",
+        "over": "{{name}} está en la posición {{position}}.",
+        "dropped": "{{name}} se ha soltado en la posición {{position}}.",
+        "cancelled": "Se ha cancelado el movimiento de {{name}}."
+      }
     },
     "configuration": {
       "empty": "Selecciona un ejercicio para configurarlo.",

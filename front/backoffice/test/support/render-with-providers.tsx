@@ -42,6 +42,7 @@ const unusedDependencies: Registrations<Dependencies> = {
     addExercise: async () => undefined as never,
     updateExercise: async () => undefined as never,
     removeExercise: async () => undefined as never,
+    reorderExercises: async () => undefined as never,
   }),
   exerciseRepository: () => ({ getAll: async () => undefined as never }),
   signupUseCase: () => ({ execute: async () => undefined as never }),
@@ -60,6 +61,7 @@ const unusedDependencies: Registrations<Dependencies> = {
   addExerciseToWorkoutUseCase: () => ({ execute: async () => undefined as never }),
   updateWorkoutExerciseUseCase: () => ({ execute: async () => undefined as never }),
   removeExerciseFromWorkoutUseCase: () => ({ execute: async () => undefined as never }),
+  reorderWorkoutExercisesUseCase: () => ({ execute: async () => undefined as never }),
   getExercisesUseCase: () => ({ execute: async () => undefined as never }),
 };
 

@@ -17,6 +17,8 @@ export type {
   CreateWorkoutRequest,
   GetWorkoutByIdInput,
   RemoveExerciseFromWorkoutInput,
+  ReorderWorkoutExercisesInput,
+  ReorderWorkoutExercisesRequest,
   SetPrescription,
   UpdateWorkoutExerciseInput,
   UpdateWorkoutInput,

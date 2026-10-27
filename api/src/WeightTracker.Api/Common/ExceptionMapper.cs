@@ -71,7 +71,8 @@ public class ExceptionMapper
 
             RefreshTokenAlreadyRevokedException or EmailAlreadyExistException
                 or ExerciseAlreadyInWorkoutException or ExerciseAlreadyInSuperSeriesException
-                or InvalidWorkoutStatusTransitionException or WorkoutLockedException => Problem(
+                or InvalidWorkoutStatusTransitionException or WorkoutLockedException
+                or WorkoutExerciseOrderMismatchException => Problem(
                 StatusCodes.Status409Conflict,
                 exception.Message
             ),

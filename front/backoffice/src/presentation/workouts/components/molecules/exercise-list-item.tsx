@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode, Ref } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@/presentation/common/components/atoms/chip";
 import ListItem from "@/presentation/common/components/atoms/list-item";
@@ -26,8 +26,13 @@ interface ExerciseListItemProps {
   /** The exercise's place in its list, shown in a circle before the name. */
   position?: number;
   selected?: boolean;
+  /** Shown on the left, before the position, such as a drag handle. */
+  leading?: ReactNode;
   /** Icon buttons shown on the right. */
   actions: ReactNode;
+  /** The item's node and inline style, for a wrapper that moves it, such as a sortable list. */
+  ref?: Ref<HTMLLIElement>;
+  style?: CSSProperties;
 }
 
 /** One exercise: its name, labels under it, and its actions on the right. Shared by the catalog and the workout. */
@@ -38,10 +43,15 @@ export default function ExerciseListItem({
   lines = [],
   position,
   selected = false,
+  leading,
   actions,
+  ref,
+  style,
 }: ExerciseListItemProps) {
   return (
     <ListItem
+      ref={ref}
+      style={style}
       divider
       aria-current={selected ? "true" : undefined}
       sx={{
@@ -50,6 +60,7 @@ export default function ExerciseListItem({
         bgcolor: selected ? "action.selected" : undefined,
       }}
     >
+      {leading && <Box sx={{ display: "flex", flexShrink: 0, alignSelf: "center" }}>{leading}</Box>}
       {position !== undefined && (
         <Box
           sx={{

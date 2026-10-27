@@ -1,11 +1,12 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DomainError, fail, ok } from "@weight-tracker/core/domain";
 import type {
   AddExerciseToWorkoutInput,
   Exercise,
   RemoveExerciseFromWorkoutInput,
+  ReorderWorkoutExercisesInput,
   Result,
   Session,
   UpdateWorkoutExerciseInput,
@@ -170,6 +171,7 @@ function renderWorkout({
   addExercise = async (input) => ok(entryOf(input, "we-new")),
   updateExercise = async (input) => ok(entryOf(input, "we-1")),
   removeExercise = async () => ok(undefined),
+  reorderExercises = async () => ok(workout),
 }: {
   getWorkout?: () => Promise<Result<WorkoutDetail, DomainError>>;
   getExercises?: () => Promise<Result<Exercise[], DomainError>>;
@@ -182,6 +184,9 @@ function renderWorkout({
     input: UpdateWorkoutExerciseInput,
   ) => Promise<Result<WorkoutExerciseDetail, DomainError>>;
   removeExercise?: (input: RemoveExerciseFromWorkoutInput) => Promise<Result<void, DomainError>>;
+  reorderExercises?: (
+    input: ReorderWorkoutExercisesInput,
+  ) => Promise<Result<WorkoutDetail, DomainError>>;
 } = {}) {
   const readWorkout = vi.fn(getWorkout);
   const readCatalog = vi.fn(getExercises);
@@ -191,6 +196,7 @@ function renderWorkout({
     addExercise: vi.fn(addExercise),
     updateExercise: vi.fn(updateExercise),
     removeExercise: vi.fn(removeExercise),
+    reorderExercises: vi.fn(reorderExercises),
   };
 
   return {
@@ -206,6 +212,7 @@ function renderWorkout({
       addExerciseToWorkoutUseCase: () => ({ execute: mutations.addExercise }),
       updateWorkoutExerciseUseCase: () => ({ execute: mutations.updateExercise }),
       removeExerciseFromWorkoutUseCase: () => ({ execute: mutations.removeExercise }),
+      reorderWorkoutExercisesUseCase: () => ({ execute: mutations.reorderExercises }),
     }),
   };
 }
@@ -222,6 +229,59 @@ function catalogNames() {
 
 async function loaded() {
   await screen.findByRole("region", { name: "Catálogo de ejercicios" });
+}
+
+/** Each workout exercise as its position and name, in the order listed. */
+function workoutRows() {
+  return within(workoutSection())
+    .getAllByRole("listitem")
+    .map((item) =>
+      within(item)
+        .getAllByText(/./)
+        .slice(0, 2)
+        .map((text) => text.textContent),
+    );
+}
+
+function workoutButtons(name: string) {
+  return within(workoutSection()).getAllByRole("button", { name });
+}
+
+/**
+ * jsdom has no layout, so every element would sit at the same place and dnd-kit's keyboard sensor could not move
+ * between rows. Each list item gets its own row instead, by its place among its siblings.
+ */
+function stubListItemRects() {
+  return vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+    this: HTMLElement,
+  ) {
+    const index =
+      this.tagName === "LI" && this.parentElement
+        ? Array.from(this.parentElement.children).indexOf(this)
+        : 0;
+    const top = index * 60;
+    return {
+      x: 0,
+      y: top,
+      top,
+      left: 0,
+      right: 300,
+      bottom: top + 50,
+      width: 300,
+      height: 50,
+      toJSON: () => ({}),
+    };
+  });
+}
+
+/** Picks up the workout exercise at `from` by its handle, moves it down `steps` rows and drops it. */
+async function moveDown(user: ReturnType<typeof userEvent.setup>, from: number, steps: number) {
+  workoutButtons("Reordenar ejercicio")[from]!.focus();
+  await user.keyboard("[Space]");
+  for (let step = 0; step < steps; step += 1) {
+    await user.keyboard("[ArrowDown]");
+  }
+  await user.keyboard("[Space]");
 }
 
 function mutationCalls(mutations: ReturnType<typeof renderWorkout>["mutations"]) {
@@ -789,9 +849,192 @@ describe("WorkoutView", () => {
       ["3", "Prensa de piernas"],
     ]);
     for (const item of items) {
+      expect(within(item).getByRole("button", { name: "Reordenar ejercicio" })).toBeEnabled();
       expect(within(item).getByRole("button", { name: "Quitar ejercicio" })).toBeInTheDocument();
       expect(within(item).getByRole("button", { name: "Editar ejercicio" })).toBeInTheDocument();
     }
+  });
+
+  describe("reordering", () => {
+    let rects: ReturnType<typeof stubListItemRects>;
+
+    beforeEach(() => {
+      rects = stubListItemRects();
+    });
+
+    afterEach(() => {
+      rects.mockRestore();
+    });
+
+    it("moves a dropped exercise at once and sends the full saved order, once", async () => {
+      // Arrange
+      const { mutations, rendered } = renderWorkout({
+        reorderExercises: () => new Promise(() => {}),
+      });
+      await rendered;
+      await loaded();
+      const user = userEvent.setup();
+
+      // Act
+      await moveDown(user, 0, 1);
+
+      // Assert
+      expect(workoutRows()).toEqual([
+        ["1", "Press de banca"],
+        ["2", "Sentadilla"],
+        ["3", "Prensa de piernas"],
+      ]);
+      expect(mutations.reorderExercises).toHaveBeenCalledTimes(1);
+      expect(mutations.reorderExercises).toHaveBeenCalledWith({
+        workoutId: "w-1",
+        exerciseIds: ["ex-bench", "ex-squat", "ex-press"],
+      });
+    });
+
+    it("keeps the new order and shows no error when the API accepts it", async () => {
+      // Arrange
+      await renderWorkout().rendered;
+      await loaded();
+      const user = userEvent.setup();
+
+      // Act
+      await moveDown(user, 0, 2);
+
+      // Assert
+      await waitFor(() =>
+        expect(
+          workoutButtons("Reordenar ejercicio").every((handle) => !handle.hasAttribute("disabled")),
+        ).toBe(true),
+      );
+      expect(workoutRows()).toEqual([
+        ["1", "Press de banca"],
+        ["2", "Prensa de piernas"],
+        ["3", "Sentadilla"],
+      ]);
+      expect(within(workoutSection()).queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("puts the previous order back and shows the error when the API refuses it", async () => {
+      // Arrange
+      await renderWorkout({ reorderExercises: async () => fail(new DomainError("CONFLICT", "")) })
+        .rendered;
+      await loaded();
+      const user = userEvent.setup();
+
+      // Act
+      await moveDown(user, 0, 1);
+
+      // Assert
+      expect(
+        await within(workoutSection()).findByText(
+          "La operación entra en conflicto con el estado actual.",
+        ),
+      ).toBeInTheDocument();
+      expect(workoutRows()).toEqual([
+        ["1", "Sentadilla"],
+        ["2", "Press de banca"],
+        ["3", "Prensa de piernas"],
+      ]);
+    });
+
+    it("sends nothing when the exercise is dropped where it was", async () => {
+      // Arrange
+      const { mutations, rendered } = renderWorkout();
+      await rendered;
+      await loaded();
+      const user = userEvent.setup();
+
+      // Act
+      await moveDown(user, 0, 0);
+
+      // Assert
+      expect(workoutRows().map(([, name]) => name)).toEqual([
+        "Sentadilla",
+        "Press de banca",
+        "Prensa de piernas",
+      ]);
+      expect(mutationCalls(mutations)).toBe(0);
+    });
+
+    it("sends nothing when the drag is cancelled with Escape", async () => {
+      // Arrange
+      const { mutations, rendered } = renderWorkout();
+      await rendered;
+      await loaded();
+      const user = userEvent.setup();
+      workoutButtons("Reordenar ejercicio")[0]!.focus();
+      await user.keyboard("[Space]");
+      await user.keyboard("[ArrowDown]");
+
+      // Act
+      await user.keyboard("[Escape]");
+
+      // Assert
+      expect(workoutRows().map(([, name]) => name)).toEqual([
+        "Sentadilla",
+        "Press de banca",
+        "Prensa de piernas",
+      ]);
+      expect(mutationCalls(mutations)).toBe(0);
+    });
+
+    it("disables every handle while the reorder is in progress", async () => {
+      // Arrange
+      await renderWorkout({ reorderExercises: () => new Promise(() => {}) }).rendered;
+      await loaded();
+      const user = userEvent.setup();
+
+      // Act
+      await moveDown(user, 0, 1);
+
+      // Assert
+      for (const handle of workoutButtons("Reordenar ejercicio")) {
+        expect(handle).toBeDisabled();
+      }
+    });
+
+    it("disables a pending exercise's handle and never sends pending exercises", async () => {
+      // Arrange
+      const { mutations, rendered } = renderWorkout({
+        getWorkout: async () => ok({ ...workout, exercises: [squatInWorkout, benchInWorkout] }),
+      });
+      await rendered;
+      await loaded();
+      const user = userEvent.setup();
+      await user.click(
+        within(catalogSection()).getAllByRole("button", { name: "Añadir ejercicio" })[0]!,
+      );
+
+      // Act
+      await moveDown(user, 0, 1);
+
+      // Assert
+      const handles = workoutButtons("Reordenar ejercicio");
+      expect(handles).toHaveLength(3);
+      await waitFor(() => expect(handles[0]).toBeEnabled());
+      expect(handles[2]).toBeDisabled();
+      expect(mutations.reorderExercises).toHaveBeenCalledWith({
+        workoutId: "w-1",
+        exerciseIds: ["ex-bench", "ex-squat"],
+      });
+    });
+
+    it("keeps the moved exercise selected", async () => {
+      // Arrange
+      await renderWorkout().rendered;
+      await loaded();
+      const user = userEvent.setup();
+      await user.click(workoutButtons("Editar ejercicio")[0]!);
+
+      // Act
+      await moveDown(user, 0, 1);
+
+      // Assert
+      const squatItem = within(workoutSection()).getAllByRole("listitem")[1]!;
+      expect(within(squatItem).getByText("Sentadilla")).toBeInTheDocument();
+      expect(squatItem).toHaveAttribute("aria-current", "true");
+      expect(within(configurationSection()).getByText("Sentadilla")).toBeInTheDocument();
+    });
   });
 
   it("removes a saved exercise through the API and lists it in the catalog again", async () => {

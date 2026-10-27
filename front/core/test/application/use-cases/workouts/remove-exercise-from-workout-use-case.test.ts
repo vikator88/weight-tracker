@@ -57,6 +57,11 @@ class FakeWorkoutRepository implements WorkoutRepositoryInterface {
     this.removals.push({ workoutId: workoutIdOfCall, exerciseId: exerciseIdOfCall });
     return this.result;
   }
+
+  async reorderExercises(): Promise<Result<WorkoutDetail, DomainError>> {
+    this.otherCalls += 1;
+    return fail(new DomainError("UNEXPECTED", "Not used"));
+  }
 }
 
 describe("RemoveExerciseFromWorkoutUseCase", () => {

@@ -73,6 +73,7 @@ builder.Services.AddScoped<RemoveWorkoutExerciseUseCase>();
 builder.Services.AddScoped<ChangeWorkoutStatusUseCase>();
 builder.Services.AddScoped<CreateSuperSeriesUseCase>();
 builder.Services.AddScoped<BreakSuperSeriesUseCase>();
+builder.Services.AddScoped<ReorderWorkoutExercisesUseCase>();
 builder.Services.AddScoped<LoginUseCase>();
 builder.Services.AddScoped<SignupUseCase>();
 builder.Services.AddScoped<RefreshTokenUseCase>();

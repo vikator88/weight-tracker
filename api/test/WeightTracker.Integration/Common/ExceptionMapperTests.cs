@@ -290,4 +290,17 @@ public class ExceptionMapperTests
         // Assert
         status.Should().Be(StatusCodes.Status409Conflict);
     }
+
+    [Fact]
+    public void Map_ShouldReturnConflictForAMismatchingExerciseOrder()
+    {
+        // Arrange
+        var exception = new WorkoutExerciseOrderMismatchException(Id.New());
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status409Conflict);
+    }
 }
