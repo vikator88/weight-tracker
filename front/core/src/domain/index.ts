@@ -15,10 +15,14 @@ export type {
   AddExerciseRequest,
   AddExerciseToWorkoutInput,
   CreateWorkoutRequest,
+  GetWorkoutByIdInput,
+  RemoveExerciseFromWorkoutInput,
   SetPrescription,
+  UpdateWorkoutExerciseInput,
   UpdateWorkoutInput,
   UpdateWorkoutRequest,
   Workout,
+  WorkoutDetail,
   WorkoutExerciseDetail,
 } from "./workouts/workout";
 export type { Exercise } from "./exercises/exercise";

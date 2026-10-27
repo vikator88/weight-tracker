@@ -29,9 +29,11 @@ const DRAWER_WIDTH = 260;
 interface MenuItemDefinition {
   label: string;
   icon: ComponentType;
+  /** The item's screen. Items without one have no screen yet and render as buttons that do nothing. */
+  href?: string;
 }
 
-/** Sections after Inicio. Items have no screen yet, so they render as buttons that do nothing. */
+/** Sections after Inicio. */
 const sections: { title: string; items: MenuItemDefinition[] }[] = [
   {
     title: "menu.athletes.title",
@@ -43,7 +45,11 @@ const sections: { title: string; items: MenuItemDefinition[] }[] = [
   {
     title: "menu.programming.title",
     items: [
-      { label: "menu.programming.assignedPlans", icon: AssignmentOutlined },
+      {
+        label: "menu.programming.assignedPlans",
+        icon: AssignmentOutlined,
+        href: "/assigned-plans",
+      },
       { label: "menu.programming.calendar", icon: CalendarMonthOutlined },
     ],
   },
@@ -97,14 +103,29 @@ export default function NavigationDrawer() {
       </List>
       {sections.map((section) => (
         <List key={section.title} subheader={<ListSubheader>{t(section.title)}</ListSubheader>}>
-          {section.items.map(({ label, icon: Icon }) => (
-            <ListItemButton key={label}>
-              <ListItemIcon>
-                <Icon />
-              </ListItemIcon>
-              <ListItemText primary={t(label)} />
-            </ListItemButton>
-          ))}
+          {section.items.map(({ label, icon: Icon, href }) => {
+            const content = (
+              <>
+                <ListItemIcon>
+                  <Icon />
+                </ListItemIcon>
+                <ListItemText primary={t(label)} />
+              </>
+            );
+
+            return href ? (
+              <ListItemButton
+                key={label}
+                component={NextLink}
+                href={href}
+                selected={pathname === href}
+              >
+                {content}
+              </ListItemButton>
+            ) : (
+              <ListItemButton key={label}>{content}</ListItemButton>
+            );
+          })}
         </List>
       ))}
     </Drawer>

@@ -1,0 +1,133 @@
+{
+  "assignedPlans": {
+    "title": "Assigned plans",
+    "newWorkout": "New workout",
+    "columns": {
+      "name": "Name",
+      "date": "Date",
+      "athlete": "Athlete",
+      "trainer": "Trainer",
+      "exercises": "Exercises"
+    },
+    "empty": "No workouts assigned yet.",
+    "edit": "Edit {{name}}"
+  },
+  "createWorkout": {
+    "title": "New workout",
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "date": "Date",
+      "userId": "Athlete ID",
+      "trainerId": "Trainer ID"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "create": "Create"
+    },
+    "validation": {
+      "required": "This field is required.",
+      "maxLength": "It cannot be longer than {{max}} characters.",
+      "date": "Enter a valid date.",
+      "uuid": "Enter a valid identifier."
+    }
+  },
+  "workout": {
+    "catalog": {
+      "filter": "Search exercise",
+      "empty": "No exercise matches the filter.",
+      "add": "Add exercise",
+      "title": "Exercise catalog"
+    },
+    "details": {
+      "save": "Save",
+      "saved": "Workout saved."
+    },
+    "exercises": {
+      "empty": "This workout has no exercises yet.",
+      "remove": "Remove exercise",
+      "edit": "Edit exercise",
+      "title": "Exercises",
+      "pending": "Pending",
+      "setsLine": "Sets: {{sets}}",
+      "effortLine": "Effort: {{effort}}"
+    },
+    "configuration": {
+      "empty": "Select an exercise to configure it.",
+      "effort": "Effort",
+      "sets": "Sets",
+      "setCount": "Sets",
+      "targetType": "Type",
+      "targetValue": "Value",
+      "targetMaxValue": "Maximum",
+      "video": "Video",
+      "openVideo": "Watch video",
+      "title": "Exercise details",
+      "removeSet": "Remove set",
+      "addSet": "Add set",
+      "save": "Save",
+      "saved": "Exercise saved.",
+      "noSets": "No sets yet.",
+      "validation": {
+        "positiveInteger": "Enter a whole number greater than 0.",
+        "effort": "Choose an effort.",
+        "sets": "Add at least one set."
+      },
+      "summary": {
+        "Reps": "{{series}} × {{value}} reps",
+        "RepsRange": "{{series}} × {{value}}–{{max}} reps",
+        "Duration": "{{series}} × {{value}} s",
+        "MaxReps": "{{series}} × max",
+        "other": "{{series}} × {{value}}"
+      }
+    },
+    "notFound": "We could not find this workout.",
+    "backToList": "Back to assigned plans",
+    "structure": {
+      "title": "Workout structure"
+    },
+    "back": "Back",
+    "editTitle": "Edit workout"
+  },
+  "muscles": {
+    "ABDOMINALS": "Abdominals",
+    "ABDUCTORS": "Abductors",
+    "ADDUCTORS": "Adductors",
+    "BICEPS": "Biceps",
+    "CALVES": "Calves",
+    "CHEST": "Chest",
+    "FOREARMS": "Forearms",
+    "GLUTES": "Glutes",
+    "HAMSTRINGS": "Hamstrings",
+    "LATS": "Lats",
+    "LOWER_BACK": "Lower back",
+    "MIDDLE_BACK": "Middle back",
+    "NECK": "Neck",
+    "QUADRICEPS": "Quadriceps",
+    "SHOULDERS": "Shoulders",
+    "TRAPS": "Traps",
+    "TRICEPS": "Triceps"
+  },
+  "bodyParts": {
+    "ARMS": "Arms",
+    "LEGS": "Legs",
+    "CHEST": "Chest",
+    "BACK": "Back",
+    "SHOULDERS": "Shoulders",
+    "CORE": "Core",
+    "NECK": "Neck"
+  },
+  "efforts": {
+    "LOW": "Low",
+    "MIDLOW": "Medium-low",
+    "MID": "Medium",
+    "MIDHIGH": "Medium-high",
+    "HIGH": "High"
+  },
+  "targetTypes": {
+    "Reps": "Reps",
+    "Duration": "Seconds",
+    "MaxReps": "Max reps",
+    "RepsRange": "Rep range"
+  }
+}

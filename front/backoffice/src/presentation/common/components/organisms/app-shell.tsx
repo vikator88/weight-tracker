@@ -34,7 +34,7 @@ function SignedInContent({ children }: AppShellProps) {
       <NavigationDrawer />
       <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1, minWidth: 0 }}>
         <AppHeader />
-        <Box component="main" sx={{ flexGrow: 1 }}>
+        <Box component="main" sx={{ flexGrow: 1, bgcolor: "background.default" }}>
           {redirecting ? null : children}
         </Box>
       </Box>

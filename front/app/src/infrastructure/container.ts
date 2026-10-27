@@ -6,11 +6,15 @@ import {
   GetMyProfileUseCase,
   GetPreferredLanguageUseCase,
   GetSessionUseCase,
+  GetWorkoutByIdUseCase,
+  GetWorkoutsUseCase,
   LoginUseCase,
   LogoutUseCase,
   RefreshSessionUseCase,
+  RemoveExerciseFromWorkoutUseCase,
   SetPreferredLanguageUseCase,
   UpdateMyProfileUseCase,
+  UpdateWorkoutExerciseUseCase,
   UpdateWorkoutUseCase,
   SignupUseCase,
 } from "@weight-tracker/core/application";
@@ -52,10 +56,16 @@ const container = new Container<Dependencies>({
   setPreferredLanguageUseCase: (c) => new SetPreferredLanguageUseCase(c.resolve("keyValueStore")),
   getMyProfileUseCase: (c) => new GetMyProfileUseCase(c.resolve("userRepository")),
   updateMyProfileUseCase: (c) => new UpdateMyProfileUseCase(c.resolve("userRepository")),
+  getWorkoutsUseCase: (c) => new GetWorkoutsUseCase(c.resolve("workoutRepository")),
+  getWorkoutByIdUseCase: (c) => new GetWorkoutByIdUseCase(c.resolve("workoutRepository")),
   createWorkoutUseCase: (c) => new CreateWorkoutUseCase(c.resolve("workoutRepository")),
   updateWorkoutUseCase: (c) => new UpdateWorkoutUseCase(c.resolve("workoutRepository")),
   addExerciseToWorkoutUseCase: (c) =>
     new AddExerciseToWorkoutUseCase(c.resolve("workoutRepository")),
+  updateWorkoutExerciseUseCase: (c) =>
+    new UpdateWorkoutExerciseUseCase(c.resolve("workoutRepository")),
+  removeExerciseFromWorkoutUseCase: (c) =>
+    new RemoveExerciseFromWorkoutUseCase(c.resolve("workoutRepository")),
   getExercisesUseCase: (c) => new GetExercisesUseCase(c.resolve("exerciseRepository")),
 });
 

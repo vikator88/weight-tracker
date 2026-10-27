@@ -5,10 +5,11 @@ import NavigationDrawer from "@/presentation/common/components/organisms/navigat
 import renderWithProviders from "../../../../support/render-with-providers";
 
 const replace = vi.fn();
+const navigation = vi.hoisted(() => ({ pathname: "/" }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace }),
-  usePathname: () => "/",
+  usePathname: () => navigation.pathname,
 }));
 
 const items = [
@@ -27,6 +28,7 @@ const items = [
 describe("NavigationDrawer", () => {
   beforeEach(() => {
     replace.mockClear();
+    navigation.pathname = "/";
   });
 
   it("shows the app name row, then every section and item in order", async () => {
@@ -77,6 +79,41 @@ describe("NavigationDrawer", () => {
     expect(first).toHaveTextContent("Inicio");
     expect(first).toHaveAttribute("href", "/");
     expect(first).toHaveClass("Mui-selected");
+  });
+
+  it("links Planes asignados to its screen, not selected elsewhere", async () => {
+    // Arrange & Act
+    await renderWithProviders(<NavigationDrawer />);
+
+    // Assert
+    const entry = screen.getByRole("link", { name: "Planes asignados" });
+    expect(entry).toHaveAttribute("href", "/assigned-plans");
+    expect(entry).not.toHaveClass("Mui-selected");
+  });
+
+  it("selects Planes asignados and not Inicio on its screen", async () => {
+    // Arrange
+    navigation.pathname = "/assigned-plans";
+
+    // Act
+    await renderWithProviders(<NavigationDrawer />);
+
+    // Assert
+    expect(screen.getByRole("link", { name: "Planes asignados" })).toHaveClass("Mui-selected");
+    expect(screen.getByRole("link", { name: "Inicio" })).not.toHaveClass("Mui-selected");
+  });
+
+  it("keeps every other item without a link", async () => {
+    // Arrange & Act
+    await renderWithProviders(<NavigationDrawer />);
+
+    // Assert
+    const nav = screen.getByRole("navigation", { name: "Menú principal" });
+    expect(
+      within(nav)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual(["Inicio", "Planes asignados"]);
   });
 
   it("shows an icon on every item", async () => {

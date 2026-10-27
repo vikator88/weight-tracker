@@ -67,8 +67,8 @@ The Inicio entry SHALL link to `/`. The entry of the current screen SHALL be sho
 
 ### Requirement: Items without a screen do nothing
 
-Every item other than Inicio and Cerrar sesión SHALL be shown but SHALL NOT navigate or trigger any operation until its
-screen exists.
+Every item other than Inicio, Planes asignados and Cerrar sesión SHALL be shown but SHALL NOT navigate or trigger any
+operation until its screen exists.
 
 #### Scenario: Placeholder item clicked
 
@@ -95,3 +95,19 @@ Every drawer item, Inicio included, SHALL show an icon before its text. Section 
 
 - **WHEN** the drawer is shown
 - **THEN** each of its items shows an icon before its text
+
+### Requirement: Planes asignados goes to the assigned plans screen
+
+The Planes asignados entry SHALL link to `/assigned-plans` and SHALL be shown as selected while the visitor is on that
+screen. It SHALL NOT be selected on any other screen.
+
+#### Scenario: Planes asignados clicked
+
+- **WHEN** the visitor clicks "Planes asignados" from home
+- **THEN** the visitor ends on `/assigned-plans`
+
+#### Scenario: Planes asignados on its screen
+
+- **WHEN** the visitor is on `/assigned-plans`
+- **THEN** Planes asignados is shown as selected
+- **AND** Inicio is not shown as selected

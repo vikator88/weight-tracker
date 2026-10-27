@@ -24,7 +24,7 @@ Presentation); now that the fronts call a protected endpoint (`/users/me`), it i
   `UNAUTHORIZED` refreshes once and retries the call once. A refresh that fails with `UNAUTHORIZED` ends the session.
   Any other failure is returned unchanged.
 - **Backoffice: session state (new pattern).** A `SessionProvider` / `useSession` (`restoring | signedIn |
-  signedOut`, `runWithSession`, `end`, `reload`) mounted in `AppProviders` above `CurrentUserProvider`.
+signedOut`, `runWithSession`, `end`, `reload`) mounted in `AppProviders` above `CurrentUserProvider`.
   `RequireSession` reads it instead of reading storage itself, so ending the session from any screen sends the user
   to `/login`. `CurrentUserProvider` clears the profile when the session ends. Login, signup and logout tell the
   session state after they write or clear tokens.

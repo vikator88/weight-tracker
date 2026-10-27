@@ -22,9 +22,13 @@ const keys: (keyof Dependencies)[] = [
   "refreshSessionUseCase",
   "getMyProfileUseCase",
   "updateMyProfileUseCase",
+  "getWorkoutsUseCase",
+  "getWorkoutByIdUseCase",
   "createWorkoutUseCase",
   "updateWorkoutUseCase",
   "addExerciseToWorkoutUseCase",
+  "updateWorkoutExerciseUseCase",
+  "removeExerciseFromWorkoutUseCase",
   "getExercisesUseCase",
 ];
 
