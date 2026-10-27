@@ -50,7 +50,9 @@ Detailed architectural rules, classification and reference examples belong in `.
 1. Add the route under `src/app` (routing only), the view under `src/presentation/<area>/views`, and its components
    and state hooks beside it.
 2. Model them on the closest screen **in the same front**. The other front is never a UI reference.
-3. Add every string to `src/i18n/es` and `src/i18n/en`.
+3. Classify each component as atom, molecule or organism and place it in `components/<level>`; reuse existing atoms
+   and molecules before creating new ones.
+4. Add every string to `src/i18n/es` and `src/i18n/en`.
 
 ### Changing The API Contract
 
@@ -176,6 +178,7 @@ done
 - [ ] Every API interaction goes through a use case returning `Result`; nothing throws except `FetchHttpClient`
       and the wiring guard in `useContainer`.
 - [ ] Every new error code is mapped in the HTTP error mapper and translated in `es` and `en`.
+- [ ] Components sit in their atomic level folder, imports flow downward, and only atoms import the UI library's widgets.
 - [ ] `src/app` holds routes only, and presentation never imports `@weight-tracker/core/infrastructure`.
 - [ ] New repositories, adapters and use cases are registered in each affected front's `container.ts`.
 - [ ] `backoffice` and `app` share no UI and do not import each other.

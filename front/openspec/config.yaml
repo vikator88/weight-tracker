@@ -36,6 +36,7 @@ rules:
     - Require every capability to state which front(s) it lands in and how behaviour differs per front and per role, including what each role must not see.
     - Require every API endpoint used to be named, and to be present in `core/openapi/v1.json` or covered by a named API change.
     - Reject any business rule in the front; structural form validation only.
+    - Classify every UI component as atom, molecule or organism, and state which existing ones are reused.
   design:
     - Treat the design as a refinement of the Plan layer, not as a second architecture source of truth.
     - Follow the template and invariants instead of restating architecture here.
@@ -44,6 +45,7 @@ rules:
     - State the state each provider holds, who changes it and when it resets.
     - State every error code involved and its translation in `es` and `en`.
     - "Keep `backoffice` and `app` independent: no shared UI, styles, translations or presentation code."
+    - State each component's atomic level and folder, and that imports flow downward with only atoms importing the UI library's widgets.
     - Do not change test helpers or test patterns from the template unless the design documents the exception explicitly.
   tasks:
     - Treat tasks as executable Plan work, not as an independent source of architecture decisions.
@@ -51,5 +53,6 @@ rules:
     - Order tasks core first (domain aliases, ports, repositories, use cases), then each front (adapters, container, state hooks, components, views, routes, translations).
     - Include implementation tasks and test tasks for every tier the change requires, with the API always mocked.
     - Break work into small, ordered tasks that can be implemented incrementally.
+    - Order components atoms first, then molecules, organisms and views.
     - Include a review task per front and for core that compares the result against its mapped template reference before closing it.
     - End with `pnpm typecheck && pnpm lint && pnpm test` from `front/`, plus `pnpm test:e2e` when an E2E flow is planned.

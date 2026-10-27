@@ -127,7 +127,9 @@ core/src/infrastructure/di/                          the DI container
 
 <front>/src/app/                                     routing only
 <front>/src/presentation/<area>/{views,components,hooks,context}/
+<front>/src/presentation/<area>/components/{molecules,organisms}/
 <front>/src/presentation/common/{views,components,hooks,context}/
+<front>/src/presentation/common/components/{atoms,molecules,organisms}/
 <front>/src/infrastructure/                          platform adapters, i18n setup, container.ts
 <front>/src/i18n/{es,en}/<area>.json                 translations
 ```
@@ -149,8 +151,14 @@ Classify every planned piece as exactly one of these before writing code.
 - **Route**: a file under `<front>/src/app`. It only default-exports a view.
 - **Layout**: a layout file under `<front>/src/app` (`layout.tsx` in the backoffice, `_layout.tsx` in the app). It
   renders the outlet or navigator for the routes beside it (see "Presentation" and section 4.3).
-- **View**: a screen. Composes components and hooks. Lives in `<front>/src/presentation/<area>/views`.
-- **Component**: a reusable piece of UI. Lives in `<front>/src/presentation/<area>/components` or `common/components`.
+- **View**: a screen, the page of atomic design. Composes organisms, molecules and hooks, and holds the page layout
+  (the template level), so no separate template folder exists. Lives in `<front>/src/presentation/<area>/views`.
+- **Atom**: one themed primitive of the UI library (button, text field, text, icon, chip). It has no hooks, no use
+  cases and no i18n calls: text arrives by props. Lives in `<front>/src/presentation/common/components/atoms`.
+- **Molecule**: a few atoms forming one small unit (a field with its helper text, a menu row). It may hold local UI
+  state, and never calls a use case or reads the container. Lives in `components/molecules`.
+- **Organism**: a distinct section with behaviour (a form, a header, a drawer, a dialog, a menu). It may use state
+  hooks and translate. Lives in `components/organisms`.
 - **State hook**: a custom hook that owns state through the Context API (`<Name>Provider` plus `use<Name>`) and calls
   use cases. Lives in `<front>/src/presentation/<area>/{context,hooks}`. A hook that only holds one view's local
   `useState` is part of that view, not a state hook.
@@ -202,6 +210,19 @@ Classify every planned piece as exactly one of these before writing code.
   `children`. App layouts, which also hold the auth gate and the navigators, follow section 4.3 ("Routing").
 - Presentation reaches use cases through the container, never repositories, the HTTP client or platform adapters.
 - State is held in Context API providers exposed through custom hooks. No other state library is used.
+- Components follow atomic design (see "Building blocks"). Imports flow downward only: view, organism, molecule,
+  atom. A lower level never imports a higher one.
+- The UI library is raw material. A widget used by two or more component or view files is wrapped by an atom (MUI
+  `Button`, `TextField`; Paper `Button`, `TextInput`), and molecules, organisms and views import the atom. A
+  structural widget or icon used by a single component (`Drawer`, `AppBar`, `Dialog`, `InputAdornment`, an icon)
+  may be imported there directly; it becomes an atom when a second file uses it. Layout primitives (`Box`, `Stack`, `Grid`, `Container`, `View`,
+  `Portal`, `KeyboardAvoidingView`) may be imported at any level.
+- Atoms live only in `common/components/atoms`. A molecule starts in its area and moves to `common` when a second
+  area needs it. An organism stays in its area unless two areas share it.
+- Providers and gates (`<Name>Provider`, `RequireSession`, `AppProviders`) are composition, not atomic components.
+  They stay at the root of `components/`, outside the three level folders, and may import the library's theme and
+  cache providers (`ThemeProvider`, `CssBaseline`, `AppRouterCacheProvider`, `PaperProvider`).
+- A component file belongs to exactly one level; a file that mixes levels is split.
 - Presentation turns a failed `Result` into UI. It never uses `try/catch` for flow control.
 - Session refresh is reactive: when a use case fails with the unauthorized code, the session hook calls
   `RefreshSession` once and retries the original call. If the refresh fails, the session ends.
@@ -262,6 +283,8 @@ Classify every planned piece as exactly one of these before writing code.
   is shown.
 - Every translation key exists in both `es` and `en`. A parity test per front enforces it.
 - Component tests render in `es` unless the test is about language.
+- Atoms need no test of their own unless they add behaviour. A molecule or organism with branches or behaviour has a
+  component test beside the closest existing one; otherwise the view test covers it.
 - Tests must not depend on the order or the residue of other tests.
 - Missing tests required by the change invalidate completion of execution.
 
@@ -328,6 +351,8 @@ Tests live outside `src`. In the app this is also required, because Expo Router 
 - Cache Components, partial prefetching and any other feature that needs a server runtime stay disabled.
 - UI is built with MUI (community edition, `@mui/material`). No other component or styling library, and no
   CSS Modules or global CSS beyond the MUI baseline and theme.
+- Atoms wrap MUI widgets and style them only through the theme and `sx` theme tokens, never with colour or spacing
+  literals.
 - Browser-only APIs (`localStorage`, `window`) are reached only from `src/infrastructure` adapters.
 
 ### 4.3 App: Expo + React Native Paper
@@ -340,6 +365,8 @@ Tests live outside `src`. In the app this is also required, because Expo Router 
   navigators. Nothing that is not a route lives in `src/app`. Its organisation is fixed by "Routing" below.
 - UI is built with React Native Paper. No other component or styling library; styles beyond Paper's theme use
   `StyleSheet`.
+- Atoms wrap Paper widgets and read colours with `useTheme()`; they are the only files that import Paper's widgets
+  directly.
 - The project uses Continuous Native Generation. `ios/` and `android/` are generated and never created or edited by
   hand; native behaviour is configured in `app.json` and config plugins.
 - Dependencies are added with `expo install`, never with a bare package-manager add, so they resolve to SDK-compatible
@@ -422,8 +449,9 @@ Navigation:
 
 #### Presentation
 
-- An area folder holds only `views`, `components`, `hooks` and `context`, each flat: no sub-areas and no
-  subfolders.
+- An area folder holds only `views`, `components`, `hooks` and `context`. `views`, `hooks` and `context` are flat.
+  `components` holds only the `atoms`, `molecules` and `organisms` folders (atoms in `common` only), each flat, plus
+  provider and gate files at its root. There are no sub-areas and no other subfolders.
 - A view file is `<name>-view.tsx` and default-exports `<Name>View`.
 - A state hook is three files: `context/<name>-context.ts` (the `createContext` call), `context/<name>-provider.tsx`
   (`<Name>Provider`) and `hooks/use-<name>.ts` (`use<Name>`), as `ContainerContext` does.

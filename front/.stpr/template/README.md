@@ -64,7 +64,10 @@ and every `pending` entry it covers is switched to `template-backed`.
 | `SqliteKeyValueStore`                        | Platform adapter (app)               | Native storage behind a port                                        | `pending` (login)                    |
 | `container.ts` (each front)                  | Composition root                     | Wires core and platform adapters                                    | `pending` (login)                    |
 | `SessionProvider` / `useSession`             | State hook                           | Context state, reactive refresh-and-retry                           | `pending` (login)                    |
-| Login view + form (each front)               | View / component                     | Structural validation, i18n, `Result` to UI                         | `pending` (login)                    |
+| Login view + form (each front)               | View / organism                      | Structural validation, i18n, `Result` to UI                         | `pending` (login)                    |
+| Atom (each front)                            | Atom                                 | Themed UI-library primitive, text by props, no hooks                | `pending` (atomic design)            |
+| Molecule (each front)                        | Molecule                             | A few atoms, local UI state, no use cases                           | `pending` (atomic design)            |
+| Organism (each front)                        | Organism                             | Section with behaviour, state hooks and i18n                        | `pending` (atomic design)            |
 | Login route (each front)                     | Route                                | Default-exports a view, nothing else                                | `pending` (login)                    |
 | Use case test                                | Unit test                            | AAA, fakes for ports                                                | skeleton (from `add-signup-usecase`) |
 | Repository test                              | Unit test                            | Faked `HttpClientInterface`, every error code                       | skeleton (from `add-signup-usecase`) |
@@ -105,7 +108,9 @@ These apply once the login slice is template-backed.
 - If a front needs a platform capability, add a port in `core/src/application/ports` and an adapter per front,
   modelled on the `KeyValueStore` pair.
 - If a screen needs state, model it on `SessionProvider` / `useSession`.
-- If you need a new screen, model the route, view and component on the login ones in the same front. The other
+- If you need a new screen, classify each component as atom, molecule or organism first (`STPR_INVARIANTS.md`,
+  "Building blocks"), reuse the existing ones, then model the route, view and components on the login ones in the
+  same front. The other
   front is never a reference for this front's UI.
 - If a view behaves differently per role, cover every role branch and assert what is hidden.
 

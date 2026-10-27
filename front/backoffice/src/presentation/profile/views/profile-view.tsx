@@ -1,13 +1,13 @@
 "use client";
 
 import Container from "@mui/material/Container";
-import Typography from "@mui/material/Typography";
+import Typography from "@/presentation/common/components/atoms/typography";
 import { useTranslation } from "react-i18next";
-import HomeSkeleton from "@/presentation/common/components/home-skeleton";
-import LoadError from "@/presentation/common/components/load-error";
-import AppShell from "@/presentation/common/components/app-shell";
+import HomeSkeleton from "@/presentation/common/components/molecules/home-skeleton";
+import LoadError from "@/presentation/common/components/molecules/load-error";
+import AppShell from "@/presentation/common/components/organisms/app-shell";
 import useCurrentUser from "@/presentation/common/hooks/use-current-user";
-import ProfileForm from "../components/profile-form";
+import ProfileForm from "@/presentation/profile/components/organisms/profile-form";
 
 function ProfileContent() {
   const { t } = useTranslation("profile");

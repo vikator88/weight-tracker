@@ -2,15 +2,15 @@
 
 import { useState } from "react";
 import Container from "@mui/material/Container";
-import Link from "@mui/material/Link";
-import Typography from "@mui/material/Typography";
+import Link from "@/presentation/common/components/atoms/link";
+import Typography from "@/presentation/common/components/atoms/typography";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import type { DomainErrorCode } from "@weight-tracker/core/domain";
 import useContainer from "@/presentation/common/hooks/use-container";
 import useSession from "../hooks/use-session";
-import SignupForm from "../components/signup-form";
+import SignupForm from "@/presentation/auth/components/organisms/signup-form";
 
 const signupErrorCodes: DomainErrorCode[] = ["VALIDATION", "UNAUTHORIZED", "CONFLICT"];
 
