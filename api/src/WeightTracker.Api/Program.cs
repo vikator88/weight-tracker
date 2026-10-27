@@ -62,9 +62,6 @@ builder.Services.AddScoped<WorkoutStatusAuthorizer>();
 
 builder.Services.AddScoped<GetAllExercisesUseCase>();
 builder.Services.AddScoped<GetExerciseByIdUseCase>();
-builder.Services.AddScoped<CreateExerciseUseCase>();
-builder.Services.AddScoped<UpdateExerciseUseCase>();
-builder.Services.AddScoped<DeleteExerciseUseCase>();
 builder.Services.AddScoped<GetAllWorkoutsUseCase>();
 builder.Services.AddScoped<GetWorkoutByIdUseCase>();
 builder.Services.AddScoped<CreateWorkoutUseCase>();

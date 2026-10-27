@@ -6,5 +6,7 @@ public enum BodyParts
     LEGS = 2,
     CHEST = 3,
     BACK = 4,
-    SHOULDER=5,
+    SHOULDERS = 5,
+    CORE = 6,
+    NECK = 7,
 }

@@ -1,5 +1,7 @@
+using System.Text.Json;
 using FluentAssertions;
 using Npgsql;
+using WeightTracker.Domain.Exercises;
 using WeightTracker.Domain.Users;
 using WeightTracker.Infra.Services;
 using WeightTracker.Integration.Bootstrap;
@@ -30,10 +32,26 @@ public class MigrationsTests : IAsyncLifetime
     /// <summary>Last migration before <c>AddStatusToWorkouts_202610182247</c> that it depends on.</summary>
     private const long BeforeStatusVersion = 202610161647;
 
+    /// <summary>
+    /// <c>AddEffortToWorkoutExercises_202610131437</c>. Its backfill test stops here because
+    /// <c>AddExerciseTranslationsAndMuscle_202610270035</c> only runs on an empty Exercises table.
+    /// </summary>
+    private const long EffortVersion = 202610131437;
+
+    /// <summary>Last migration before <c>AddExerciseTranslationsAndMuscle_202610270035</c>.</summary>
+    private const long BeforeExerciseTranslationsVersion = 202610212330;
+
+    /// <summary>Last migration before <c>ImportFreeExerciseCatalog_202610271200</c>.</summary>
+    private const long BeforeCatalogVersion = 202610270035;
+
+    /// <summary>Entries in <c>infra/exercises.json</c>.</summary>
+    private const int CatalogSize = 876;
+
     private static readonly string[] ExpectedTables =
     [
         "Users",
         "Exercises",
+        "ExerciseTranslations",
         "Workouts",
         "WorkoutExercises",
         "WorkoutExerciseSets",
@@ -118,7 +136,7 @@ public class MigrationsTests : IAsyncLifetime
             """);
 
         // Act
-        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser, EffortVersion);
 
         // Assert
         (await Scalar<int>("SELECT \"Effort\" FROM \"WorkoutExercises\"")).Should().Be(3);
@@ -203,6 +221,183 @@ public class MigrationsTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task AddExerciseTranslations_ShouldReplaceNameAndBodyPartWithMuscleAndFreeExerciseDbId()
+    {
+        // Arrange & Act
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Assert
+        (await ColumnsOf("Exercises")).Should().BeEquivalentTo(["Id", "VideoUrl", "Muscle", "FreeExerciseDbId"]);
+        (await ColumnsOf("ExerciseTranslations")).Should().BeEquivalentTo(["Id", "ExerciseId", "LanguageCode", "Name"]);
+        (await Scalar<int>("""
+            SELECT character_maximum_length FROM information_schema.columns
+            WHERE table_name = 'Exercises' AND column_name = 'FreeExerciseDbId'
+            """)).Should().Be(128);
+        (await Scalar<int>("""
+            SELECT character_maximum_length FROM information_schema.columns
+            WHERE table_name = 'ExerciseTranslations' AND column_name = 'LanguageCode'
+            """)).Should().Be(2);
+    }
+
+    private const string ExerciseWithSpanishTranslation = """
+        INSERT INTO "Exercises" ("Id", "VideoUrl", "Muscle", "FreeExerciseDbId")
+        VALUES ('00000000-0000-0000-0000-0000000000c1', NULL, 6, 'Test_Exercise_With_Translation');
+        INSERT INTO "ExerciseTranslations" ("Id", "ExerciseId", "LanguageCode", "Name")
+        VALUES ('00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-0000000000c1', 'es', 'Press Banca');
+        """;
+
+    [Fact]
+    public async Task AddExerciseTranslations_ShouldRejectASecondTranslationForTheSameLanguage()
+    {
+        // Arrange
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+        await Execute(_connectionString, ExerciseWithSpanishTranslation);
+
+        // Act
+        var act = () => Execute(_connectionString, """
+            INSERT INTO "ExerciseTranslations" ("Id", "ExerciseId", "LanguageCode", "Name")
+            VALUES ('00000000-0000-0000-0000-0000000000c3', '00000000-0000-0000-0000-0000000000c1', 'es', 'Press de Banca');
+            """);
+
+        // Assert
+        (await act.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.UniqueViolation);
+    }
+
+    [Fact]
+    public async Task AddExerciseTranslations_ShouldDeleteTranslationsWithTheirExercise()
+    {
+        // Arrange
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+        await Execute(_connectionString, ExerciseWithSpanishTranslation);
+
+        // Act
+        await Execute(_connectionString, """DELETE FROM "Exercises" WHERE "Id" = '00000000-0000-0000-0000-0000000000c1'""");
+
+        // Assert
+        (await Scalar<long>("""
+            SELECT count(*) FROM "ExerciseTranslations" WHERE "ExerciseId" = '00000000-0000-0000-0000-0000000000c1'
+            """)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AddExerciseTranslations_ShouldRejectADuplicateFreeExerciseDbIdButAllowSeveralNulls()
+    {
+        // Arrange
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+        await Execute(_connectionString, """
+            INSERT INTO "Exercises" ("Id", "VideoUrl", "Muscle", "FreeExerciseDbId") VALUES
+                ('00000000-0000-0000-0000-0000000000d1', NULL, 6, 'Test_Exercise_Duplicate'),
+                ('00000000-0000-0000-0000-0000000000d2', NULL, 6, NULL),
+                ('00000000-0000-0000-0000-0000000000d3', NULL, 6, NULL);
+            """);
+
+        // Act
+        var act = () => Execute(_connectionString, """
+            INSERT INTO "Exercises" ("Id", "VideoUrl", "Muscle", "FreeExerciseDbId")
+            VALUES ('00000000-0000-0000-0000-0000000000d4', NULL, 6, 'Test_Exercise_Duplicate');
+            """);
+
+        // Assert
+        (await act.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.UniqueViolation);
+    }
+
+    [Fact]
+    public async Task AddExerciseTranslations_Down_ShouldRestoreNameAndBodyPartOnATableWithRows()
+    {
+        // Arrange
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+        await Execute(_connectionString, """
+            INSERT INTO "Exercises" ("Id", "VideoUrl", "Muscle", "FreeExerciseDbId")
+            VALUES ('00000000-0000-0000-0000-0000000000e1', NULL, 6, NULL);
+            """);
+
+        // Act
+        DatabaseMigrator.MigrateDown(_connectionString, BeforeExerciseTranslationsVersion);
+
+        // Assert
+        TableExists("ExerciseTranslations").Should().BeFalse();
+        (await ColumnsOf("Exercises")).Should().BeEquivalentTo(["Id", "Name", "VideoUrl", "BodyPart"]);
+        (await Scalar<long>("SELECT count(*) FROM \"Exercises\"")).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ImportCatalog_ShouldInsertEveryDatasetExerciseWithAnEnglishAndASpanishName()
+    {
+        // Arrange & Act
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Assert
+        (await Scalar<long>("SELECT count(*) FROM \"Exercises\"")).Should().Be(CatalogSize);
+        (await Scalar<long>("""
+            SELECT count(*) FROM "Exercises" e
+            WHERE (SELECT count(*) FROM "ExerciseTranslations" t WHERE t."ExerciseId" = e."Id" AND t."LanguageCode" = 'en') = 1
+              AND (SELECT count(*) FROM "ExerciseTranslations" t WHERE t."ExerciseId" = e."Id" AND t."LanguageCode" = 'es') = 1
+            """)).Should().Be(CatalogSize);
+        (await Scalar<long>("SELECT count(*) FROM \"ExerciseTranslations\"")).Should().Be(CatalogSize * 2);
+    }
+
+    [Fact]
+    public async Task ImportCatalog_ShouldStoreEveryDatasetIdOfTheSourceFile()
+    {
+        // Arrange
+        var expected = DatasetIds();
+
+        // Act
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Assert
+        (await Strings("SELECT \"FreeExerciseDbId\" FROM \"Exercises\"")).Should().BeEquivalentTo(expected);
+    }
+
+    [Fact]
+    public async Task ImportCatalog_ShouldStoreOnlyDefinedMusclesAndValidNames()
+    {
+        // Arrange & Act
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Assert
+        (await Strings("SELECT DISTINCT \"Muscle\"::text FROM \"Exercises\""))
+            .Should().OnlyContain(muscle => Enum.IsDefined(typeof(Muscles), int.Parse(muscle)));
+        (await Strings("SELECT \"Name\" FROM \"ExerciseTranslations\""))
+            .Should().OnlyContain(name => name == name.Trim()
+                && name.Length >= ExerciseName.MinLength && name.Length <= ExerciseName.MaxLength);
+    }
+
+    [Theory]
+    [InlineData("Barbell_Squat", Muscles.QUADRICEPS, "Barbell Squat", "Sentadilla con barra")]
+    [InlineData("Barbell_Bench_Press_-_Medium_Grip", Muscles.CHEST, "Barbell Bench Press - Medium Grip", "Press de banca")]
+    [InlineData("Kettlebell_Halo_With_Overhead_Extension", Muscles.SHOULDERS, "Kettlebell Halo with Overhead Extension", "Halo con kettlebell y extensión por encima de la cabeza")]
+    public async Task ImportCatalog_ShouldStoreTheMuscleAndNamesOfAnEntry(
+        string freeExerciseDbId, Muscles muscle, string english, string spanish)
+    {
+        // Arrange
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Act
+        var stored = await Scalar<int>($"""SELECT "Muscle" FROM "Exercises" WHERE "FreeExerciseDbId" = '{freeExerciseDbId}'""");
+
+        // Assert
+        stored.Should().Be((int)muscle);
+        (await TranslationOf(freeExerciseDbId, "en")).Should().Be(english);
+        (await TranslationOf(freeExerciseDbId, "es")).Should().Be(spanish);
+    }
+
+    [Fact]
+    public async Task ImportCatalog_Down_ShouldRemoveEveryCatalogRowAndKeepTheTables()
+    {
+        // Arrange
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Act
+        DatabaseMigrator.MigrateDown(_connectionString, BeforeCatalogVersion);
+
+        // Assert
+        (await Scalar<long>("SELECT count(*) FROM \"Exercises\"")).Should().Be(0);
+        (await Scalar<long>("SELECT count(*) FROM \"ExerciseTranslations\"")).Should().Be(0);
+        TableExists("ExerciseTranslations").Should().BeTrue();
+    }
+
+    [Fact]
     public async Task InsertAdminUser_ShouldInsertTheConfiguredAdmin()
     {
         // Arrange & Act
@@ -243,6 +438,61 @@ public class MigrationsTests : IAsyncLifetime
 
     private static string AdminColumn(string column) =>
         $"SELECT \"{column}\" FROM \"Users\" WHERE \"Id\" = '{InsertAdminUser_202610080919.AdminId}'";
+
+    private Task<string> TranslationOf(string freeExerciseDbId, string languageCode)
+        => Scalar<string>($"""
+            SELECT t."Name" FROM "ExerciseTranslations" t JOIN "Exercises" e ON e."Id" = t."ExerciseId"
+            WHERE e."FreeExerciseDbId" = '{freeExerciseDbId}' AND t."LanguageCode" = '{languageCode}'
+            """);
+
+    /// <summary>The <c>id</c> of every entry of <c>infra/exercises.json</c>, found by walking up from the test binaries.</summary>
+    private static IReadOnlyList<string> DatasetIds()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (directory is not null && File.Exists(Path.Combine(directory.FullName, "infra", "exercises.json")) == false)
+            directory = directory.Parent;
+
+        directory.Should().NotBeNull("infra/exercises.json must be reachable from the test binaries");
+
+        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(directory!.FullName, "infra", "exercises.json")));
+
+        return document.RootElement.EnumerateArray().Select(entry => entry.GetProperty("id").GetString()!).ToList();
+    }
+
+    private async Task<IReadOnlyList<string>> Strings(string sql)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new NpgsqlCommand(sql, connection);
+
+        var values = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync();
+
+        while (await reader.ReadAsync())
+            values.Add(reader.GetString(0));
+
+        return values;
+    }
+
+    private async Task<IReadOnlyList<string>> ColumnsOf(string table)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = new NpgsqlCommand(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = @table", connection);
+        command.Parameters.AddWithValue("table", table);
+
+        var columns = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync();
+
+        while (await reader.ReadAsync())
+            columns.Add(reader.GetString(0));
+
+        return columns;
+    }
 
     private async Task<T> Scalar<T>(string sql)
     {

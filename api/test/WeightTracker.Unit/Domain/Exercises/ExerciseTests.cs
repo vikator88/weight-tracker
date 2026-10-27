@@ -6,148 +6,105 @@ using Xunit;
 
 namespace WeightTracker.Unit.Domain.Exercises;
 
+/// <summary>
+/// Exercises are a read-only catalog, so restoring them is the only behaviour to cover.
+/// </summary>
 public class ExerciseTests
 {
-    private static readonly ExerciseName PressBanca = ExerciseName.From("Press Banca");
+    private static readonly FreeExerciseDbId BenchPress = FreeExerciseDbId.From("Barbell_Bench_Press_-_Medium_Grip");
     private static readonly Url Video = Url.From("https://videos.example.com/press-banca");
+    private static readonly LanguageCode Spanish = LanguageCode.From("es");
+    private static readonly LanguageCode English = LanguageCode.From("en");
+    private static readonly ExerciseName PressDeBanca = ExerciseName.From("Press de banca");
+    private static readonly ExerciseName BenchPressName = ExerciseName.From("Barbell Bench Press - Medium Grip");
 
     [Fact]
-    public void Create_ShouldGenerateAnIdAndMarkTheExerciseAsNew()
-    {
-        // Arrange & Act
-        var exercise = Exercise.Create(PressBanca, Video, BodyParts.CHEST);
-
-        // Assert
-        exercise.IsNew.Should().BeTrue();
-        exercise.Id.Value.Should().NotBe(Guid.Empty);
-        exercise.Name.Should().Be(PressBanca);
-        exercise.VideoUrl.Should().Be(Video);
-        exercise.BodyPart.Should().Be(BodyParts.CHEST);
-    }
-
-    [Fact]
-    public void Create_ShouldGenerateADifferentIdEachTime()
-    {
-        // Arrange
-        var first = Exercise.Create(PressBanca, null, BodyParts.CHEST);
-
-        // Act
-        var second = Exercise.Create(PressBanca, null, BodyParts.CHEST);
-
-        // Assert
-        second.Id.Should().NotBe(first.Id);
-    }
-
-    [Fact]
-    public void Create_ShouldAcceptAMissingVideoUrl()
-    {
-        // Arrange & Act
-        var exercise = Exercise.Create(PressBanca, null, BodyParts.CHEST);
-
-        // Assert
-        exercise.VideoUrl.Should().BeNull();
-    }
-
-    [Fact]
-    public void Create_ShouldRejectAnUndefinedBodyPart()
-    {
-        // Arrange & Act
-        var act = () => Exercise.Create(PressBanca, null, (BodyParts)99);
-
-        // Assert
-        act.Should().Throw<InvalidBodyPartException>();
-    }
-
-    [Fact]
-    public void Rehydrate_ShouldKeepTheIdAndMarkTheExerciseAsNotNew()
+    public void Rehydrate_ShouldRestoreEveryFieldAndTranslationAndMarkTheExerciseAsNotNew()
     {
         // Arrange
         var id = Id.New();
+        var spanish = ExerciseTranslation.Rehydrate(Id.New(), Spanish, PressDeBanca);
+        var english = ExerciseTranslation.Rehydrate(Id.New(), English, BenchPressName);
 
         // Act
-        var exercise = Exercise.Rehydrate(id, PressBanca, Video, BodyParts.CHEST);
+        var exercise = Exercise.Rehydrate(id, BenchPress, Video, Muscles.CHEST, [spanish, english]);
 
         // Assert
         exercise.IsNew.Should().BeFalse();
         exercise.Id.Should().Be(id);
-        exercise.Name.Should().Be(PressBanca);
+        exercise.FreeExerciseDbId.Should().Be(BenchPress);
         exercise.VideoUrl.Should().Be(Video);
-        exercise.BodyPart.Should().Be(BodyParts.CHEST);
+        exercise.Muscle.Should().Be(Muscles.CHEST);
+        exercise.Translations.Should().Equal(spanish, english);
+        exercise.Translations.Should().OnlyContain(translation => translation.IsNew == false);
     }
 
     [Fact]
-    public void Update_ShouldReplaceEveryAttributeAndKeepTheIdentity()
+    public void Rehydrate_ShouldAcceptAMissingVideoUrlFreeExerciseDbIdAndTranslations()
     {
-        // Arrange
-        var id = Id.New();
-        var exercise = Exercise.Rehydrate(id, PressBanca, Video, BodyParts.CHEST);
-        var newName = ExerciseName.From("Sentadilla");
-        var newVideo = Url.From("https://videos.example.com/sentadilla");
-
-        // Act
-        exercise.Update(newName, newVideo, BodyParts.LEGS);
-
-        // Assert
-        exercise.Id.Should().Be(id);
-        exercise.IsNew.Should().BeFalse();
-        exercise.Name.Should().Be(newName);
-        exercise.VideoUrl.Should().Be(newVideo);
-        exercise.BodyPart.Should().Be(BodyParts.LEGS);
-    }
-
-    [Fact]
-    public void Update_ShouldClearTheVideoUrlWhenNoneIsGiven()
-    {
-        // Arrange
-        var exercise = Exercise.Rehydrate(Id.New(), PressBanca, Video, BodyParts.CHEST);
-
-        // Act
-        exercise.Update(PressBanca, null, BodyParts.CHEST);
+        // Arrange & Act
+        var exercise = Exercise.Rehydrate(Id.New(), null, null, Muscles.NECK, []);
 
         // Assert
         exercise.VideoUrl.Should().BeNull();
+        exercise.FreeExerciseDbId.Should().BeNull();
+        exercise.Translations.Should().BeEmpty();
     }
 
     [Fact]
-    public void Update_ShouldRejectAnUndefinedBodyPartAndLeaveTheExerciseUntouched()
+    public void Rehydrate_ShouldRejectTwoTranslationsForTheSameLanguage()
     {
         // Arrange
-        var exercise = Exercise.Rehydrate(Id.New(), PressBanca, Video, BodyParts.CHEST);
+        var first = ExerciseTranslation.Rehydrate(Id.New(), Spanish, PressDeBanca);
+        var second = ExerciseTranslation.Rehydrate(Id.New(), Spanish, ExerciseName.From("Press banca"));
 
         // Act
-        var act = () => exercise.Update(ExerciseName.From("Sentadilla"), null, (BodyParts)99);
+        var act = () => Exercise.Rehydrate(Id.New(), null, null, Muscles.CHEST, [first, second]);
 
         // Assert
-        act.Should().Throw<InvalidBodyPartException>();
-        exercise.Name.Should().Be(PressBanca);
-        exercise.VideoUrl.Should().Be(Video);
-        exercise.BodyPart.Should().Be(BodyParts.CHEST);
+        act.Should().Throw<DuplicateExerciseTranslationException>();
     }
 
     [Fact]
-    public void BodyPartSetter_ShouldAcceptADefinedValue()
+    public void Rehydrate_ShouldRejectAnUndefinedMuscle()
     {
         // Arrange
-        var exercise = Exercise.Create(PressBanca, null, BodyParts.CHEST);
+        var undefined = (Muscles)99;
 
         // Act
-        exercise.BodyPart = BodyParts.ARMS;
+        var act = () => Exercise.Rehydrate(Id.New(), null, null, undefined, []);
 
         // Assert
-        exercise.BodyPart.Should().Be(BodyParts.ARMS);
+        act.Should().Throw<InvalidMuscleException>();
+    }
+
+    [Theory]
+    [InlineData(Muscles.CHEST, BodyParts.CHEST)]
+    [InlineData(Muscles.HAMSTRINGS, BodyParts.LEGS)]
+    [InlineData(Muscles.ABDOMINALS, BodyParts.CORE)]
+    public void BodyPart_ShouldBeDerivedFromTheStoredMuscle(Muscles muscle, BodyParts expected)
+    {
+        // Arrange
+        var exercise = Exercise.Rehydrate(Id.New(), null, null, muscle, []);
+
+        // Act
+        var bodyPart = exercise.BodyPart;
+
+        // Assert
+        bodyPart.Should().Be(expected);
     }
 
     [Fact]
-    public void BodyPartSetter_ShouldRejectAnUndefinedValue()
+    public void Translations_ShouldBeASnapshotThatCannotChangeTheAggregate()
     {
         // Arrange
-        var exercise = Exercise.Create(PressBanca, null, BodyParts.CHEST);
+        var spanish = ExerciseTranslation.Rehydrate(Id.New(), Spanish, PressDeBanca);
+        var exercise = Exercise.Rehydrate(Id.New(), null, null, Muscles.CHEST, [spanish]);
 
         // Act
-        var act = () => exercise.BodyPart = (BodyParts)0;
+        ((List<ExerciseTranslation>)exercise.Translations).Clear();
 
         // Assert
-        act.Should().Throw<InvalidBodyPartException>();
-        exercise.BodyPart.Should().Be(BodyParts.CHEST);
+        exercise.Translations.Should().Equal(spanish);
     }
 }
