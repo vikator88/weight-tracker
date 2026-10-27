@@ -1,6 +1,7 @@
 using WeightTracker.Application.Common;
 using WeightTracker.Application.Exceptions;
 using WeightTracker.Application.Interfaces;
+using WeightTracker.Application.Services;
 using WeightTracker.Domain.Common;
 using WeightTracker.Domain.Exceptions;
 using WeightTracker.Domain.Users;
@@ -12,18 +13,18 @@ public class CreateWorkoutUseCase
 {
     private IWorkoutRepository _workouts;
 
-    private IUserRepository _users;
+    private WorkoutAssignmentValidator _assignment;
 
     private IUnitOfWork _unitOfWork;
 
     public CreateWorkoutUseCase(
         IWorkoutRepository workouts,
-        IUserRepository users,
+        WorkoutAssignmentValidator assignment,
         IUnitOfWork unitOfWork
     )
     {
         _workouts = workouts;
-        _users = users;
+        _assignment = assignment;
         _unitOfWork = unitOfWork;
     }
 
@@ -33,6 +34,7 @@ public class CreateWorkoutUseCase
     /// </summary>
     /// <param name="userId">Requested owner. Optional for a user, required for a trainer or an admin.</param>
     /// <param name="trainerId">Requested trainer. Only an admin may send it.</param>
+    /// <param name="description">Optional description, <c>null</c> when the workout has none.</param>
     /// <returns>The created workout.</returns>
     /// <exception cref="InvalidWorkoutAssignmentException">When the requested owner or trainer is not allowed for the caller's role.</exception>
     /// <exception cref="UserNotFoundException">When the requested owner does not exist.</exception>
@@ -43,6 +45,8 @@ public class CreateWorkoutUseCase
         Role callerRole,
         Id? userId,
         Id? trainerId,
+        WorkoutName name,
+        WorkoutDescription? description,
         DateTime workoutDate,
         CancellationToken cancellationToken)
     {
@@ -50,18 +54,16 @@ public class CreateWorkoutUseCase
 
         if (callerRole != Role.USER)
         {
-            var owner = await _users.GetById(ownerId, cancellationToken)
-                ?? throw new UserNotFoundException(ownerId);
+            var owner = await _assignment.EnsureOwnerExists(ownerId, cancellationToken);
 
             if (callerRole == Role.TRAINER && owner.Role != Role.USER)
                 throw new UnauthorizedOperationException("POST /workouts");
         }
 
-        if (callerRole == Role.ADMIN && prescriberId is not null
-            && await _users.IsTrainerOrAdmin(prescriberId, cancellationToken) == false)
-            throw new InvalidWorkoutAssignmentException("The trainer of a workout must be a trainer or an admin");
+        if (callerRole == Role.ADMIN && prescriberId is not null)
+            await _assignment.EnsureCanTrain(prescriberId, cancellationToken);
 
-        var workout = Workout.Create(ownerId, prescriberId, workoutDate);
+        var workout = Workout.Create(ownerId, prescriberId, name, description, workoutDate);
 
         await _workouts.Save(workout, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

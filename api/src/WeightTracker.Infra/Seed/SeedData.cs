@@ -47,8 +47,15 @@ public static class SeedData
     /// <summary>Owned by the user, no trainer.</summary>
     public static readonly Guid OwnedWorkoutId = new("00000000-0000-0000-0000-000000000021");
 
+    public const string OwnedWorkoutName = "Upper body";
+
+    public const string OwnedWorkoutDescription = "Bench press focus";
+
     /// <summary>Owned by the user, prescribed by the trainer.</summary>
     public static readonly Guid TrainedWorkoutId = new("00000000-0000-0000-0000-000000000022");
+
+    /// <summary>The trained workout has no description.</summary>
+    public const string TrainedWorkoutName = "Leg day";
 
     /// <summary>Owned by the trainer themselves, no trainer assigned.</summary>
     public static readonly Guid TrainerOwnWorkoutId = new("00000000-0000-0000-0000-000000000023");

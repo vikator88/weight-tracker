@@ -33,31 +33,36 @@ public class WorkoutCreateEndpointTests : IntegrationTest
     public static TheoryData<string, object, HttpStatusCode> Rejections => new()
     {
         // USER
-        { SeedCredentials.User, new { userId = SeedData.TrainerId, workoutDate = Date }, HttpStatusCode.BadRequest },
-        { SeedCredentials.User, new { trainerId = SeedData.TrainerId, workoutDate = Date }, HttpStatusCode.BadRequest },
+        { SeedCredentials.User, new { name = "Leg day", userId = SeedData.TrainerId, workoutDate = Date }, HttpStatusCode.BadRequest },
+        { SeedCredentials.User, new { name = "Leg day", trainerId = SeedData.TrainerId, workoutDate = Date }, HttpStatusCode.BadRequest },
         // TRAINER
-        { SeedCredentials.Trainer, new { workoutDate = Date }, HttpStatusCode.BadRequest },
-        { SeedCredentials.Trainer, new { userId = SeedData.TrainerId, workoutDate = Date }, HttpStatusCode.BadRequest },
-        { SeedCredentials.Trainer, new { userId = SeedData.UserId, trainerId = SeedData.TrainerId, workoutDate = Date }, HttpStatusCode.BadRequest },
-        { SeedCredentials.Trainer, new { userId = SeedData.AdminId, workoutDate = Date }, HttpStatusCode.Forbidden },
-        { SeedCredentials.Trainer, new { userId = Guid.NewGuid(), workoutDate = Date }, HttpStatusCode.NotFound },
+        { SeedCredentials.Trainer, new { name = "Leg day", workoutDate = Date }, HttpStatusCode.BadRequest },
+        { SeedCredentials.Trainer, new { name = "Leg day", userId = SeedData.TrainerId, workoutDate = Date }, HttpStatusCode.BadRequest },
+        { SeedCredentials.Trainer, new { name = "Leg day", userId = SeedData.UserId, trainerId = SeedData.TrainerId, workoutDate = Date }, HttpStatusCode.BadRequest },
+        { SeedCredentials.Trainer, new { name = "Leg day", userId = SeedData.AdminId, workoutDate = Date }, HttpStatusCode.Forbidden },
+        { SeedCredentials.Trainer, new { name = "Leg day", userId = Guid.NewGuid(), workoutDate = Date }, HttpStatusCode.NotFound },
         // ADMIN
-        { SeedCredentials.Admin, new { workoutDate = Date }, HttpStatusCode.BadRequest },
-        { SeedCredentials.Admin, new { userId = SeedData.AdminId, workoutDate = Date }, HttpStatusCode.BadRequest },
-        { SeedCredentials.Admin, new { userId = SeedData.UserId, trainerId = SeedData.UserId, workoutDate = Date }, HttpStatusCode.BadRequest },
-        { SeedCredentials.Admin, new { userId = SeedData.TrainerId, trainerId = SeedData.TrainerId, workoutDate = Date }, HttpStatusCode.BadRequest },
-        { SeedCredentials.Admin, new { userId = Guid.NewGuid(), workoutDate = Date }, HttpStatusCode.NotFound },
+        { SeedCredentials.Admin, new { name = "Leg day", workoutDate = Date }, HttpStatusCode.BadRequest },
+        { SeedCredentials.Admin, new { name = "Leg day", userId = SeedData.AdminId, workoutDate = Date }, HttpStatusCode.BadRequest },
+        { SeedCredentials.Admin, new { name = "Leg day", userId = SeedData.UserId, trainerId = SeedData.UserId, workoutDate = Date }, HttpStatusCode.BadRequest },
+        { SeedCredentials.Admin, new { name = "Leg day", userId = SeedData.TrainerId, trainerId = SeedData.TrainerId, workoutDate = Date }, HttpStatusCode.BadRequest },
+        { SeedCredentials.Admin, new { name = "Leg day", userId = Guid.NewGuid(), workoutDate = Date }, HttpStatusCode.NotFound },
         // STRUCTURAL
         { SeedCredentials.User, new { }, HttpStatusCode.BadRequest },
-        { SeedCredentials.User, new { workoutDate = "not-a-date" }, HttpStatusCode.BadRequest },
-        { SeedCredentials.User, new { workoutDate = "2026-10-20T10:30:00" }, HttpStatusCode.BadRequest },
+        { SeedCredentials.User, new { name = "Leg day", workoutDate = "not-a-date" }, HttpStatusCode.BadRequest },
+        { SeedCredentials.User, new { name = "Leg day", workoutDate = "2026-10-20T10:30:00" }, HttpStatusCode.BadRequest },
+        { SeedCredentials.User, new { name = "Leg day" }, HttpStatusCode.BadRequest },
+        { SeedCredentials.User, new { workoutDate = Date }, HttpStatusCode.BadRequest },
+        { SeedCredentials.User, new { name = "   ", workoutDate = Date }, HttpStatusCode.BadRequest },
+        { SeedCredentials.User, new { name = new string('a', 257), workoutDate = Date }, HttpStatusCode.BadRequest },
+        { SeedCredentials.User, new { name = "Leg day", description = new string('a', 1025), workoutDate = Date }, HttpStatusCode.BadRequest },
     };
 
     [Fact]
     public async Task Post_ShouldRejectAnonymousCallers()
     {
         // Arrange & Act
-        var response = await Client.PostAsJsonAsync("/workouts", new { workoutDate = Date });
+        var response = await Client.PostAsJsonAsync("/workouts", new { name = "Leg day", workoutDate = Date });
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -70,7 +75,7 @@ public class WorkoutCreateEndpointTests : IntegrationTest
         Client.DefaultRequestHeaders.Add("Authorization", "Bearer not-a-real-token");
 
         // Act
-        var response = await Client.PostAsJsonAsync("/workouts", new { workoutDate = Date });
+        var response = await Client.PostAsJsonAsync("/workouts", new { name = "Leg day", workoutDate = Date });
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -86,7 +91,7 @@ public class WorkoutCreateEndpointTests : IntegrationTest
         var before = (await admin.GetFromJsonAsync<JsonElement>("/workouts", JsonOptions)).GetArrayLength();
 
         // Act
-        var response = await client.PostAsJsonAsync("/workouts", new { workoutDate = Date });
+        var response = await client.PostAsJsonAsync("/workouts", new { name = "Leg day", workoutDate = Date });
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -101,7 +106,7 @@ public class WorkoutCreateEndpointTests : IntegrationTest
         var client = await AuthenticatedClientFor(SeedCredentials.User);
 
         // Act
-        var response = await client.PostAsJsonAsync("/workouts", new { workoutDate = Date });
+        var response = await client.PostAsJsonAsync("/workouts", new { name = "Leg day", workoutDate = Date });
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -120,7 +125,7 @@ public class WorkoutCreateEndpointTests : IntegrationTest
         var client = await AuthenticatedClientFor(SeedCredentials.User);
 
         // Act
-        var response = await client.PostAsJsonAsync("/workouts", new { workoutDate = Date });
+        var response = await client.PostAsJsonAsync("/workouts", new { name = "Leg day", workoutDate = Date });
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -138,7 +143,7 @@ public class WorkoutCreateEndpointTests : IntegrationTest
         var client = await AuthenticatedClientFor(SeedCredentials.User);
 
         // Act
-        var response = await client.PostAsJsonAsync("/workouts", new { userId = SeedData.UserId, workoutDate = Date });
+        var response = await client.PostAsJsonAsync("/workouts", new { name = "Leg day", userId = SeedData.UserId, workoutDate = Date });
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -152,7 +157,7 @@ public class WorkoutCreateEndpointTests : IntegrationTest
         var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
 
         // Act
-        var response = await client.PostAsJsonAsync("/workouts", new { userId = SeedData.UserId, workoutDate = Date });
+        var response = await client.PostAsJsonAsync("/workouts", new { name = "Leg day", userId = SeedData.UserId, workoutDate = Date });
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -172,7 +177,7 @@ public class WorkoutCreateEndpointTests : IntegrationTest
         var client = await AuthenticatedClientFor(SeedCredentials.Admin);
 
         // Act
-        var response = await client.PostAsJsonAsync("/workouts", new { userId = SeedData.UserId, workoutDate = Date });
+        var response = await client.PostAsJsonAsync("/workouts", new { name = "Leg day", userId = SeedData.UserId, workoutDate = Date });
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -192,7 +197,7 @@ public class WorkoutCreateEndpointTests : IntegrationTest
 
         // Act
         var response = await client.PostAsJsonAsync("/workouts",
-            new { userId = SeedData.UserId, trainerId = SeedData.TrainerId, workoutDate = Date });
+            new { name = "Leg day", userId = SeedData.UserId, trainerId = SeedData.TrainerId, workoutDate = Date });
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -210,7 +215,7 @@ public class WorkoutCreateEndpointTests : IntegrationTest
 
         // Act
         var response = await client.PostAsJsonAsync("/workouts",
-            new { userId = SeedData.TrainerId, trainerId = SeedData.UserId, workoutDate = Date });
+            new { name = "Leg day", userId = SeedData.TrainerId, trainerId = SeedData.UserId, workoutDate = Date });
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -240,7 +245,7 @@ public class WorkoutCreateEndpointTests : IntegrationTest
         var client = await AuthenticatedClientFor(SeedCredentials.User);
 
         // Act
-        var response = await client.PostAsJsonAsync("/workouts", new { workoutDate = Date });
+        var response = await client.PostAsJsonAsync("/workouts", new { name = "Leg day", workoutDate = Date });
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -256,7 +261,7 @@ public class WorkoutCreateEndpointTests : IntegrationTest
         var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
 
         // Act
-        var response = await client.PostAsJsonAsync("/workouts", new { userId = SeedData.UserId, workoutDate = Date });
+        var response = await client.PostAsJsonAsync("/workouts", new { name = "Leg day", userId = SeedData.UserId, workoutDate = Date });
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -275,6 +280,7 @@ public class WorkoutCreateEndpointTests : IntegrationTest
         // Act
         var response = await admin.PostAsJsonAsync("/workouts", new
         {
+            name = "Leg day",
             userId = SeedData.UserId,
             trainerId = SeedData.TrainerId,
             workoutDate = Date,
@@ -295,10 +301,63 @@ public class WorkoutCreateEndpointTests : IntegrationTest
         var client = await AuthenticatedClientFor(SeedCredentials.User);
 
         // Act
-        var response = await client.PostAsJsonAsync("/workouts", new { workoutDate = Date, status = "FINISHED" });
+        var response = await client.PostAsJsonAsync("/workouts", new { name = "Leg day", workoutDate = Date, status = "FINISHED" });
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         (await BodyOf(response)).GetProperty("status").GetString().Should().Be("DRAFT");
+    }
+
+    [Fact]
+    public async Task Post_ShouldStoreTheNameAndTheDescriptionTrimmed()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/workouts", new { name = "  Leg day  ", description = "  Focus on tempo  ", workoutDate = Date });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var body = await BodyOf(response);
+        body.GetProperty("name").GetString().Should().Be("Leg day");
+        body.GetProperty("description").GetString().Should().Be("Focus on tempo");
+        var stored = await client.GetFromJsonAsync<JsonElement>($"/workouts/{body.GetProperty("id").GetGuid()}", JsonOptions);
+        stored.GetProperty("name").GetString().Should().Be("Leg day");
+        stored.GetProperty("description").GetString().Should().Be("Focus on tempo");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("   ")]
+    public async Task Post_ShouldStoreAMissingOrBlankDescriptionAsNull(string? description)
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.User);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/workouts", new { name = "Leg day", description, workoutDate = Date });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await BodyOf(response)).GetProperty("description").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task Post_ShouldAcceptANameAndADescriptionAtTheirLimits()
+    {
+        // Arrange
+        var client = await AuthenticatedClientFor(SeedCredentials.User);
+        var name = new string('n', 256);
+        var description = new string('d', 1024);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/workouts", new { name, description, workoutDate = Date });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var body = await BodyOf(response);
+        body.GetProperty("name").GetString().Should().Be(name);
+        body.GetProperty("description").GetString().Should().Be(description);
     }
 }

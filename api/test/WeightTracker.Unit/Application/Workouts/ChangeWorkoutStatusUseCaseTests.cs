@@ -16,6 +16,7 @@ namespace WeightTracker.Unit.Application.Workouts;
 public class ChangeWorkoutStatusUseCaseTests
 {
     private static readonly DateTime WorkoutDate = new(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly WorkoutName Name = WorkoutName.From("Leg day");
 
     private static readonly Id AthleteId = Id.New();
 
@@ -26,7 +27,7 @@ public class ChangeWorkoutStatusUseCaseTests
 
     /// <summary>A stored workout prescribed by the trainer.</summary>
     private static Workout AStoredWorkoutIn(WorkoutStatus status)
-        => Workout.Rehydrate(Id.New(), AthleteId, TrainerId, WorkoutDate, status, []);
+        => Workout.Rehydrate(Id.New(), AthleteId, TrainerId, Name, null, WorkoutDate, status, []);
 
     private void GivenStored(Workout workout)
         => _workouts.Setup(repository => repository.GetById(workout.Id, It.IsAny<CancellationToken>())).ReturnsAsync(workout);

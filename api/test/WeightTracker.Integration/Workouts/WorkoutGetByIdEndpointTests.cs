@@ -80,6 +80,8 @@ public class WorkoutGetByIdEndpointTests : WorkoutEndpointTest
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
         body.GetProperty("id").GetGuid().Should().Be(SeedData.TrainedWorkoutId);
+        body.GetProperty("name").GetString().Should().Be(SeedData.TrainedWorkoutName);
+        body.GetProperty("description").ValueKind.Should().Be(JsonValueKind.Null);
         body.GetProperty("workoutDate").GetString().Should().Be("2026-10-03");
         body.GetProperty("userId").GetGuid().Should().Be(SeedData.UserId);
         body.GetProperty("trainerId").GetGuid().Should().Be(SeedData.TrainerId);
@@ -99,6 +101,19 @@ public class WorkoutGetByIdEndpointTests : WorkoutEndpointTest
             entry.TryGetProperty("muscle", out _).Should().BeFalse();
             entry.TryGetProperty("bodyPart", out _).Should().BeFalse();
         }
+    }
+
+    [Fact]
+    public async Task Get_ShouldReturnTheNameAndTheDescription()
+    {
+        // Arrange & Act
+        var response = await Get(SeedCredentials.User, SeedData.OwnedWorkoutId);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        body.GetProperty("name").GetString().Should().Be(SeedData.OwnedWorkoutName);
+        body.GetProperty("description").GetString().Should().Be(SeedData.OwnedWorkoutDescription);
     }
 
     [Fact]
@@ -122,7 +137,7 @@ public class WorkoutGetByIdEndpointTests : WorkoutEndpointTest
     {
         // Arrange
         var user = await AuthenticatedClientFor(SeedCredentials.User);
-        var created = await user.PostAsJsonAsync("/workouts", new { workoutDate = "2026-10-20" });
+        var created = await user.PostAsJsonAsync("/workouts", new { name = "Leg day", workoutDate = "2026-10-20" });
         var id = (await created.Content.ReadFromJsonAsync<JsonElement>(JsonOptions)).GetProperty("id").GetGuid();
 
         // Act

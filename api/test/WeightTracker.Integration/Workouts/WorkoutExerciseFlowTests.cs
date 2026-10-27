@@ -18,7 +18,7 @@ public class WorkoutExerciseFlowTests : WorkoutExerciseEndpointTest
 
     private static async Task<Guid> CreateWorkout(HttpClient client)
     {
-        var response = await client.PostAsJsonAsync("/workouts", new { workoutDate = "2026-11-02" });
+        var response = await client.PostAsJsonAsync("/workouts", new { name = "Leg day", workoutDate = "2026-11-02" });
         response.StatusCode.Should().Be(HttpStatusCode.Created);
 
         return (await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions)).GetProperty("id").GetGuid();

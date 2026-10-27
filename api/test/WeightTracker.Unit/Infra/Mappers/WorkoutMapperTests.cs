@@ -10,6 +10,7 @@ namespace WeightTracker.Unit.Infra.Mappers;
 public class WorkoutMapperTests
 {
     private static readonly DateTime WorkoutDate = new(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly WorkoutName Name = WorkoutName.From("Leg day");
 
     private static readonly Id SentadillaId = Id.New();
 
@@ -17,7 +18,7 @@ public class WorkoutMapperTests
 
     private static Workout AFullyLoadedWorkout(Id? trainerId = null)
         => Workout.Rehydrate(
-            Id.New(), Id.New(), trainerId, WorkoutDate, WorkoutStatus.DRAFT,
+            Id.New(), Id.New(), trainerId, Name, null, WorkoutDate, WorkoutStatus.DRAFT,
             [
                 WorkoutExercise.Rehydrate(Id.New(), SentadillaId, Effort.MIDHIGH,
                 [
@@ -29,7 +30,7 @@ public class WorkoutMapperTests
 
     private static Workout AWorkoutWithOneSet(SetTarget target)
         => Workout.Rehydrate(
-            Id.New(), Id.New(), null, WorkoutDate, WorkoutStatus.DRAFT,
+            Id.New(), Id.New(), null, Name, null, WorkoutDate, WorkoutStatus.DRAFT,
             [WorkoutExercise.Rehydrate(Id.New(), SentadillaId, Effort.MID, [new SetPrescription(4, target)])]);
 
     private static Workout RoundTrip(Workout workout)
@@ -305,7 +306,7 @@ public class WorkoutMapperTests
 
     private static Workout AWorkoutWithASuperSeries()
     {
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
         workout.AddExercise(SentadillaId, Effort.MID, [new SetPrescription(3, new SetTarget.Reps(8))]);
         workout.AddExercise(PlanchaId, Effort.LOW, [new SetPrescription(3, new SetTarget.Duration(40))]);
         workout.AddExercise(Id.New(), Effort.HIGH, [new SetPrescription(4, new SetTarget.MaxReps())]);
@@ -364,7 +365,7 @@ public class WorkoutMapperTests
     public void RoundTrip_ShouldPreserveEveryStatus(WorkoutStatus status)
     {
         // Arrange
-        var original = Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, status, []);
+        var original = Workout.Rehydrate(Id.New(), Id.New(), null, Name, null, WorkoutDate, status, []);
 
         // Act
         var restored = RoundTrip(original);
@@ -377,7 +378,7 @@ public class WorkoutMapperTests
     public void MapToEntity_ShouldStoreTheStatusAsItsIntegerValue()
     {
         // Arrange
-        var workout = Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, WorkoutStatus.STARTED, []);
+        var workout = Workout.Rehydrate(Id.New(), Id.New(), null, Name, null, WorkoutDate, WorkoutStatus.STARTED, []);
 
         // Act
         var entity = WorkoutMapper.MapToEntity(workout);
@@ -394,6 +395,48 @@ public class WorkoutMapperTests
         // Arrange
         var entity = WorkoutMapper.MapToEntity(AFullyLoadedWorkout());
         entity.Status = status;
+
+        // Act
+        var act = () => WorkoutMapper.MapToDomain(entity);
+
+        // Assert
+        act.Should().Throw<PersistenceMappingException>();
+    }
+
+    [Fact]
+    public void RoundTrip_ShouldPreserveTheNameAndTheDescription()
+    {
+        // Arrange
+        var description = WorkoutDescription.From("Focus on tempo");
+        var original = Workout.Rehydrate(Id.New(), Id.New(), null, Name, description, WorkoutDate, WorkoutStatus.DRAFT, []);
+
+        // Act
+        var restored = RoundTrip(original);
+
+        // Assert
+        restored.Name.Should().Be(Name);
+        restored.Description.Should().Be(description);
+    }
+
+    [Fact]
+    public void RoundTrip_ShouldPreserveAMissingDescription()
+    {
+        // Arrange
+        var original = Workout.Rehydrate(Id.New(), Id.New(), null, Name, null, WorkoutDate, WorkoutStatus.DRAFT, []);
+
+        // Act
+        var restored = RoundTrip(original);
+
+        // Assert
+        restored.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void MapToDomain_ShouldRejectABlankStoredName()
+    {
+        // Arrange
+        var entity = WorkoutMapper.MapToEntity(AFullyLoadedWorkout());
+        entity.Name = "   ";
 
         // Act
         var act = () => WorkoutMapper.MapToDomain(entity);

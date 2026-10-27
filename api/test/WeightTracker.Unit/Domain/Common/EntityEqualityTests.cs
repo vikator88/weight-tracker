@@ -13,6 +13,8 @@ namespace WeightTracker.Unit.Domain.Common;
 /// </summary>
 public class EntityEqualityTests
 {
+    private static readonly WorkoutName Name = WorkoutName.From("Leg day");
+
     [Fact]
     public void SameTypeAndSameId_ShouldBeEqual()
     {
@@ -67,7 +69,7 @@ public class EntityEqualityTests
         Entity exercise = Exercise.Rehydrate(id, null, null, Muscles.CHEST, []);
 
         // Act
-        Entity workout = Workout.Rehydrate(id, Id.New(), null, new DateTime(2026, 10, 1), WorkoutStatus.DRAFT, []);
+        Entity workout = Workout.Rehydrate(id, Id.New(), null, Name, null, new DateTime(2026, 10, 1), WorkoutStatus.DRAFT, []);
 
         // Assert
         exercise.Should().NotBe(workout);

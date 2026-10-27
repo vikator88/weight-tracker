@@ -38,6 +38,29 @@ public class WorkoutResponseShapeTests : IntegrationTest
     }
 
     [Fact]
+    public async Task Workout_ShouldCarryItsNameAndDescription()
+    {
+        // Arrange & Act
+        var workout = WorkoutWithId(await WorkoutsSeenByAdmin(), SeedData.OwnedWorkoutId);
+
+        // Assert
+        workout.GetProperty("name").GetString().Should().Be(SeedData.OwnedWorkoutName);
+        workout.GetProperty("description").GetString().Should().Be(SeedData.OwnedWorkoutDescription);
+    }
+
+    [Fact]
+    public async Task WorkoutWithoutDescription_ShouldKeepAnExplicitNullDescription()
+    {
+        // Arrange & Act
+        var workout = WorkoutWithId(await WorkoutsSeenByAdmin(), SeedData.TrainedWorkoutId);
+
+        // Assert
+        workout.GetProperty("name").GetString().Should().Be(SeedData.TrainedWorkoutName);
+        workout.TryGetProperty("description", out var description).Should().BeTrue();
+        description.ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
     public async Task WorkoutWithoutTrainer_ShouldKeepAnExplicitNullTrainerId()
     {
         // Arrange & Act

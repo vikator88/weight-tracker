@@ -9,6 +9,7 @@ namespace WeightTracker.Unit.Domain.Workouts;
 public class WorkoutTests
 {
     private static readonly DateTime WorkoutDate = new(2026, 10, 1, 18, 30, 0, DateTimeKind.Utc);
+    private static readonly WorkoutName Name = WorkoutName.From("Leg day");
 
     private static readonly SetPrescription FourByTen = new(4, new SetTarget.Reps(10));
 
@@ -19,7 +20,7 @@ public class WorkoutTests
         var userId = Id.New();
 
         // Act
-        var act = () => Workout.Create(userId, userId, WorkoutDate);
+        var act = () => Workout.Create(userId, userId, Name, null, WorkoutDate);
 
         // Assert
         act.Should().Throw<TrainerCannotBeWorkoutOwnerException>();
@@ -32,7 +33,7 @@ public class WorkoutTests
         var userId = Id.New();
 
         // Act
-        var workout = Workout.Create(userId, null, WorkoutDate);
+        var workout = Workout.Create(userId, null, Name, null, WorkoutDate);
 
         // Assert
         workout.UserId.Should().Be(userId);
@@ -47,7 +48,7 @@ public class WorkoutTests
         var trainerId = Id.New();
 
         // Act
-        var workout = Workout.Create(userId, trainerId, WorkoutDate);
+        var workout = Workout.Create(userId, trainerId, Name, null, WorkoutDate);
 
         // Assert
         workout.UserId.Should().Be(userId);
@@ -61,7 +62,7 @@ public class WorkoutTests
         var userId = Id.New();
 
         // Act
-        var workout = Workout.Create(userId, null, WorkoutDate);
+        var workout = Workout.Create(userId, null, Name, null, WorkoutDate);
 
         // Assert
         workout.IsNew.Should().BeTrue();
@@ -71,17 +72,31 @@ public class WorkoutTests
     public void Create_ShouldTruncateTheWorkoutDateToTheDay()
     {
         // Arrange & Act
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
 
         // Assert
         workout.WorkoutDate.Should().Be(WorkoutDate.Date);
     }
 
     [Fact]
+    public void Create_ShouldKeepTheNameAndTheDescription()
+    {
+        // Arrange
+        var description = WorkoutDescription.From("Focus on tempo");
+
+        // Act
+        var workout = Workout.Create(Id.New(), null, Name, description, WorkoutDate);
+
+        // Assert
+        workout.Name.Should().Be(Name);
+        workout.Description.Should().Be(description);
+    }
+
+    [Fact]
     public void AddExercise_ShouldRegisterTheExerciseWithItsEffortAndSets()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
         var exerciseId = Id.New();
         var twoByEight = new SetPrescription(2, new SetTarget.Reps(8));
 
@@ -100,7 +115,7 @@ public class WorkoutTests
     public void AddExercise_ShouldAppendInInsertionOrder()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
         var first = Id.New();
         var second = Id.New();
         workout.AddExercise(first, Effort.MID, [FourByTen]);
@@ -116,7 +131,7 @@ public class WorkoutTests
     public void AddExercise_ShouldRejectAnExerciseAlreadyInTheWorkout()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
         var exerciseId = Id.New();
         workout.AddExercise(exerciseId, Effort.MID, [FourByTen]);
 
@@ -134,7 +149,7 @@ public class WorkoutTests
     public void AddExercise_ShouldRejectAnUndefinedEffort()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
 
         // Act
         var act = () => workout.AddExercise(Id.New(), (Effort)0, [FourByTen]);
@@ -148,7 +163,7 @@ public class WorkoutTests
     public void RemoveExercise_ShouldDropTheExercise()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
         var exerciseId = Id.New();
         workout.AddExercise(exerciseId, Effort.MID, [FourByTen]);
 
@@ -163,7 +178,7 @@ public class WorkoutTests
     public void RemoveExercise_ShouldRejectAnExerciseNotInTheWorkout()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
 
         // Act
         var act = () => workout.RemoveExercise(Id.New());
@@ -176,7 +191,7 @@ public class WorkoutTests
     public void RemoveExercise_ShouldNotLeaveItsSetsBehindWhenTheExerciseIsAddedAgain()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
         var exerciseId = Id.New();
         workout.AddExercise(exerciseId, Effort.MID, [FourByTen, ThreeByTen]);
         workout.RemoveExercise(exerciseId);
@@ -193,7 +208,7 @@ public class WorkoutTests
     public void UpdateExercise_ShouldReplaceTheEffortAndEverySet()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
         var exerciseId = Id.New();
         workout.AddExercise(exerciseId, Effort.MID, [FourByTen, ThreeByTen]);
         var twoByTwelve = new SetPrescription(2, new SetTarget.Reps(12));
@@ -212,7 +227,7 @@ public class WorkoutTests
     public void UpdateExercise_ShouldKeepTheEntryIdPositionAndSuperSeries()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
         var first = Id.New();
         var second = Id.New();
         var third = Id.New();
@@ -235,7 +250,7 @@ public class WorkoutTests
     public void UpdateExercise_ShouldRejectAnExerciseNotInTheWorkout()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
 
         // Act
         var act = () => workout.UpdateExercise(Id.New(), Effort.MID, [FourByTen]);
@@ -248,7 +263,7 @@ public class WorkoutTests
     public void UpdateExercise_ShouldRejectANewTotalOfSetsInsideASuperSeriesAndChangeNothing()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
         var first = Id.New();
         var second = Id.New();
         workout.AddExercise(first, Effort.MID, [FourByTen]);
@@ -270,7 +285,7 @@ public class WorkoutTests
     public void UpdateExercise_ShouldAcceptADifferentPrescriptionWithTheSameTotalInsideASuperSeries()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
         var first = Id.New();
         var second = Id.New();
         workout.AddExercise(first, Effort.MID, [FourByTen]);
@@ -291,7 +306,7 @@ public class WorkoutTests
     public void UpdateExercise_ShouldRejectAnUndefinedEffortAndChangeNothing()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
         var exerciseId = Id.New();
         workout.AddExercise(exerciseId, Effort.MID, [FourByTen]);
 
@@ -309,7 +324,7 @@ public class WorkoutTests
     public void UpdateExercise_ShouldRejectEmptySetsAndChangeNothing()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
         var exerciseId = Id.New();
         workout.AddExercise(exerciseId, Effort.MID, [FourByTen]);
 
@@ -327,7 +342,7 @@ public class WorkoutTests
     public void Rehydrate_ShouldNotMarkTheWorkoutAsNew()
     {
         // Arrange & Act
-        var workout = Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, WorkoutStatus.DRAFT, []);
+        var workout = Workout.Rehydrate(Id.New(), Id.New(), null, Name, null, WorkoutDate, WorkoutStatus.DRAFT, []);
 
         // Assert
         workout.IsNew.Should().BeFalse();
@@ -344,7 +359,7 @@ public class WorkoutTests
         var plancha = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.LOW, [new SetPrescription(3, new SetTarget.Duration(40))]);
 
         // Act
-        var workout = Workout.Rehydrate(id, userId, trainerId, WorkoutDate, WorkoutStatus.DRAFT, [sentadilla, plancha]);
+        var workout = Workout.Rehydrate(id, userId, trainerId, Name, null, WorkoutDate, WorkoutStatus.DRAFT, [sentadilla, plancha]);
 
         // Assert
         workout.Id.Should().Be(id);
@@ -364,7 +379,7 @@ public class WorkoutTests
         var second = WorkoutExercise.Rehydrate(Id.New(), exerciseId, Effort.HIGH, [FourByTen]);
 
         // Act
-        var act = () => Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, WorkoutStatus.DRAFT, [first, second]);
+        var act = () => Workout.Rehydrate(Id.New(), Id.New(), null, Name, null, WorkoutDate, WorkoutStatus.DRAFT, [first, second]);
 
         // Assert
         act.Should().Throw<ExerciseAlreadyInWorkoutException>();
@@ -374,7 +389,7 @@ public class WorkoutTests
     public void Exercises_ShouldNotExposeTheInternalCollectionForMutation()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
         workout.AddExercise(Id.New(), Effort.MID, [FourByTen]);
 
         var snapshot = workout.Exercises;
@@ -392,7 +407,7 @@ public class WorkoutTests
     /// <param name="entryIds">Identifiers of the workout exercise entries, not of the catalog exercises.</param>
     private static Workout WorkoutWithExercises(out Id[] entryIds, int count = 3)
     {
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
 
         for (var index = 0; index < count; index++)
             workout.AddExercise(Id.New(), Effort.MID, [FourByTen]);
@@ -459,7 +474,7 @@ public class WorkoutTests
     public void CreateSuperSeries_ShouldAcceptDifferentPrescriptionsWithTheSameTotalOfSets()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
         var first = Id.New();
         var second = Id.New();
         workout.AddExercise(first, Effort.MID, [ThreeByTen]);
@@ -479,7 +494,7 @@ public class WorkoutTests
     public void CreateSuperSeries_ShouldRejectExercisesWithDifferentNumberOfSetsAndGroupNothing()
     {
         // Arrange
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
         var first = Id.New();
         var second = Id.New();
         workout.AddExercise(first, Effort.MID, [ThreeByTen]);
@@ -652,7 +667,7 @@ public class WorkoutTests
         var second = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [FourByTen], superSeriesId);
 
         // Act
-        var workout = Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, WorkoutStatus.DRAFT, [first, second]);
+        var workout = Workout.Rehydrate(Id.New(), Id.New(), null, Name, null, WorkoutDate, WorkoutStatus.DRAFT, [first, second]);
 
         // Assert
         workout.Exercises.Should().OnlyContain(entry => entry.SuperSeriesId == superSeriesId);
@@ -665,7 +680,7 @@ public class WorkoutTests
         var alone = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [FourByTen], SuperSeriesId.From(1));
 
         // Act
-        var act = () => Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, WorkoutStatus.DRAFT, [alone]);
+        var act = () => Workout.Rehydrate(Id.New(), Id.New(), null, Name, null, WorkoutDate, WorkoutStatus.DRAFT, [alone]);
 
         // Assert
         act.Should().Throw<SuperSeriesRequiresTwoExercisesException>();
@@ -680,20 +695,20 @@ public class WorkoutTests
         var second = WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [FourByTen], superSeriesId);
 
         // Act
-        var act = () => Workout.Rehydrate(Id.New(), Id.New(), null, WorkoutDate, WorkoutStatus.DRAFT, [first, second]);
+        var act = () => Workout.Rehydrate(Id.New(), Id.New(), null, Name, null, WorkoutDate, WorkoutStatus.DRAFT, [first, second]);
 
         // Assert
         act.Should().Throw<SuperSeriesSetCountMismatchException>();
     }
 
     private static Workout AWorkoutIn(WorkoutStatus status, Id? trainerId = null)
-        => Workout.Rehydrate(Id.New(), Id.New(), trainerId, WorkoutDate, status, []);
+        => Workout.Rehydrate(Id.New(), Id.New(), trainerId, Name, null, WorkoutDate, status, []);
 
     [Fact]
     public void Create_ShouldStartAsDraft()
     {
         // Arrange & Act
-        var workout = Workout.Create(Id.New(), null, WorkoutDate);
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
 
         // Assert
         workout.Status.Should().Be(WorkoutStatus.DRAFT);
@@ -828,7 +843,7 @@ public class WorkoutTests
     {
         // Arrange
         var athleteId = Id.New();
-        var workout = Workout.Rehydrate(Id.New(), athleteId, Id.New(), WorkoutDate, WorkoutStatus.DRAFT, []);
+        var workout = Workout.Rehydrate(Id.New(), athleteId, Id.New(), Name, null, WorkoutDate, WorkoutStatus.DRAFT, []);
 
         // Act
         var hidden = workout.IsHiddenFrom(athleteId);
@@ -842,7 +857,7 @@ public class WorkoutTests
     {
         // Arrange
         var trainerId = Id.New();
-        var workout = Workout.Rehydrate(Id.New(), Id.New(), trainerId, WorkoutDate, WorkoutStatus.DRAFT, []);
+        var workout = Workout.Rehydrate(Id.New(), Id.New(), trainerId, Name, null, WorkoutDate, WorkoutStatus.DRAFT, []);
 
         // Act
         var hiddenFromTrainer = workout.IsHiddenFrom(trainerId);
@@ -858,7 +873,7 @@ public class WorkoutTests
     {
         // Arrange
         var athleteId = Id.New();
-        var workout = Workout.Rehydrate(Id.New(), athleteId, null, WorkoutDate, WorkoutStatus.DRAFT, []);
+        var workout = Workout.Rehydrate(Id.New(), athleteId, null, Name, null, WorkoutDate, WorkoutStatus.DRAFT, []);
 
         // Act
         var hidden = workout.IsHiddenFrom(athleteId);
@@ -875,7 +890,7 @@ public class WorkoutTests
     {
         // Arrange
         var athleteId = Id.New();
-        var workout = Workout.Rehydrate(Id.New(), athleteId, Id.New(), WorkoutDate, status, []);
+        var workout = Workout.Rehydrate(Id.New(), athleteId, Id.New(), Name, null, WorkoutDate, status, []);
 
         // Act
         var hidden = workout.IsHiddenFrom(athleteId);
@@ -903,5 +918,116 @@ public class WorkoutTests
 
         // Assert
         allowed.Should().Be(expected);
+    }
+
+    [Fact]
+    public void Rehydrate_ShouldRestoreTheNameAndTheDescription()
+    {
+        // Arrange
+        var description = WorkoutDescription.From("Focus on tempo");
+
+        // Act
+        var workout = Workout.Rehydrate(Id.New(), Id.New(), null, Name, description, WorkoutDate, WorkoutStatus.DRAFT, []);
+
+        // Assert
+        workout.Name.Should().Be(Name);
+        workout.Description.Should().Be(description);
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldReplaceNameDescriptionAndDay()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, Name, WorkoutDescription.From("Focus on tempo"), WorkoutDate);
+        var newName = WorkoutName.From("Push day");
+        var newDescription = WorkoutDescription.From("Heavy presses");
+        var newDate = new DateTime(2026, 11, 5, 7, 15, 0, DateTimeKind.Utc);
+
+        // Act
+        workout.UpdateDetails(newName, newDescription, newDate);
+
+        // Assert
+        workout.Name.Should().Be(newName);
+        workout.Description.Should().Be(newDescription);
+        workout.WorkoutDate.Should().Be(newDate.Date);
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldClearTheDescription()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, Name, WorkoutDescription.From("Focus on tempo"), WorkoutDate);
+
+        // Act
+        workout.UpdateDetails(Name, null, WorkoutDate);
+
+        // Assert
+        workout.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldKeepStatusAndExercises()
+    {
+        // Arrange
+        var exerciseId = Id.New();
+        var workout = Workout.Rehydrate(
+            Id.New(), Id.New(), null, Name, null, WorkoutDate, WorkoutStatus.PUBLISHED,
+            [WorkoutExercise.Rehydrate(Id.New(), exerciseId, Effort.MID, [FourByTen])]);
+
+        // Act
+        workout.UpdateDetails(WorkoutName.From("Push day"), null, WorkoutDate);
+
+        // Assert
+        workout.Status.Should().Be(WorkoutStatus.PUBLISHED);
+        workout.Exercises.Should().ContainSingle().Which.ExerciseId.Should().Be(exerciseId);
+    }
+
+    [Fact]
+    public void Reassign_ShouldChangeTheOwnerAndTheTrainer()
+    {
+        // Arrange
+        var workout = Workout.Create(Id.New(), null, Name, null, WorkoutDate);
+        var newOwner = Id.New();
+        var newTrainer = Id.New();
+
+        // Act
+        workout.Reassign(newOwner, newTrainer);
+
+        // Assert
+        workout.UserId.Should().Be(newOwner);
+        workout.TrainerId.Should().Be(newTrainer);
+    }
+
+    [Fact]
+    public void Reassign_ShouldClearTheTrainer()
+    {
+        // Arrange
+        var ownerId = Id.New();
+        var workout = Workout.Create(ownerId, Id.New(), Name, null, WorkoutDate);
+
+        // Act
+        workout.Reassign(ownerId, null);
+
+        // Assert
+        workout.UserId.Should().Be(ownerId);
+        workout.TrainerId.Should().BeNull();
+    }
+
+    [Fact]
+    public void Reassign_ShouldRejectATrainerWhoIsTheOwnerWithoutChangingTheWorkout()
+    {
+        // Arrange
+        var ownerId = Id.New();
+        var trainerId = Id.New();
+        var workout = Workout.Create(ownerId, trainerId, Name, null, WorkoutDate);
+        var newOwner = Id.New();
+
+        // Act
+        var act = () => workout.Reassign(newOwner, newOwner);
+
+        // Assert
+        act.Should().Throw<TrainerCannotBeWorkoutOwnerException>();
+        workout.UserId.Should().Be(ownerId);
+        workout.TrainerId.Should().Be(trainerId);
     }
 }

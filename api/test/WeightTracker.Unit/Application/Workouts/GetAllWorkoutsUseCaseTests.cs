@@ -13,6 +13,8 @@ namespace WeightTracker.Unit.Application.Workouts;
 
 public class GetAllWorkoutsUseCaseTests
 {
+    private static readonly WorkoutName Name = WorkoutName.From("Leg day");
+
     private readonly Mock<IWorkoutRepository> _workouts = new(MockBehavior.Strict);
 
     private readonly Mock<IExerciseRepository> _exercises = new(MockBehavior.Strict);
@@ -21,7 +23,7 @@ public class GetAllWorkoutsUseCaseTests
 
     private static Workout AWorkout(Id ownerId, params Id[] exerciseIds) =>
         Workout.Rehydrate(
-            Id.New(), ownerId, null, new DateTime(2026, 10, 1), WorkoutStatus.DRAFT,
+            Id.New(), ownerId, null, Name, null, new DateTime(2026, 10, 1), WorkoutStatus.DRAFT,
             exerciseIds.Select(exerciseId => WorkoutExercise.Rehydrate(
                 Id.New(), exerciseId, Effort.MID, [new SetPrescription(3, new SetTarget.Reps(10))])));
 
@@ -143,7 +145,7 @@ public class GetAllWorkoutsUseCaseTests
 
     private static Workout APrescribedWorkout(Id ownerId, Id trainerId, WorkoutStatus status, params Id[] exerciseIds) =>
         Workout.Rehydrate(
-            Id.New(), ownerId, trainerId, new DateTime(2026, 10, 1), status,
+            Id.New(), ownerId, trainerId, Name, null, new DateTime(2026, 10, 1), status,
             exerciseIds.Select(exerciseId => WorkoutExercise.Rehydrate(
                 Id.New(), exerciseId, Effort.MID, [new SetPrescription(3, new SetTarget.Reps(10))])));
 

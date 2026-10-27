@@ -12,13 +12,15 @@ namespace WeightTracker.Unit.Application.Workouts;
 
 public class GetWorkoutByIdUseCaseTests
 {
+    private static readonly WorkoutName Name = WorkoutName.From("Leg day");
+
     private readonly Mock<IWorkoutRepository> _workouts = new(MockBehavior.Strict);
 
     private GetWorkoutByIdUseCase AUseCase() => new(_workouts.Object);
 
     private Workout StoredWorkout(Id ownerId, Id? trainerId = null, WorkoutStatus status = WorkoutStatus.PUBLISHED)
     {
-        var workout = Workout.Rehydrate(Id.New(), ownerId, trainerId, new DateTime(2026, 10, 1), status, []);
+        var workout = Workout.Rehydrate(Id.New(), ownerId, trainerId, Name, null, new DateTime(2026, 10, 1), status, []);
         _workouts
             .Setup(repository => repository.GetById(workout.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(workout);

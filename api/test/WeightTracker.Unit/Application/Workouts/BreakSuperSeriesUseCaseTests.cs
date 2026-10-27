@@ -16,6 +16,7 @@ namespace WeightTracker.Unit.Application.Workouts;
 public class BreakSuperSeriesUseCaseTests
 {
     private static readonly DateTime WorkoutDate = new(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly WorkoutName Name = WorkoutName.From("Leg day");
 
     private static readonly Id OwnerId = Id.New();
 
@@ -32,7 +33,7 @@ public class BreakSuperSeriesUseCaseTests
         var threeSets = new SetPrescription(3, new SetTarget.Reps(10));
         var superSeriesId = SuperSeriesId.From(StoredSuperSeries);
 
-        return Workout.Rehydrate(Id.New(), OwnerId, null, WorkoutDate, WorkoutStatus.DRAFT,
+        return Workout.Rehydrate(Id.New(), OwnerId, null, Name, null, WorkoutDate, WorkoutStatus.DRAFT,
         [
             WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [threeSets], superSeriesId),
             WorkoutExercise.Rehydrate(Id.New(), Id.New(), Effort.MID, [threeSets], superSeriesId),

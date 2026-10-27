@@ -20,6 +20,8 @@ public static class WorkoutMapper
             UserId = workout.UserId.Value,
             TrainerId = workout.TrainerId?.Value,
             WorkoutDate = DateOnly.FromDateTime(workout.WorkoutDate),
+            Name = workout.Name.Value,
+            Description = workout.Description?.Value,
             Status = (int)workout.Status,
         };
 
@@ -85,6 +87,8 @@ public static class WorkoutMapper
                 Id.From(entity.Id),
                 Id.From(entity.UserId),
                 entity.TrainerId is null ? null : Id.From(entity.TrainerId.Value),
+                WorkoutName.From(entity.Name),
+                WorkoutDescription.From(entity.Description),
                 entity.WorkoutDate.ToDateTime(TimeOnly.MinValue),
                 MapStatus(entity.Status),
                 exercises);

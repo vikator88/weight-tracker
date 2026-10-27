@@ -11,7 +11,7 @@ public sealed class Workout : AggregateRoot
     private List<WorkoutExercise> _exercises;
 
     /// <summary>
-    /// Owner of the workout. Immutable once the workout exists.
+    /// Owner of the workout. It changes only through <see cref="Reassign"/>.
     /// </summary>
     public Id UserId { get; private set; }
 
@@ -21,6 +21,13 @@ public sealed class Workout : AggregateRoot
     public Id? TrainerId { get; private set; }
 
     public DateTime WorkoutDate => _workoutDate;
+
+    public WorkoutName Name { get; private set; }
+
+    /// <summary>
+    /// Optional free text explaining the workout, <c>null</c> when it has none.
+    /// </summary>
+    public WorkoutDescription? Description { get; private set; }
 
     /// <summary>
     /// Where the workout is in its lifecycle. A new workout is always a draft.
@@ -38,11 +45,19 @@ public sealed class Workout : AggregateRoot
     /// </summary>
     public IReadOnlyList<WorkoutExercise> Exercises => _exercises.ToList();
 
-    private Workout(Id userId, Id? trainerId, DateTime workoutDate, WorkoutStatus status)
+    private Workout(
+        Id userId,
+        Id? trainerId,
+        WorkoutName name,
+        WorkoutDescription? description,
+        DateTime workoutDate,
+        WorkoutStatus status)
     {
         this.Id = Id.New();
         UserId = userId;
         TrainerId = trainerId;
+        Name = name;
+        Description = description;
         _workoutDate = workoutDate.Date;
         Status = status;
         _exercises = new List<WorkoutExercise>();
@@ -52,12 +67,16 @@ public sealed class Workout : AggregateRoot
     /// Creates a workout for a user, optionally prescribed by a trainer.
     /// </summary>
     /// <exception cref="TrainerCannotBeWorkoutOwnerException">When the trainer is the owner.</exception>
-    public static Workout Create(Id userId, Id? trainerId, DateTime workoutDate)
+    public static Workout Create(
+        Id userId,
+        Id? trainerId,
+        WorkoutName name,
+        WorkoutDescription? description,
+        DateTime workoutDate)
     {
-        if (trainerId is not null && trainerId == userId)
-            throw new TrainerCannotBeWorkoutOwnerException(userId);
+        EnsureTrainerIsNotOwner(userId, trainerId);
 
-        return new Workout(userId, trainerId, workoutDate, WorkoutStatus.DRAFT)
+        return new Workout(userId, trainerId, name, description, workoutDate, WorkoutStatus.DRAFT)
         {
             IsNew = true
         };
@@ -71,6 +90,8 @@ public sealed class Workout : AggregateRoot
         Id id,
         Id userId,
         Id? trainerId,
+        WorkoutName name,
+        WorkoutDescription? description,
         DateTime workoutdate,
         WorkoutStatus status,
         IEnumerable<WorkoutExercise> exercises
@@ -90,12 +111,37 @@ public sealed class Workout : AggregateRoot
         foreach (var group in entries.Where(entry => entry.SuperSeriesId is not null).GroupBy(entry => entry.SuperSeriesId))
             EnsureValidSuperSeries(id, group.ToList());
 
-        return new Workout(userId, trainerId, workoutdate, status)
+        return new Workout(userId, trainerId, name, description, workoutdate, status)
         {
             Id = id,
             IsNew = false,
             _exercises = entries,
         };
+    }
+
+    /// <summary>
+    /// Replaces the name, the description and the day of the workout. Status and exercises are untouched.
+    /// </summary>
+    /// <param name="description">New description, <c>null</c> to clear it.</param>
+    /// <param name="workoutDate">New day of the workout. Time is not kept.</param>
+    public void UpdateDetails(WorkoutName name, WorkoutDescription? description, DateTime workoutDate)
+    {
+        Name = name;
+        Description = description;
+        _workoutDate = workoutDate.Date;
+    }
+
+    /// <summary>
+    /// Hands the workout to another owner and trainer. Reserved for callers entitled to correct the assignment.
+    /// </summary>
+    /// <param name="trainerId">New trainer, <c>null</c> to leave the workout without trainer.</param>
+    /// <exception cref="TrainerCannotBeWorkoutOwnerException">When the trainer is the owner.</exception>
+    public void Reassign(Id userId, Id? trainerId)
+    {
+        EnsureTrainerIsNotOwner(userId, trainerId);
+
+        UserId = userId;
+        TrainerId = trainerId;
     }
 
     /// <summary>
@@ -265,6 +311,12 @@ public sealed class Workout : AggregateRoot
 
         foreach (var member in members)
             member.LeaveSuperSeries();
+    }
+
+    private static void EnsureTrainerIsNotOwner(Id userId, Id? trainerId)
+    {
+        if (trainerId is not null && trainerId == userId)
+            throw new TrainerCannotBeWorkoutOwnerException(userId);
     }
 
     private static void EnsureDefined(WorkoutStatus status)
