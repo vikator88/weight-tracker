@@ -95,6 +95,8 @@ public class WorkoutGetByIdEndpointTests : WorkoutEndpointTest
         foreach (var entry in entries)
         {
             entry.TryGetProperty("name", out _).Should().BeFalse();
+            entry.TryGetProperty("translations", out _).Should().BeFalse();
+            entry.TryGetProperty("muscle", out _).Should().BeFalse();
             entry.TryGetProperty("bodyPart", out _).Should().BeFalse();
         }
     }

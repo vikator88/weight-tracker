@@ -22,8 +22,4 @@ public interface IWorkoutRepository
 
     public Task Save(Workout workout, CancellationToken cancellationToken);
 
-    /// <summary>
-    /// Whether any workout includes the given exercise.
-    /// </summary>
-    public Task<bool> ExistsByExerciseId(Id exerciseId, CancellationToken cancellationToken);
 }

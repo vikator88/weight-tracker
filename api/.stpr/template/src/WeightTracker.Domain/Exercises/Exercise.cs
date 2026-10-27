@@ -3,61 +3,78 @@ using WeightTracker.Domain.Exceptions;
 
 namespace WeightTracker.Domain.Exercises;
 
+/// <summary>
+/// An exercise of the catalog that workouts are built from.
+/// </summary>
+/// <remarks>
+/// Read-only catalog: exercises are maintained in the database (migrations or direct edits) and the
+/// application only restores them, so there is no factory for new exercises and no mutator.
+/// </remarks>
 public sealed class Exercise : AggregateRoot
 {
-    private BodyParts _bodyPart;
+    private readonly List<ExerciseTranslation> _translations;
 
-    public ExerciseName Name { get; private set; }
+    /// <summary>
+    /// Entry of the free exercise dataset this exercise comes from, null when it has none.
+    /// </summary>
+    public FreeExerciseDbId? FreeExerciseDbId { get; }
 
-    public Url? VideoUrl { get; set; }
+    public Url? VideoUrl { get; }
 
-    /// <exception cref="InvalidBodyPartException">When the value is not a defined <see cref="BodyParts"/>.</exception>
-    public BodyParts BodyPart
+    public Muscles Muscle { get; }
+
+    /// <summary>
+    /// Body part the muscle belongs to. Always derived from <see cref="Muscle"/>, never stored.
+    /// </summary>
+    public BodyParts BodyPart => MuscleBodyParts.BodyPartOf(Muscle);
+
+    /// <summary>
+    /// Snapshot of the names of the exercise, at most one per language.
+    /// </summary>
+    public IReadOnlyList<ExerciseTranslation> Translations => _translations.ToList();
+
+    private Exercise(
+        Id id,
+        FreeExerciseDbId? freeExerciseDbId,
+        Url? videoUrl,
+        Muscles muscle,
+        IEnumerable<ExerciseTranslation> translations)
     {
-        get => _bodyPart;
-        set => _bodyPart = EnsureDefined(value);
-    }
+        var entries = translations.ToList();
 
-    private Exercise(Id id, ExerciseName name, Url? videoUrl, BodyParts bodyPart, bool isNew)
-    {
+        var duplicate = entries
+            .GroupBy(translation => translation.LanguageCode)
+            .FirstOrDefault(group => group.Count() > 1);
+
+        if (duplicate is not null)
+            throw new DuplicateExerciseTranslationException(duplicate.Key.Value);
+
         this.Id = id;
-        this.IsNew = isNew;
-        Name = name; // Algo como "Peso Muerto", "Press Banca", etc...
+        this.IsNew = false;
+        FreeExerciseDbId = freeExerciseDbId;
         VideoUrl = videoUrl;
-        BodyPart = bodyPart; // LEGS, CHEST, etc...
+        Muscle = EnsureDefined(muscle); // QUADRICEPS, CHEST, etc...
+        _translations = entries;
     }
 
     /// <summary>
-    /// Creates an exercise that does not exist in the system yet.
+    /// Restores an exercise stored in the catalog.
     /// </summary>
-    /// <exception cref="InvalidBodyPartException">When the body part is not a defined value.</exception>
-    public static Exercise Create(ExerciseName name, Url? videoUrl, BodyParts bodyPart)
-        => new(Id.New(), name, videoUrl, bodyPart, isNew: true);
+    /// <exception cref="InvalidMuscleException">When the muscle is not a defined value.</exception>
+    /// <exception cref="DuplicateExerciseTranslationException">When two translations share a language.</exception>
+    public static Exercise Rehydrate(
+        Id id,
+        FreeExerciseDbId? freeExerciseDbId,
+        Url? videoUrl,
+        Muscles muscle,
+        IEnumerable<ExerciseTranslation> translations)
+        => new(id, freeExerciseDbId, videoUrl, muscle, translations);
 
-    /// <summary>
-    /// Restores an exercise already stored in the system.
-    /// </summary>
-    public static Exercise Rehydrate(Id id, ExerciseName name, Url? videoUrl, BodyParts bodyPart)
-        => new(id, name, videoUrl, bodyPart, isNew: false);
-
-    /// <summary>
-    /// Replaces every attribute of the exercise. A <c>null</c> video url clears the stored one.
-    /// </summary>
-    /// <exception cref="InvalidBodyPartException">When the body part is not a defined value.</exception>
-    public void Update(ExerciseName name, Url? videoUrl, BodyParts bodyPart)
+    private static Muscles EnsureDefined(Muscles muscle)
     {
-        var validBodyPart = EnsureDefined(bodyPart);
+        if (Enum.IsDefined(muscle) == false)
+            throw new InvalidMuscleException((int)muscle);
 
-        Name = name;
-        VideoUrl = videoUrl;
-        _bodyPart = validBodyPart;
-    }
-
-    private static BodyParts EnsureDefined(BodyParts bodyPart)
-    {
-        if (Enum.IsDefined(bodyPart) == false)
-            throw new InvalidBodyPartException((int)bodyPart);
-
-        return bodyPart;
+        return muscle;
     }
 }

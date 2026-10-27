@@ -19,11 +19,30 @@ public static class SeedData
     public static readonly Guid TrainerId = new("00000000-0000-0000-0000-000000000002");
     public static readonly Guid AdminId = new("00000000-0000-0000-0000-000000000003");
 
-    public static readonly Guid PressBancaId = new("00000000-0000-0000-0000-000000000011");
-    public static readonly Guid SentadillaId = new("00000000-0000-0000-0000-000000000012");
-    public static readonly Guid PlanchaId = new("00000000-0000-0000-0000-000000000013");
+    public static readonly Guid PressBancaId = new("01a17aa9-4603-7c62-9606-711a1a1673d9");
+    public static readonly Guid SentadillaId = new("01a17aa9-463f-77bd-8839-3304b5121cbd");
+    public static readonly Guid PlanchaId = new("01a17aa9-4bd9-7eb1-8ca9-67f1babd1a1e");
     /// <summary>Referenced by no workout, so it can be deleted.</summary>
-    public static readonly Guid CurlBicepsId = new("00000000-0000-0000-0000-000000000014");
+    public static readonly Guid CurlBicepsId = new("01a17aa9-4606-71dd-a221-282bf8a45905");
+
+    public const string PressBancaFreeExerciseDbId = "Barbell_Bench_Press_-_Medium_Grip";
+    public const string SentadillaFreeExerciseDbId = "Barbell_Squat";
+    public const string PlanchaFreeExerciseDbId = "Plank";
+    public const string CurlBicepsFreeExerciseDbId = "Barbell_Curl";
+
+    /// <summary>Translations of the seeded exercises, one in Spanish and one in English for each.</summary>
+    /// <remarks>
+    /// The seeded exercises are rows of the free exercise catalog that
+    /// <c>ImportFreeExerciseCatalog_202610271200</c> inserts: ids, dataset ids and names match it.
+    /// </remarks>
+    public static readonly Guid PressBancaEsTranslationId = new("01a17aa9-4605-708a-8ee8-7824ddda5df1");
+    public static readonly Guid PressBancaEnTranslationId = new("01a17aa9-4604-79cf-98e1-b4f11d9f7594");
+    public static readonly Guid SentadillaEsTranslationId = new("01a17aa9-4641-7292-9c39-a2cb9369be1f");
+    public static readonly Guid SentadillaEnTranslationId = new("01a17aa9-4640-75eb-8500-63c2fba4ec8c");
+    public static readonly Guid PlanchaEsTranslationId = new("01a17aa9-4bdb-7fdd-bda5-c2408f3d05ef");
+    public static readonly Guid PlanchaEnTranslationId = new("01a17aa9-4bda-702a-96b1-5edcc63d20b1");
+    public static readonly Guid CurlBicepsEsTranslationId = new("01a17aa9-4608-7093-9088-ed119e1ae55c");
+    public static readonly Guid CurlBicepsEnTranslationId = new("01a17aa9-4607-7e41-a8dc-059705b080ff");
 
     /// <summary>Owned by the user, no trainer.</summary>
     public static readonly Guid OwnedWorkoutId = new("00000000-0000-0000-0000-000000000021");

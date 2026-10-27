@@ -1,66 +1,57 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using WeightTracker.Application.Common;
 using WeightTracker.Application.Interfaces;
 using WeightTracker.Domain.Common;
+using WeightTracker.Domain.Exercises;
 using WeightTracker.Infra.Seed;
 using WeightTracker.Integration.Bootstrap;
 using Xunit;
 
 namespace WeightTracker.Integration.Repositories;
 
+/// <summary>
+/// The repository only reads the catalog, so these cases cover the loads and their translations.
+/// </summary>
 public class ExerciseRepositoryTests : IntegrationTest
 {
     public ExerciseRepositoryTests(ApiFactory factory) : base(factory)
     { }
 
+    private Task<Exercise?> Load(Id id)
+        => Factory.WithScope(services => services.GetRequiredService<IExerciseRepository>().GetById(id, CancellationToken.None));
+
     [Fact]
-    public async Task Delete_ShouldRemoveTheExerciseOnceTheUnitOfWorkCommits()
+    public async Task GetById_ShouldLoadTheSeededMuscleFreeExerciseDbIdAndTranslations()
     {
         // Arrange
-        var id = Id.From(SeedData.CurlBicepsId);
-
-        await Factory.WithScope(async services =>
-        {
-            var repository = services.GetRequiredService<IExerciseRepository>();
-            var exercise = await repository.GetById(id, CancellationToken.None);
-
-            await repository.Delete(exercise!, CancellationToken.None);
-            await services.GetRequiredService<IUnitOfWork>().SaveChangesAsync(CancellationToken.None);
-
-            return true;
-        });
+        var id = Id.From(SeedData.SentadillaId);
 
         // Act
-        var stored = await Factory.WithScope(services =>
-            services.GetRequiredService<IExerciseRepository>().GetById(id, CancellationToken.None));
+        var exercise = await Load(id);
 
         // Assert
-        stored.Should().BeNull();
+        exercise!.Muscle.Should().Be(Muscles.QUADRICEPS);
+        exercise.BodyPart.Should().Be(BodyParts.LEGS);
+        exercise.FreeExerciseDbId!.Value.Should().Be(SeedData.SentadillaFreeExerciseDbId);
+        exercise.Translations.Select(translation => (translation.Id.Value, translation.LanguageCode.Value, translation.Name.Value))
+            .Should().BeEquivalentTo([
+                (SeedData.SentadillaEsTranslationId, "es", "Sentadilla con barra"),
+                (SeedData.SentadillaEnTranslationId, "en", "Barbell Squat"),
+            ]);
     }
 
     [Fact]
-    public async Task Delete_ShouldNotRemoveAnythingUntilTheUnitOfWorkCommits()
+    public async Task GetAllByIds_ShouldLoadTheTranslationsOfEveryExercise()
     {
         // Arrange
-        var id = Id.From(SeedData.CurlBicepsId);
-
-        await Factory.WithScope(async services =>
-        {
-            var repository = services.GetRequiredService<IExerciseRepository>();
-            var exercise = await repository.GetById(id, CancellationToken.None);
-
-            await repository.Delete(exercise!, CancellationToken.None);
-
-            return true;
-        });
+        var requested = new[] { Id.From(SeedData.PressBancaId), Id.From(SeedData.PlanchaId) };
 
         // Act
-        var stored = await Factory.WithScope(services =>
-            services.GetRequiredService<IExerciseRepository>().GetById(id, CancellationToken.None));
+        var exercises = await Factory.WithScope(services =>
+            services.GetRequiredService<IExerciseRepository>().GetAllByIds(requested, CancellationToken.None));
 
         // Assert
-        stored.Should().NotBeNull();
+        exercises.Should().OnlyContain(exercise => exercise.Translations.Count == 2);
     }
 
     [Fact]

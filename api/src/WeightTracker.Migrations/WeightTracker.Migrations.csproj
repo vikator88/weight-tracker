@@ -20,4 +20,9 @@
     <PackageReference Include="Npgsql" Version="10.0.*" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Read by ImportFreeExerciseCatalog. Embedded because infra/ is not deployed with the API -->
+    <EmbeddedResource Include="Data\ExerciseCatalog.json" LogicalName="WeightTracker.Migrations.Data.ExerciseCatalog.json" />
+  </ItemGroup>
+
 </Project>

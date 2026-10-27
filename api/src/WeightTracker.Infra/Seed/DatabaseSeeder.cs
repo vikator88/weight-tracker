@@ -46,14 +46,47 @@ public class DatabaseSeeder
     {
         var exercises = new[]
         {
-            Exercise.Rehydrate(Id.From(SeedData.PressBancaId), ExerciseName.From("Press Banca"), null, BodyParts.CHEST),
-            Exercise.Rehydrate(Id.From(SeedData.SentadillaId), ExerciseName.From("Sentadilla"), null, BodyParts.LEGS),
-            Exercise.Rehydrate(Id.From(SeedData.PlanchaId), ExerciseName.From("Plancha"), null, BodyParts.BACK),
-            Exercise.Rehydrate(Id.From(SeedData.CurlBicepsId), ExerciseName.From("Curl de Bíceps"), null, BodyParts.ARMS),
+            SeededExercise(SeedData.PressBancaId, SeedData.PressBancaFreeExerciseDbId, Muscles.CHEST,
+                (SeedData.PressBancaEsTranslationId, "es", "Press de banca"),
+                (SeedData.PressBancaEnTranslationId, "en", "Barbell Bench Press - Medium Grip")),
+            SeededExercise(SeedData.SentadillaId, SeedData.SentadillaFreeExerciseDbId, Muscles.QUADRICEPS,
+                (SeedData.SentadillaEsTranslationId, "es", "Sentadilla con barra"),
+                (SeedData.SentadillaEnTranslationId, "en", "Barbell Squat")),
+            SeededExercise(SeedData.PlanchaId, SeedData.PlanchaFreeExerciseDbId, Muscles.ABDOMINALS,
+                (SeedData.PlanchaEsTranslationId, "es", "Plancha"),
+                (SeedData.PlanchaEnTranslationId, "en", "Plank")),
+            SeededExercise(SeedData.CurlBicepsId, SeedData.CurlBicepsFreeExerciseDbId, Muscles.BICEPS,
+                (SeedData.CurlBicepsEsTranslationId, "es", "Curl de bíceps con barra"),
+                (SeedData.CurlBicepsEnTranslationId, "en", "Barbell Curl")),
         };
 
-        await _context.Exercises.AddRangeAsync(exercises.Select(ExerciseMapper.MapToEntity), cancellationToken);
+        // They are catalog rows: in a migrated database they already exist and must not be inserted
+        // twice. Only a truncated database, as the integration tests leave it, is missing them
+        var seededIds = exercises.Select(exercise => exercise.Id.Value).ToList();
+        var stored = await _context.Exercises
+            .Where(exercise => seededIds.Contains(exercise.Id))
+            .Select(exercise => exercise.Id)
+            .ToListAsync(cancellationToken);
+
+        await _context.Exercises.AddRangeAsync(
+            exercises.Where(exercise => stored.Contains(exercise.Id.Value) == false).Select(ExerciseMapper.MapToEntity),
+            cancellationToken);
     }
+
+    private static Exercise SeededExercise(
+        Guid id,
+        string freeExerciseDbId,
+        Muscles muscle,
+        params (Guid Id, string LanguageCode, string Name)[] translations)
+        => Exercise.Rehydrate(
+            Id.From(id),
+            FreeExerciseDbId.From(freeExerciseDbId),
+            null,
+            muscle,
+            translations.Select(translation => ExerciseTranslation.Rehydrate(
+                Id.From(translation.Id),
+                LanguageCode.From(translation.LanguageCode),
+                ExerciseName.From(translation.Name))));
 
     private async Task SeedUsers(CancellationToken cancellationToken)
     {

@@ -64,12 +64,18 @@ public class ExceptionMapperTests
         status.Should().Be(StatusCodes.Status400BadRequest);
     }
 
-    [Fact]
-    public void Map_ShouldReturnBadRequestForAnInvalidBodyPart()
+    public static TheoryData<Exception> InvalidExerciseInputs() => new()
     {
-        // Arrange
-        var exception = new InvalidBodyPartException(99);
+        new InvalidMuscleException(99),
+        new InvalidLanguageCodeException("spa"),
+        new InvalidFreeExerciseDbIdException(" "),
+        new DuplicateExerciseTranslationException("es"),
+    };
 
+    [Theory]
+    [MemberData(nameof(InvalidExerciseInputs))]
+    public void Map_ShouldReturnBadRequestForInvalidExerciseInput(Exception exception)
+    {
         // Act
         var status = StatusOf(exception);
 
@@ -88,19 +94,6 @@ public class ExceptionMapperTests
 
         // Assert
         status.Should().Be(StatusCodes.Status404NotFound);
-    }
-
-    [Fact]
-    public void Map_ShouldReturnConflictForAnExerciseInUse()
-    {
-        // Arrange
-        var exception = new ExerciseInUseException(Id.New());
-
-        // Act
-        var status = StatusOf(exception);
-
-        // Assert
-        status.Should().Be(StatusCodes.Status409Conflict);
     }
 
     [Fact]

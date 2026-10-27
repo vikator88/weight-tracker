@@ -20,6 +20,8 @@ public class WeightTrackerDbContext : DbContext
 
     public DbSet<ExerciseEntity> Exercises => Set<ExerciseEntity>();
 
+    public DbSet<ExerciseTranslationEntity> ExerciseTranslations => Set<ExerciseTranslationEntity>();
+
     public DbSet<WorkoutEntity> Workouts => Set<WorkoutEntity>();
 
     public DbSet<WorkoutExerciseEntity> WorkoutExercises => Set<WorkoutExerciseEntity>();
@@ -50,9 +52,28 @@ public class WeightTrackerDbContext : DbContext
             entity.ToTable("Exercises");
             entity.HasKey(exercise => exercise.Id);
             entity.Property(exercise => exercise.Id).HasColumnName("Id").ValueGeneratedNever();
-            entity.Property(exercise => exercise.Name).HasColumnName("Name").HasMaxLength(ExerciseName.MaxLength).IsRequired();
+            entity.Property(exercise => exercise.FreeExerciseDbId).HasColumnName("FreeExerciseDbId").HasMaxLength(FreeExerciseDbId.MaxLength);
             entity.Property(exercise => exercise.VideoUrl).HasColumnName("VideoUrl").HasMaxLength(Url.MaxLength);
-            entity.Property(exercise => exercise.BodyPart).HasColumnName("BodyPart");
+            entity.Property(exercise => exercise.Muscle).HasColumnName("Muscle");
+
+            entity.HasIndex(exercise => exercise.FreeExerciseDbId).IsUnique();
+
+            entity.HasMany(exercise => exercise.Translations)
+                .WithOne()
+                .HasForeignKey(translation => translation.ExerciseId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ExerciseTranslationEntity>(entity =>
+        {
+            entity.ToTable("ExerciseTranslations");
+            entity.HasKey(translation => translation.Id);
+            entity.Property(translation => translation.Id).HasColumnName("Id").ValueGeneratedNever();
+            entity.Property(translation => translation.ExerciseId).HasColumnName("ExerciseId");
+            entity.Property(translation => translation.LanguageCode).HasColumnName("LanguageCode").HasMaxLength(LanguageCode.MaxLength).IsRequired();
+            entity.Property(translation => translation.Name).HasColumnName("Name").HasMaxLength(ExerciseName.MaxLength).IsRequired();
+
+            entity.HasIndex(translation => new { translation.ExerciseId, translation.LanguageCode }).IsUnique();
         });
 
         modelBuilder.Entity<WorkoutEntity>(entity =>

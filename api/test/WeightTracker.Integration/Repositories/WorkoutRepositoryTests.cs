@@ -41,21 +41,6 @@ public class WorkoutRepositoryTests : IntegrationTest
             return true;
         });
 
-    [Theory]
-    [InlineData("00000000-0000-0000-0000-000000000011", true)]
-    [InlineData("00000000-0000-0000-0000-000000000012", true)]
-    [InlineData("00000000-0000-0000-0000-000000000014", false)]
-    public async Task ExistsByExerciseId_ShouldReportWhetherAnyWorkoutIncludesTheExercise(string exerciseId, bool expected)
-    {
-        // Arrange & Act
-        var exists = await Factory.WithScope(services =>
-            services.GetRequiredService<IWorkoutRepository>()
-                .ExistsByExerciseId(Id.From(Guid.Parse(exerciseId)), CancellationToken.None));
-
-        // Assert
-        exists.Should().Be(expected);
-    }
-
     [Fact]
     public async Task Save_ShouldPersistANewAggregateAcrossItsThreeTables()
     {

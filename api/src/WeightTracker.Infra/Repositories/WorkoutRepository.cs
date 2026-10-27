@@ -65,11 +65,6 @@ public class WorkoutRepository : IWorkoutRepository
         Reconcile(tracked, entity);
     }
 
-    public async Task<bool> ExistsByExerciseId(Id exerciseId, CancellationToken cancellationToken)
-        => await _context.WorkoutExercises
-            .AsNoTracking()
-            .AnyAsync(workoutExercise => workoutExercise.ExerciseId == exerciseId.Value, cancellationToken);
-
     /// <summary>
     /// Brings the persisted children of the aggregate in line with the incoming state.
     /// </summary>

@@ -57,8 +57,6 @@ public class WorkoutResponseShapeTests : IntegrationTest
         var exercise = workout.GetProperty("exercises").EnumerateArray().Single();
 
         exercise.GetProperty("exerciseId").GetGuid().Should().Be(SeedData.PressBancaId);
-        exercise.GetProperty("name").GetString().Should().Be("Press Banca");
-        exercise.GetProperty("bodyPart").GetString().Should().Be("CHEST");
 
         // Act
         var set = exercise.GetProperty("sets").EnumerateArray().Single();
@@ -70,11 +68,29 @@ public class WorkoutResponseShapeTests : IntegrationTest
         exercise.GetProperty("effort").GetString().Should().Be("HIGH");
     }
 
+    [Fact]
+    public async Task Exercise_ShouldCarryItsTranslationsMuscleAndBodyPartButNoName()
+    {
+        // Arrange
+        var workouts = await WorkoutsSeenByAdmin();
+
+        // Act
+        var exercise = WorkoutWithId(workouts, SeedData.OwnedWorkoutId).GetProperty("exercises").EnumerateArray().Single();
+
+        // Assert
+        exercise.GetProperty("translations").EnumerateArray()
+            .Select(translation => (translation.GetProperty("languageCode").GetString(), translation.GetProperty("name").GetString()))
+            .Should().BeEquivalentTo([("es", "Press de banca"), ("en", "Barbell Bench Press - Medium Grip")]);
+        exercise.GetProperty("muscle").GetString().Should().Be("CHEST");
+        exercise.GetProperty("bodyPart").GetString().Should().Be("CHEST");
+        exercise.TryGetProperty("name", out _).Should().BeFalse();
+    }
+
     [Theory]
-    [InlineData("00000000-0000-0000-0000-000000000021", "00000000-0000-0000-0000-000000000011", "HIGH")]
-    [InlineData("00000000-0000-0000-0000-000000000022", "00000000-0000-0000-0000-000000000012", "MIDHIGH")]
-    [InlineData("00000000-0000-0000-0000-000000000022", "00000000-0000-0000-0000-000000000013", "LOW")]
-    [InlineData("00000000-0000-0000-0000-000000000023", "00000000-0000-0000-0000-000000000011", "MID")]
+    [InlineData("00000000-0000-0000-0000-000000000021", "01a17aa9-4603-7c62-9606-711a1a1673d9", "HIGH")]
+    [InlineData("00000000-0000-0000-0000-000000000022", "01a17aa9-463f-77bd-8839-3304b5121cbd", "MIDHIGH")]
+    [InlineData("00000000-0000-0000-0000-000000000022", "01a17aa9-4bd9-7eb1-8ca9-67f1babd1a1e", "LOW")]
+    [InlineData("00000000-0000-0000-0000-000000000023", "01a17aa9-4603-7c62-9606-711a1a1673d9", "MID")]
     public async Task Exercise_ShouldCarryItsEffort(string workoutId, string exerciseId, string effort)
     {
         // Arrange
@@ -97,8 +113,8 @@ public class WorkoutResponseShapeTests : IntegrationTest
 
         // Assert
         workout.GetProperty("exercises").EnumerateArray()
-            .Select(exercise => exercise.GetProperty("name").GetString())
-            .Should().Equal("Sentadilla", "Plancha");
+            .Select(exercise => exercise.GetProperty("exerciseId").GetGuid())
+            .Should().Equal(SeedData.SentadillaId, SeedData.PlanchaId);
     }
 
     [Fact]

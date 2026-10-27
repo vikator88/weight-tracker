@@ -54,7 +54,7 @@ public class AddWorkoutExerciseUseCaseTests
 
     private void GivenInCatalog(Id exerciseId)
         => _exercises.Setup(repository => repository.GetById(exerciseId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Exercise.Rehydrate(exerciseId, ExerciseName.From("Press Banca"), null, BodyParts.CHEST));
+            .ReturnsAsync(Exercise.Rehydrate(exerciseId, null, null, Muscles.CHEST, []));
 
     [Fact]
     public async Task Execute_ShouldAppendTheExerciseAndCommitOnce()

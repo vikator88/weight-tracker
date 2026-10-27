@@ -101,27 +101,24 @@ public class OpenApiDocumentTests : IntegrationTest
     }
 
     [Theory]
-    [InlineData("/exercises", "post")]
-    [InlineData("/exercises/{id}", "put")]
-    [InlineData("/exercises/{id}", "delete")]
-    public async Task ExerciseWriteOperation_ShouldCarryAResolvedSecurityRequirement(string path, string method)
+    [InlineData("/exercises")]
+    [InlineData("/exercises/{id}")]
+    public async Task ExercisePath_ShouldDocumentOnlyTheReadOperation(string path)
     {
         // Arrange & Act
         var document = await Document();
 
         // Assert
-        var security = Operation(document, path, method).GetProperty("security");
-
-        security.GetArrayLength().Should().Be(1);
-        security[0].TryGetProperty("Bearer", out _).Should().BeTrue();
+        // Exercises are a read-only catalog: no write operation is served or documented
+        document.GetProperty("paths").GetProperty(path).EnumerateObject()
+            .Select(property => property.Name)
+            .Where(name => name is "get" or "post" or "put" or "patch" or "delete")
+            .Should().Equal("get");
     }
 
     [Theory]
     [InlineData("/exercises", "get", new[] { "200" })]
     [InlineData("/exercises/{id}", "get", new[] { "200", "404" })]
-    [InlineData("/exercises", "post", new[] { "201", "400", "401", "403" })]
-    [InlineData("/exercises/{id}", "put", new[] { "200", "400", "401", "403", "404" })]
-    [InlineData("/exercises/{id}", "delete", new[] { "204", "401", "403", "404", "409" })]
     public async Task Exercises_ShouldDocumentItsResponses(string path, string method, string[] statuses)
     {
         // Arrange & Act

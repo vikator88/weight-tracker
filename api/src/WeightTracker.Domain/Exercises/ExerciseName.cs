@@ -15,7 +15,7 @@ public sealed record ExerciseName
     public const int MinLength = 3;
 
     /// <summary>
-    /// Maximum length accepted. The exercises.name column length must stay aligned with this value.
+    /// Maximum length accepted. The ExerciseTranslations.Name column length must stay aligned with this value.
     /// </summary>
     public const int MaxLength = 150;
 

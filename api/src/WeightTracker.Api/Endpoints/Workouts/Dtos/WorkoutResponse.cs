@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using WeightTracker.Api.Endpoints.Exercises.Dtos;
 using WeightTracker.Domain.Common;
 using WeightTracker.Domain.Exercises;
 using WeightTracker.Domain.Workouts;
@@ -70,11 +71,14 @@ public sealed record WorkoutExerciseDetailResponse(
 
 /// <param name="Id">Identifier of this entry of the workout, used to address it (for example to group it in a superseries).</param>
 /// <param name="ExerciseId">Identifier of the catalog exercise performed in this entry.</param>
+/// <param name="Translations">Names of the exercise, one per language.</param>
+/// <param name="BodyPart">Body part derived from <paramref name="Muscle"/>.</param>
 /// <param name="SuperSeriesId">Superseries this entry belongs to, <c>null</c> when it is performed on its own.</param>
 public sealed record WorkoutExerciseResponse(
     Guid Id,
     Guid ExerciseId,
-    string Name,
+    IReadOnlyList<ExerciseTranslationResponse> Translations,
+    string Muscle,
     string BodyPart,
     string Effort,
     IReadOnlyList<SetResponse> Sets,
@@ -84,7 +88,8 @@ public sealed record WorkoutExerciseResponse(
         => new(
             entry.Id.Value,
             exercise.Id.Value,
-            exercise.Name.Value,
+            exercise.Translations.Select(ExerciseTranslationResponse.From).ToList(),
+            exercise.Muscle.ToString(),
             exercise.BodyPart.ToString(),
             entry.Effort.ToString(),
             entry.Sets.Select(SetResponse.From).ToList(),
