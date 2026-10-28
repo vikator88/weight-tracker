@@ -92,7 +92,7 @@ public class WorkoutResponseShapeTests : IntegrationTest
     }
 
     [Fact]
-    public async Task Exercise_ShouldCarryItsTranslationsMuscleAndBodyPartButNoName()
+    public async Task Exercise_ShouldCarryItsTranslationsMuscleBodyPartAndTypeButNoName()
     {
         // Arrange
         var workouts = await WorkoutsSeenByAdmin();
@@ -106,6 +106,7 @@ public class WorkoutResponseShapeTests : IntegrationTest
             .Should().BeEquivalentTo([("es", "Press de banca"), ("en", "Barbell Bench Press - Medium Grip")]);
         exercise.GetProperty("muscle").GetString().Should().Be("CHEST");
         exercise.GetProperty("bodyPart").GetString().Should().Be("CHEST");
+        exercise.GetProperty("type").GetString().Should().Be("STRENGTH");
         exercise.TryGetProperty("name", out _).Should().BeFalse();
     }
 

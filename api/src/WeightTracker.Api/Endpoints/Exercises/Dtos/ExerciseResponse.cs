@@ -8,6 +8,7 @@ public sealed record ExerciseResponse(
     string? VideoUrl,
     string Muscle,
     string BodyPart,
+    string Type,
     IReadOnlyList<ExerciseTranslationResponse> Translations)
 {
     public static ExerciseResponse From(Exercise exercise)
@@ -17,6 +18,7 @@ public sealed record ExerciseResponse(
             exercise.VideoUrl?.Value,
             exercise.Muscle.ToString(),
             exercise.BodyPart.ToString(),
+            exercise.Type.ToString(),
             exercise.Translations.Select(ExerciseTranslationResponse.From).ToList());
 }
 

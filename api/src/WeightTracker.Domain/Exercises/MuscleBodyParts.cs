@@ -20,7 +20,7 @@ public static class MuscleBodyParts
         Muscles.GLUTES => BodyParts.LEGS,
         Muscles.HAMSTRINGS => BodyParts.LEGS,
         Muscles.LATS => BodyParts.BACK,
-        Muscles.LOWER_BACK => BodyParts.BACK,
+        Muscles.LOWER_BACK => BodyParts.CORE,
         Muscles.MIDDLE_BACK => BodyParts.BACK,
         Muscles.NECK => BodyParts.NECK,
         Muscles.QUADRICEPS => BodyParts.LEGS,

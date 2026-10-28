@@ -100,6 +100,7 @@ public class WorkoutGetByIdEndpointTests : WorkoutEndpointTest
             entry.TryGetProperty("translations", out _).Should().BeFalse();
             entry.TryGetProperty("muscle", out _).Should().BeFalse();
             entry.TryGetProperty("bodyPart", out _).Should().BeFalse();
+            entry.TryGetProperty("type", out _).Should().BeFalse();
         }
     }
 

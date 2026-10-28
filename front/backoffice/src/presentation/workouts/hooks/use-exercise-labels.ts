@@ -27,6 +27,13 @@ export interface SetSummaryValues {
   maxValue?: string | number | null;
 }
 
+/** One label of an exercise, as its card shows it. */
+export interface ExerciseLabelValues {
+  text: string;
+  color: LabelColor;
+  variant: "filled" | "outlined";
+}
+
 interface ExerciseLabels {
   /** The name in the active language, else the first translation, else the exercise id. */
   nameOf: (exercise: Exercise) => string;
@@ -36,8 +43,15 @@ interface ExerciseLabels {
   targetTypeLabel: (type: string) => string;
   /** One set as a short text, such as "2 × 15 repeticiones"; values are given as typed or as numbers. */
   setSummary: (set: SetSummaryValues) => string;
+  /** One set as its count and target only, such as "2 × 15"; for lists where space is short. */
+  compactSetSummary: (set: SetSummaryValues) => string;
   /** The chip colour of a body part; unknown codes are neutral. */
   bodyPartColor: (code: string) => LabelColor;
+  /**
+   * An exercise's body part, filled with its colour, then its muscle, outlined in the same colour. The muscle is left
+   * out when `withMuscle` is false, such as for a body part whose exercises all work one muscle.
+   */
+  exerciseLabelsOf: (exercise: Exercise, withMuscle?: boolean) => ExerciseLabelValues[];
 }
 
 /** The single place that turns catalog codes into text. An unknown code is shown as it comes. */
@@ -57,6 +71,7 @@ export default function useExerciseLabels(): ExerciseLabels {
   return useMemo(() => {
     const labelIn = (group: string) => (code: string) =>
       t(`${group}.${code}`, { defaultValue: code });
+    const bodyPartColor = (code: string) => BODY_PART_COLORS[code] ?? "default";
 
     return {
       nameOf,
@@ -71,7 +86,24 @@ export default function useExerciseLabels(): ExerciseLabels {
           value: value ?? "",
           max: maxValue ?? "",
         }),
-      bodyPartColor: (code: string) => BODY_PART_COLORS[code] ?? "default",
+      compactSetSummary: ({ count, type, value, maxValue }: SetSummaryValues) =>
+        t(`workout.exercises.compactSummary.${SUMMARY_TYPES.has(type) ? type : "other"}`, {
+          series: count,
+          value: value ?? "",
+          max: maxValue ?? "",
+        }),
+      bodyPartColor,
+      exerciseLabelsOf: (exercise: Exercise, withMuscle = true) => {
+        const color = bodyPartColor(exercise.bodyPart);
+        const labels: ExerciseLabelValues[] = [
+          { text: labelIn("bodyParts")(exercise.bodyPart), color, variant: "filled" },
+        ];
+
+        if (withMuscle) {
+          labels.push({ text: labelIn("muscles")(exercise.muscle), color, variant: "outlined" });
+        }
+        return labels;
+      },
     };
   }, [t, nameOf]);
 }

@@ -19,6 +19,7 @@ public static class ExerciseMapper
             FreeExerciseDbId = exercise.FreeExerciseDbId?.Value,
             VideoUrl = exercise.VideoUrl?.Value,
             Muscle = (int)exercise.Muscle,
+            Type = (int)exercise.Type,
         };
 
         foreach (var translation in exercise.Translations)
@@ -47,6 +48,7 @@ public static class ExerciseMapper
                 entity.FreeExerciseDbId is null ? null : FreeExerciseDbId.From(entity.FreeExerciseDbId),
                 entity.VideoUrl is null ? null : Url.From(entity.VideoUrl),
                 MapMuscle(entity.Muscle),
+                MapType(entity.Type),
                 entity.Translations
                     .OrderBy(translation => translation.LanguageCode, StringComparer.Ordinal)
                     .Select(translation => ExerciseTranslation.Rehydrate(
@@ -68,5 +70,13 @@ public static class ExerciseMapper
             throw new PersistenceMappingException($"'{muscle}' is not a known muscle");
 
         return (Muscles)muscle;
+    }
+
+    private static ExerciseTypes MapType(int type)
+    {
+        if (Enum.IsDefined(typeof(ExerciseTypes), type) == false)
+            throw new PersistenceMappingException($"'{type}' is not a known exercise type");
+
+        return (ExerciseTypes)type;
     }
 }

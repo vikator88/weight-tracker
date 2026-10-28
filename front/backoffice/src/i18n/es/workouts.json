@@ -36,8 +36,11 @@
     "catalog": {
       "filter": "Buscar ejercicio",
       "empty": "Ningún ejercicio coincide con el filtro.",
-      "add": "Añadir ejercicio",
-      "title": "Catálogo de ejercicios"
+      "title": "Catálogo de ejercicios",
+      "choose": "Elegir ejercicio",
+      "close": "Cerrar",
+      "bodyParts": "Partes del cuerpo",
+      "muscles": "Músculos"
     },
     "details": {
       "save": "Guardar",
@@ -48,8 +51,6 @@
       "remove": "Quitar ejercicio",
       "edit": "Editar ejercicio",
       "title": "Ejercicios",
-      "pending": "Pendiente",
-      "setsLine": "Series: {{sets}}",
       "effortLine": "Esfuerzo: {{effort}}",
       "reorder": "Reordenar ejercicio",
       "dnd": {
@@ -59,10 +60,17 @@
         "over": "{{name}} está en la posición {{position}}.",
         "dropped": "{{name}} se ha soltado en la posición {{position}}.",
         "cancelled": "Se ha cancelado el movimiento de {{name}}."
+      },
+      "add": "Añadir ejercicio",
+      "compactSummary": {
+        "Reps": "{{series}} × {{value}}",
+        "RepsRange": "{{series}} × {{value}}–{{max}}",
+        "Duration": "{{series}} × {{value}} s",
+        "MaxReps": "{{series}} × máx",
+        "other": "{{series}} × {{value}}"
       }
     },
     "configuration": {
-      "empty": "Selecciona un ejercicio para configurarlo.",
       "effort": "Esfuerzo",
       "sets": "Series",
       "setCount": "Series",
@@ -71,11 +79,10 @@
       "targetMaxValue": "Máximo",
       "video": "Vídeo",
       "openVideo": "Ver vídeo",
-      "title": "Detalles del ejercicio",
+      "title": "Configuración del ejercicio",
       "removeSet": "Quitar serie",
       "addSet": "Añadir serie",
       "save": "Guardar",
-      "saved": "Ejercicio guardado.",
       "noSets": "Todavía no hay series.",
       "validation": {
         "positiveInteger": "Introduce un número entero mayor que 0.",
@@ -88,15 +95,16 @@
         "Duration": "{{series}} × {{value}} s",
         "MaxReps": "{{series}} × máximo",
         "other": "{{series}} × {{value}}"
-      }
+      },
+      "cancel": "Cancelar"
     },
     "notFound": "No hemos encontrado este entrenamiento.",
     "backToList": "Volver a planes asignados",
-    "structure": {
-      "title": "Estructura del entrenamiento"
-    },
     "back": "Volver",
-    "editTitle": "Editar entrenamiento"
+    "editTitle": "Editar entrenamiento",
+    "properties": {
+      "title": "Propiedades del entrenamiento"
+    }
   },
   "muscles": {
     "ABDOMINALS": "Abdominales",

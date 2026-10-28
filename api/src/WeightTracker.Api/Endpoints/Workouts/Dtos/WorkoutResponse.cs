@@ -81,6 +81,7 @@ public sealed record WorkoutExerciseDetailResponse(
 /// <param name="ExerciseId">Identifier of the catalog exercise performed in this entry.</param>
 /// <param name="Translations">Names of the exercise, one per language.</param>
 /// <param name="BodyPart">Body part derived from <paramref name="Muscle"/>.</param>
+/// <param name="Type">Kind of training of the exercise, independent of <paramref name="Muscle"/>.</param>
 /// <param name="SuperSeriesId">Superseries this entry belongs to, <c>null</c> when it is performed on its own.</param>
 public sealed record WorkoutExerciseResponse(
     Guid Id,
@@ -88,6 +89,7 @@ public sealed record WorkoutExerciseResponse(
     IReadOnlyList<ExerciseTranslationResponse> Translations,
     string Muscle,
     string BodyPart,
+    string Type,
     string Effort,
     IReadOnlyList<SetResponse> Sets,
     int? SuperSeriesId)
@@ -99,6 +101,7 @@ public sealed record WorkoutExerciseResponse(
             exercise.Translations.Select(ExerciseTranslationResponse.From).ToList(),
             exercise.Muscle.ToString(),
             exercise.BodyPart.ToString(),
+            exercise.Type.ToString(),
             entry.Effort.ToString(),
             entry.Sets.Select(SetResponse.From).ToList(),
             entry.SuperSeriesId?.Value);

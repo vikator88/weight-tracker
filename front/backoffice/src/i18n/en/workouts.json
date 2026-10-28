@@ -36,8 +36,11 @@
     "catalog": {
       "filter": "Search exercise",
       "empty": "No exercise matches the filter.",
-      "add": "Add exercise",
-      "title": "Exercise catalog"
+      "title": "Exercise catalog",
+      "choose": "Choose exercise",
+      "close": "Close",
+      "bodyParts": "Body parts",
+      "muscles": "Muscles"
     },
     "details": {
       "save": "Save",
@@ -48,8 +51,6 @@
       "remove": "Remove exercise",
       "edit": "Edit exercise",
       "title": "Exercises",
-      "pending": "Pending",
-      "setsLine": "Sets: {{sets}}",
       "effortLine": "Effort: {{effort}}",
       "reorder": "Reorder exercise",
       "dnd": {
@@ -59,10 +60,17 @@
         "over": "{{name}} is at position {{position}}.",
         "dropped": "{{name}} was dropped at position {{position}}.",
         "cancelled": "Moving {{name}} was cancelled."
+      },
+      "add": "Add exercise",
+      "compactSummary": {
+        "Reps": "{{series}} × {{value}}",
+        "RepsRange": "{{series}} × {{value}}–{{max}}",
+        "Duration": "{{series}} × {{value}} s",
+        "MaxReps": "{{series}} × max",
+        "other": "{{series}} × {{value}}"
       }
     },
     "configuration": {
-      "empty": "Select an exercise to configure it.",
       "effort": "Effort",
       "sets": "Sets",
       "setCount": "Sets",
@@ -71,11 +79,10 @@
       "targetMaxValue": "Maximum",
       "video": "Video",
       "openVideo": "Watch video",
-      "title": "Exercise details",
+      "title": "Exercise configuration",
       "removeSet": "Remove set",
       "addSet": "Add set",
       "save": "Save",
-      "saved": "Exercise saved.",
       "noSets": "No sets yet.",
       "validation": {
         "positiveInteger": "Enter a whole number greater than 0.",
@@ -88,15 +95,16 @@
         "Duration": "{{series}} × {{value}} s",
         "MaxReps": "{{series}} × max",
         "other": "{{series}} × {{value}}"
-      }
+      },
+      "cancel": "Cancel"
     },
     "notFound": "We could not find this workout.",
     "backToList": "Back to assigned plans",
-    "structure": {
-      "title": "Workout structure"
-    },
     "back": "Back",
-    "editTitle": "Edit workout"
+    "editTitle": "Edit workout",
+    "properties": {
+      "title": "Workout properties"
+    }
   },
   "muscles": {
     "ABDOMINALS": "Abdominals",

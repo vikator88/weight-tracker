@@ -53,7 +53,7 @@ The `bodyPart` of an exercise SHALL always be the body part mapped from its stor
 
 #### Scenario: Muscle mapping
 - **WHEN** an exercise has a given muscle
-- **THEN** its `bodyPart` is `CORE` for `ABDOMINALS`; `LEGS` for `ABDUCTORS`, `ADDUCTORS`, `CALVES`, `GLUTES`, `HAMSTRINGS` and `QUADRICEPS`; `ARMS` for `BICEPS`, `FOREARMS` and `TRICEPS`; `CHEST` for `CHEST`; `BACK` for `LATS`, `LOWER_BACK`, `MIDDLE_BACK` and `TRAPS`; `NECK` for `NECK`; `SHOULDERS` for `SHOULDERS`
+- **THEN** its `bodyPart` is `CORE` for `ABDOMINALS` and `LOWER_BACK`; `LEGS` for `ABDUCTORS`, `ADDUCTORS`, `CALVES`, `GLUTES`, `HAMSTRINGS` and `QUADRICEPS`; `ARMS` for `BICEPS`, `FOREARMS` and `TRICEPS`; `CHEST` for `CHEST`; `BACK` for `LATS`, `MIDDLE_BACK` and `TRAPS`; `NECK` for `NECK`; `SHOULDERS` for `SHOULDERS`
 
 #### Scenario: Body part follows the stored muscle
 - **WHEN** a caller reads an exercise whose stored muscle is `HAMSTRINGS`

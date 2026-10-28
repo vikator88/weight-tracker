@@ -79,6 +79,26 @@ const reorderable: StoredWorkout = {
   ],
 };
 
+/** Three more catalog exercises, so a workout can hold five and fill more than one row. */
+const moreExercises = ["Remo", "Dominadas", "Fondos"].map((name, index) => ({
+  ...benchPress,
+  id: `3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6${index}`,
+  translations: [
+    { languageCode: "es", name },
+    { languageCode: "en", name },
+  ],
+}));
+
+/** A workout with five exercises: three fill the first row and the other two start the next one. */
+const crowded: StoredWorkout = {
+  ...existing,
+  id: "5d4c3b2a-1908-4f6e-a5d4-c3b2a1908f7e",
+  name: "Completo",
+  exercises: [catalog[0]!, benchPress, ...moreExercises].map((exercise, index) =>
+    entryFor(`4e5f6a7b-8c9d-4e0f-9a1b-2c3d4e5f6a7${index}`, exercise.id),
+  ),
+};
+
 function json(body: unknown, status = 200) {
   return { status, headers: cors, contentType: "application/json", body: JSON.stringify(body) };
 }
@@ -90,10 +110,39 @@ interface MockOptions {
   orderStatus?: number;
 }
 
+/** The bodies of the exercise requests the screen sent, in the order they were sent. */
+interface SentRequests {
+  additions: unknown[];
+  updates: unknown[];
+  reorders: unknown[];
+}
+
+interface SentSet {
+  count: number;
+  targetType: string;
+  target?: number;
+  maxTarget?: number;
+}
+
+/** An entry as the API answers it, with the sets it received. */
+function entryOf(id: string, exerciseId: string, effort: string, sets: SentSet[]) {
+  return {
+    id,
+    exerciseId,
+    effort,
+    superSeriesId: null,
+    sets: sets.map((set) => ({
+      count: set.count,
+      target: { type: set.targetType, value: set.target ?? null, maxValue: set.maxTarget ?? null },
+    })),
+  };
+}
+
 /**
  * Intercepts the workout and catalog endpoints. A `POST /workouts` stores what it receives as a new workout, a
- * `PUT /workouts/{id}` replaces that workout's data, and a `PUT /workouts/{id}/exercises/order` reorders its
- * exercises. Resolves to the bodies of the reorder requests, in the order they were sent.
+ * `PUT /workouts/{id}` replaces that workout's data, a `POST` or `PUT` under `/workouts/{id}/exercises` adds or
+ * replaces an exercise, and a `PUT /workouts/{id}/exercises/order` reorders them. Resolves to the bodies of the
+ * exercise requests.
  */
 async function mockWorkoutsApi(
   page: Page,
@@ -102,8 +151,9 @@ async function mockWorkoutsApi(
   const workouts = new Map<string, StoredWorkout>([
     [existing.id, existing],
     [reorderable.id, reorderable],
+    [crowded.id, crowded],
   ]);
-  const reorders: unknown[] = [];
+  const sent: SentRequests = { additions: [], updates: [], reorders: [] };
 
   await page.route(`${api}/workouts`, (route) => {
     const request = route.request();
@@ -151,25 +201,14 @@ async function mockWorkoutsApi(
     if (!workout) {
       return route.fulfill(json({ status: 404 }, 404));
     }
-    const body = request.postDataJSON() as {
-      exerciseId: string;
-      effort: string;
-      sets: { count: number; targetType: string; target?: number; maxTarget?: number }[];
-    };
-    const entry = {
-      id: "9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a",
-      exerciseId: body.exerciseId,
-      effort: body.effort,
-      superSeriesId: null,
-      sets: body.sets.map((set) => ({
-        count: set.count,
-        target: {
-          type: set.targetType,
-          value: set.target ?? null,
-          maxValue: set.maxTarget ?? null,
-        },
-      })),
-    };
+    const body = request.postDataJSON() as { exerciseId: string; effort: string; sets: SentSet[] };
+    sent.additions.push(body);
+    const entry = entryOf(
+      "9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a",
+      body.exerciseId,
+      body.effort,
+      body.sets,
+    );
     workouts.set(workoutId, { ...workout, exercises: [...workout.exercises, entry] });
     return route.fulfill(json(entry, 201));
   });
@@ -180,8 +219,21 @@ async function mockWorkoutsApi(
     }
     const [, , workoutId = "", , exerciseId = ""] = new URL(request.url()).pathname.split("/");
     const workout = workouts.get(workoutId);
-    if (!workout || request.method() !== "DELETE") {
+    const current = workout?.exercises.find(
+      (entry) => (entry as { exerciseId: string }).exerciseId === exerciseId,
+    ) as { id: string } | undefined;
+    if (!workout || !current) {
       return route.fulfill(json({ status: 404 }, 404));
+    }
+    if (request.method() === "PUT") {
+      const body = request.postDataJSON() as { effort: string; sets: SentSet[] };
+      sent.updates.push(body);
+      const entry = entryOf(current.id, exerciseId, body.effort, body.sets);
+      workouts.set(workoutId, {
+        ...workout,
+        exercises: workout.exercises.map((other) => (other === current ? entry : other)),
+      });
+      return route.fulfill(json(entry));
     }
     workouts.set(workoutId, {
       ...workout,
@@ -200,7 +252,7 @@ async function mockWorkoutsApi(
     const workoutId = new URL(request.url()).pathname.split("/")[2] ?? "";
     const workout = workouts.get(workoutId);
     const body = request.postDataJSON() as { exerciseIds: string[] };
-    reorders.push(body);
+    sent.reorders.push(body);
     if (!workout) {
       return route.fulfill(json({ status: 404 }, 404));
     }
@@ -219,17 +271,29 @@ async function mockWorkoutsApi(
       ? route.fulfill({ status: 204, headers: cors })
       : route.fulfill(json(exercises)),
   );
-  return reorders;
+  return sent;
 }
 
 async function signIn(page: Page, options: MockOptions = {}) {
   await mockUsersMe(page);
-  const reorders = await mockWorkoutsApi(page, options);
+  const sent = await mockWorkoutsApi(page, options);
   await page.addInitScript(() => {
     window.localStorage.setItem("auth.accessToken", "access");
     window.localStorage.setItem("auth.refreshToken", "refresh");
   });
-  return reorders;
+  return sent;
+}
+
+/** Opens the catalog dialog, chooses `name` in it and resolves to the configuration dialog that opens for it. */
+async function chooseFromCatalog(page: Page, name: string) {
+  await page.getByRole("button", { name: "Añadir ejercicio" }).click();
+  const catalogDialog = page.getByRole("dialog", { name: "Catálogo de ejercicios" });
+  await catalogDialog
+    .getByRole("listitem")
+    .filter({ hasText: name })
+    .getByRole("button", { name: "Elegir ejercicio" })
+    .click();
+  return page.getByRole("dialog", { name: "Configuración del ejercicio" });
 }
 
 /**
@@ -238,10 +302,10 @@ async function signIn(page: Page, options: MockOptions = {}) {
  */
 const tallViewport = { width: 1280, height: 1600 };
 
-/** Picks up the first workout exercise by its handle, moves it one row down and drops it, with the keyboard. */
-async function moveFirstExerciseDown(page: Page) {
-  const workoutCard = page.getByRole("region", { name: "Estructura del entrenamiento" });
-  const handle = workoutCard.getByRole("button", { name: "Reordenar ejercicio" }).first();
+/** Picks up the first workout exercise by its handle and drops it one card to the right, with the keyboard. */
+async function moveFirstExerciseRight(page: Page) {
+  const exercisesCard = page.getByRole("region", { name: "Ejercicios" });
+  const handle = exercisesCard.getByRole("button", { name: "Reordenar ejercicio" }).first();
   // dnd-kit listens for the moving keys only once the pick-up is handled, so each key waits for the previous one.
   await handle.focus();
   await page.keyboard.press("Space");
@@ -250,7 +314,7 @@ async function moveFirstExerciseDown(page: Page) {
   await expect(page.getByRole("status")).toContainText("en la posición 1");
   // Under load Chromium sometimes drops the first arrow key of a drag; with two rows a repeated key cannot overshoot.
   await expect(async () => {
-    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowRight");
     await expect(page.getByRole("status")).toContainText("en la posición 2", { timeout: 500 });
   }).toPass();
   await page.keyboard.press("Space");
@@ -273,8 +337,11 @@ test("creates a workout from the dialog and lands on its screen", async ({ page 
   await expect(page).toHaveURL(/\/workout\/?\?id=8c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f$/);
   await expect(page.getByRole("heading", { level: 1, name: "Editar entrenamiento" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Nombre" })).toHaveValue("Pierna");
-  await expect(page.getByText("Sentadilla")).toBeVisible();
-  await expect(page.getByText("Selecciona un ejercicio para configurarlo.")).toBeVisible();
+  await expect(
+    page
+      .getByRole("region", { name: "Ejercicios" })
+      .getByText("Este entrenamiento aún no tiene ejercicios."),
+  ).toBeVisible();
 });
 
 test("opens a workout from the table's edit action", async ({ page }) => {
@@ -309,87 +376,200 @@ test("saves a workout's data and shows it after a reload", async ({ page }) => {
   await expect(page.getByRole("textbox", { name: "Nombre" })).toHaveValue("Empuje B");
 });
 
-test("adds an exercise from the catalog with two sets and keeps it after a reload", async ({
+test("adds an exercise through the catalog and configuration dialogs and keeps it after a reload", async ({
   page,
 }) => {
   // Arrange
-  await signIn(page);
+  const sent = await signIn(page);
   await page.goto(`/workout?id=${existing.id}`);
-  await page.getByRole("button", { name: "Añadir ejercicio" }).click();
-  const panel = page.getByRole("region", { name: "Detalles del ejercicio" });
-  await panel.getByRole("combobox", { name: "Esfuerzo" }).click();
+  const dialog = await chooseFromCatalog(page, "Sentadilla");
+  await dialog.getByRole("combobox", { name: "Esfuerzo" }).click();
   await page.getByRole("option", { name: "Alto", exact: true }).click();
-  const form = panel.getByRole("group", { name: "Añadir serie" });
+  const form = dialog.getByRole("group", { name: "Añadir serie" });
   await form.getByRole("spinbutton", { name: "Series" }).fill("2");
   await form.getByRole("spinbutton", { name: "Valor" }).fill("15");
-  await panel.getByRole("button", { name: "Añadir serie" }).click();
+  await dialog.getByRole("button", { name: "Añadir serie" }).click();
   await form.getByRole("combobox", { name: "Tipo" }).click();
   await page.getByRole("option", { name: "Máximas repeticiones" }).click();
   await form.getByRole("spinbutton", { name: "Series" }).fill("1");
-  await panel.getByRole("button", { name: "Añadir serie" }).click();
+  await dialog.getByRole("button", { name: "Añadir serie" }).click();
 
   // Act
-  await panel.getByRole("button", { name: "Guardar" }).click();
+  await dialog.getByRole("button", { name: "Guardar" }).click();
 
   // Assert
-  await expect(panel.getByText("Ejercicio guardado.")).toBeVisible();
+  await expect(dialog).toBeHidden();
+  expect(sent.additions).toEqual([
+    {
+      exerciseId: catalog[0]!.id,
+      effort: "HIGH",
+      sets: [
+        { count: 2, targetType: "Reps", target: 15 },
+        { count: 1, targetType: "MaxReps" },
+      ],
+    },
+  ]);
   await page.reload();
-  const workoutCard = page.getByRole("region", { name: "Estructura del entrenamiento" });
-  await expect(workoutCard.getByText("Sentadilla")).toBeVisible();
-  await expect(workoutCard.getByText("Pendiente")).toHaveCount(0);
-  await expect(
-    workoutCard.getByText("Series: 2 × 15 repeticiones, 1 × máximo", { exact: true }),
-  ).toBeVisible();
-  await expect(workoutCard.getByText("Esfuerzo: Alto", { exact: true })).toBeVisible();
-  await workoutCard.getByRole("button", { name: "Editar ejercicio" }).click();
-  const details = page.getByRole("region", { name: "Detalles del ejercicio" });
+  const exercisesCard = page.getByRole("region", { name: "Ejercicios" });
+  await expect(exercisesCard.getByText("Sentadilla")).toBeVisible();
+  await expect(exercisesCard.getByText("2 × 15, 1 × máx", { exact: true })).toBeVisible();
+  await expect(exercisesCard.getByText("Esfuerzo: Alto", { exact: true })).toBeVisible();
+  await exercisesCard.getByRole("button", { name: "Editar ejercicio" }).click();
+  const details = page.getByRole("dialog", { name: "Configuración del ejercicio" });
   await expect(details.getByText("2 × 15 repeticiones", { exact: true })).toBeVisible();
   await expect(details.getByText("1 × máximo", { exact: true })).toBeVisible();
+});
+
+test("edits an exercise's sets through the pencil and keeps them after a reload", async ({
+  page,
+}) => {
+  // Arrange
+  const sent = await signIn(page, { exercises: [...catalog, benchPress] });
+  await page.goto(`/workout?id=${reorderable.id}`);
+  const exercisesCard = page.getByRole("region", { name: "Ejercicios" });
+  await exercisesCard.getByRole("button", { name: "Editar ejercicio" }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Configuración del ejercicio" });
+  const form = dialog.getByRole("group", { name: "Añadir serie" });
+  await form.getByRole("spinbutton", { name: "Series" }).fill("2");
+  await form.getByRole("spinbutton", { name: "Valor" }).fill("15");
+  await dialog.getByRole("button", { name: "Añadir serie" }).click();
+
+  // Act
+  await dialog.getByRole("button", { name: "Guardar" }).click();
+
+  // Assert
+  await expect(dialog).toBeHidden();
+  expect(sent.updates).toHaveLength(1);
+  expect(sent.updates[0]).toMatchObject({
+    effort: "MID",
+    sets: [
+      { count: 3, targetType: "Reps", target: 10 },
+      { count: 2, targetType: "Reps", target: 15 },
+    ],
+  });
+  expect(sent.additions).toHaveLength(0);
+  await page.reload();
+  await expect(exercisesCard.getByText("3 × 10, 2 × 15", { exact: true })).toBeVisible();
+});
+
+test("shows the exercise beside its configuration in the dialog", async ({ page }) => {
+  // Arrange
+  await signIn(page, { exercises: [...catalog, benchPress] });
+  await page.goto(`/workout?id=${reorderable.id}`);
+
+  // Act
+  await page
+    .getByRole("region", { name: "Ejercicios" })
+    .getByRole("button", { name: "Editar ejercicio" })
+    .first()
+    .click();
+
+  // Assert
+  const dialog = page.getByRole("dialog", { name: "Configuración del ejercicio" });
+  const name = (await dialog.getByRole("heading", { level: 3, name: "Sentadilla" }).boundingBox())!;
+  const effort = (await dialog.getByRole("combobox", { name: "Esfuerzo" }).boundingBox())!;
+  expect(name.x + name.width).toBeLessThanOrEqual(effort.x);
+  expect(effort.y).toBeLessThan(name.y + name.height + 200);
 });
 
 test("removes a saved exercise and lists it in the catalog again", async ({ page }) => {
   // Arrange
   await signIn(page);
   await page.goto(`/workout?id=${existing.id}`);
-  await page.getByRole("button", { name: "Añadir ejercicio" }).click();
-  const panel = page.getByRole("region", { name: "Detalles del ejercicio" });
-  await panel.getByRole("combobox", { name: "Esfuerzo" }).click();
+  const dialog = await chooseFromCatalog(page, "Sentadilla");
+  await dialog.getByRole("combobox", { name: "Esfuerzo" }).click();
   await page.getByRole("option", { name: "Medio", exact: true }).click();
-  const form = panel.getByRole("group", { name: "Añadir serie" });
+  const form = dialog.getByRole("group", { name: "Añadir serie" });
   await form.getByRole("spinbutton", { name: "Series" }).fill("3");
   await form.getByRole("spinbutton", { name: "Valor" }).fill("10");
-  await panel.getByRole("button", { name: "Añadir serie" }).click();
-  await panel.getByRole("button", { name: "Guardar" }).click();
-  await expect(panel.getByText("Ejercicio guardado.")).toBeVisible();
-  const workoutCard = page.getByRole("region", { name: "Estructura del entrenamiento" });
-  const catalog = page.getByRole("region", { name: "Catálogo de ejercicios" });
-  await expect(catalog.getByText("Sentadilla")).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Añadir serie" }).click();
+  await dialog.getByRole("button", { name: "Guardar" }).click();
+  await expect(dialog).toBeHidden();
+  const exercisesCard = page.getByRole("region", { name: "Ejercicios" });
 
   // Act
-  await workoutCard.getByRole("button", { name: "Quitar ejercicio" }).click();
+  await exercisesCard.getByRole("button", { name: "Quitar ejercicio" }).click();
 
   // Assert
-  await expect(workoutCard.getByText("Este entrenamiento aún no tiene ejercicios.")).toBeVisible();
-  await expect(catalog.getByText("Sentadilla")).toBeVisible();
+  await expect(
+    exercisesCard.getByText("Este entrenamiento aún no tiene ejercicios."),
+  ).toBeVisible();
   await page.reload();
   await expect(
-    page.getByRole("region", { name: "Catálogo de ejercicios" }).getByText("Sentadilla"),
+    exercisesCard.getByText("Este entrenamiento aún no tiene ejercicios."),
   ).toBeVisible();
+  await exercisesCard.getByRole("button", { name: "Añadir ejercicio" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Catálogo de ejercicios" }).getByText("Sentadilla"),
+  ).toBeVisible();
+});
+
+test("stacks the cards and lays the exercises out in rows of at most three", async ({ page }) => {
+  // Arrange
+  await signIn(page, { exercises: [...catalog, benchPress, ...moreExercises] });
+  await page.setViewportSize(tallViewport);
+
+  // Act
+  await page.goto(`/workout?id=${crowded.id}`);
+
+  // Assert
+  const exercisesCard = page.getByRole("region", { name: "Ejercicios" });
+  const items = exercisesCard.getByRole("listitem");
+  await expect(items).toHaveCount(5);
+  const properties = (await page
+    .getByRole("region", { name: "Propiedades del entrenamiento" })
+    .boundingBox())!;
+  const exercises = (await exercisesCard.boundingBox())!;
+  expect(properties.y + properties.height).toBeLessThanOrEqual(exercises.y);
+  expect(Math.round(properties.width)).toBe(Math.round(exercises.width));
+  const boxes = await Promise.all(
+    [0, 1, 2, 3, 4].map(async (index) => (await items.nth(index).boundingBox())!),
+  );
+  for (const index of [1, 2]) {
+    expect(boxes[index]!.y).toBe(boxes[0]!.y);
+    expect(boxes[index]!.x).toBeGreaterThan(boxes[index - 1]!.x);
+  }
+  expect(boxes[3]!.y).toBeGreaterThan(boxes[0]!.y);
+  expect(boxes[3]!.x).toBe(boxes[0]!.x);
+  expect(boxes[4]!.y).toBe(boxes[3]!.y);
+});
+
+test("shows the catalog's exercises as cards in rows of at most three", async ({ page }) => {
+  // Arrange
+  await signIn(page, { exercises: [...catalog, benchPress, ...moreExercises] });
+  await page.setViewportSize(tallViewport);
+  await page.goto(`/workout?id=${existing.id}`);
+
+  // Act
+  await page.getByRole("button", { name: "Añadir ejercicio" }).click();
+
+  // Assert
+  const items = page.getByRole("dialog", { name: "Catálogo de ejercicios" }).getByRole("listitem");
+  await expect(items).toHaveCount(5);
+  const boxes = await Promise.all(
+    [0, 1, 2, 3].map(async (index) => (await items.nth(index).boundingBox())!),
+  );
+  for (const index of [1, 2]) {
+    expect(boxes[index]!.y).toBe(boxes[0]!.y);
+    expect(boxes[index]!.x).toBeGreaterThan(boxes[index - 1]!.x);
+  }
+  expect(boxes[3]!.y).toBeGreaterThan(boxes[0]!.y);
+  expect(boxes[3]!.x).toBe(boxes[0]!.x);
 });
 
 test("reorders the workout's exercises by dragging and keeps the order after a reload", async ({
   page,
 }) => {
   // Arrange
-  const reorders = await signIn(page, { exercises: [...catalog, benchPress] });
+  const { reorders } = await signIn(page, { exercises: [...catalog, benchPress] });
   await page.setViewportSize(tallViewport);
   await page.goto(`/workout?id=${reorderable.id}`);
-  const workoutCard = page.getByRole("region", { name: "Estructura del entrenamiento" });
-  const items = workoutCard.getByRole("listitem");
+  const exercisesCard = page.getByRole("region", { name: "Ejercicios" });
+  const items = exercisesCard.getByRole("listitem");
   await expect(items.first()).toContainText("Sentadilla");
 
   // Act
-  await moveFirstExerciseDown(page);
+  await moveFirstExerciseRight(page);
 
   // Assert
   await expect(items.nth(0)).toContainText("Press de banca");
@@ -404,19 +584,22 @@ test("puts the previous order back and shows the error when the reorder is refus
   page,
 }) => {
   // Arrange
-  const reorders = await signIn(page, { exercises: [...catalog, benchPress], orderStatus: 409 });
+  const { reorders } = await signIn(page, {
+    exercises: [...catalog, benchPress],
+    orderStatus: 409,
+  });
   await page.setViewportSize(tallViewport);
   await page.goto(`/workout?id=${reorderable.id}`);
-  const workoutCard = page.getByRole("region", { name: "Estructura del entrenamiento" });
-  const items = workoutCard.getByRole("listitem");
+  const exercisesCard = page.getByRole("region", { name: "Ejercicios" });
+  const items = exercisesCard.getByRole("listitem");
   await expect(items.first()).toContainText("Sentadilla");
 
   // Act
-  await moveFirstExerciseDown(page);
+  await moveFirstExerciseRight(page);
 
   // Assert
   await expect(
-    workoutCard.getByText("La operación entra en conflicto con el estado actual."),
+    exercisesCard.getByText("La operación entra en conflicto con el estado actual."),
   ).toBeVisible();
   await expect(items.nth(0)).toContainText("Sentadilla");
   await expect(items.nth(1)).toContainText("Press de banca");

@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import Box from "@mui/material/Box";
 import {
   WORKOUT_DESCRIPTION_MAX_LENGTH,
@@ -23,8 +22,6 @@ interface WorkoutDetailsCardProps {
   saving: boolean;
   onSave: () => void;
   onChange: (field: keyof WorkoutDetailsFormValues, value: string) => void;
-  /** Shown inside the card, below the fields: the workout's exercises. */
-  children: ReactNode;
   titleId: string;
 }
 
@@ -34,8 +31,8 @@ const maxLengthOf: Partial<Record<keyof WorkoutDetailsFormValues, number>> = {
 };
 
 /**
- * The workout's structure: its own data in editable fields with their save action, then its exercises. The screen
- * owns and saves the values.
+ * The workout's properties: its own data in editable fields with their save action. The screen owns and saves the
+ * values.
  */
 export default function WorkoutDetailsCard({
   values,
@@ -44,7 +41,6 @@ export default function WorkoutDetailsCard({
   saving,
   onSave,
   onChange,
-  children,
   titleId,
 }: WorkoutDetailsCardProps) {
   const { t } = useTranslation("workouts");
@@ -68,7 +64,7 @@ export default function WorkoutDetailsCard({
     <Card variant="outlined">
       <CardContent>
         <Typography id={titleId} variant="h6" component="h2" sx={{ mb: 2 }}>
-          {t("workout.structure.title")}
+          {t("workout.properties.title")}
         </Typography>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Box
@@ -92,7 +88,6 @@ export default function WorkoutDetailsCard({
             </Button>
           </Box>
         </Box>
-        <Box sx={{ mt: 3 }}>{children}</Box>
       </CardContent>
     </Card>
   );

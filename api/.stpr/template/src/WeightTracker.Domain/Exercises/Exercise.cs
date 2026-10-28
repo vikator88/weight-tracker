@@ -29,6 +29,11 @@ public sealed class Exercise : AggregateRoot
     public BodyParts BodyPart => MuscleBodyParts.BodyPartOf(Muscle);
 
     /// <summary>
+    /// Kind of training the exercise belongs to. Stored, and not related to <see cref="Muscle"/> or <see cref="BodyPart"/>.
+    /// </summary>
+    public ExerciseTypes Type { get; }
+
+    /// <summary>
     /// Snapshot of the names of the exercise, at most one per language.
     /// </summary>
     public IReadOnlyList<ExerciseTranslation> Translations => _translations.ToList();
@@ -38,6 +43,7 @@ public sealed class Exercise : AggregateRoot
         FreeExerciseDbId? freeExerciseDbId,
         Url? videoUrl,
         Muscles muscle,
+        ExerciseTypes type,
         IEnumerable<ExerciseTranslation> translations)
     {
         var entries = translations.ToList();
@@ -54,6 +60,7 @@ public sealed class Exercise : AggregateRoot
         FreeExerciseDbId = freeExerciseDbId;
         VideoUrl = videoUrl;
         Muscle = EnsureDefined(muscle); // QUADRICEPS, CHEST, etc...
+        Type = EnsureDefined(type);
         _translations = entries;
     }
 
@@ -61,14 +68,16 @@ public sealed class Exercise : AggregateRoot
     /// Restores an exercise stored in the catalog.
     /// </summary>
     /// <exception cref="InvalidMuscleException">When the muscle is not a defined value.</exception>
+    /// <exception cref="InvalidExerciseTypeException">When the type is not a defined value.</exception>
     /// <exception cref="DuplicateExerciseTranslationException">When two translations share a language.</exception>
     public static Exercise Rehydrate(
         Id id,
         FreeExerciseDbId? freeExerciseDbId,
         Url? videoUrl,
         Muscles muscle,
+        ExerciseTypes type,
         IEnumerable<ExerciseTranslation> translations)
-        => new(id, freeExerciseDbId, videoUrl, muscle, translations);
+        => new(id, freeExerciseDbId, videoUrl, muscle, type, translations);
 
     private static Muscles EnsureDefined(Muscles muscle)
     {
@@ -76,5 +85,13 @@ public sealed class Exercise : AggregateRoot
             throw new InvalidMuscleException((int)muscle);
 
         return muscle;
+    }
+
+    private static ExerciseTypes EnsureDefined(ExerciseTypes type)
+    {
+        if (Enum.IsDefined(type) == false)
+            throw new InvalidExerciseTypeException((int)type);
+
+        return type;
     }
 }

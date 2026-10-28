@@ -24,11 +24,17 @@ public static class SeedData
     public static readonly Guid PlanchaId = new("01a17aa9-4bd9-7eb1-8ca9-67f1babd1a1e");
     /// <summary>Referenced by no workout, so it can be deleted.</summary>
     public static readonly Guid CurlBicepsId = new("01a17aa9-4606-71dd-a221-282bf8a45905");
+    /// <summary>The seeded cardio exercise.</summary>
+    public static readonly Guid CorrerEnCintaId = new("01a17aa9-4cb7-7fb2-9840-4559ec09792f");
+    /// <summary>The seeded stretching exercise.</summary>
+    public static readonly Guid EstiramientoIsquiosId = new("01a17aa9-4585-71c5-a350-6a9c03107e96");
 
     public const string PressBancaFreeExerciseDbId = "Barbell_Bench_Press_-_Medium_Grip";
     public const string SentadillaFreeExerciseDbId = "Barbell_Squat";
     public const string PlanchaFreeExerciseDbId = "Plank";
     public const string CurlBicepsFreeExerciseDbId = "Barbell_Curl";
+    public const string CorrerEnCintaFreeExerciseDbId = "Running_Treadmill";
+    public const string EstiramientoIsquiosFreeExerciseDbId = "90_90_Hamstring";
 
     /// <summary>Translations of the seeded exercises, one in Spanish and one in English for each.</summary>
     /// <remarks>
@@ -43,6 +49,10 @@ public static class SeedData
     public static readonly Guid PlanchaEnTranslationId = new("01a17aa9-4bda-702a-96b1-5edcc63d20b1");
     public static readonly Guid CurlBicepsEsTranslationId = new("01a17aa9-4608-7093-9088-ed119e1ae55c");
     public static readonly Guid CurlBicepsEnTranslationId = new("01a17aa9-4607-7e41-a8dc-059705b080ff");
+    public static readonly Guid CorrerEnCintaEsTranslationId = new("01a17aa9-4cb9-7dc3-b962-0bbc6e86d24b");
+    public static readonly Guid CorrerEnCintaEnTranslationId = new("01a17aa9-4cb8-712e-b94a-4d77d3c3e8e4");
+    public static readonly Guid EstiramientoIsquiosEsTranslationId = new("01a17aa9-4587-7912-b443-aac1b40611b0");
+    public static readonly Guid EstiramientoIsquiosEnTranslationId = new("01a17aa9-4586-7f09-ac61-b78f8d6c941a");
 
     /// <summary>Owned by the user, no trainer.</summary>
     public static readonly Guid OwnedWorkoutId = new("00000000-0000-0000-0000-000000000021");

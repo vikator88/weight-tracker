@@ -207,6 +207,7 @@ public class AggregateMapperTests
             FreeExerciseDbId.From("Plank"),
             Url.From("https://videos.example.com/plancha"),
             Muscles.ABDOMINALS,
+            ExerciseTypes.STRENGTH,
             [
                 ExerciseTranslation.Rehydrate(Id.New(), LanguageCode.From("es"), ExerciseName.From("Plancha")),
                 ExerciseTranslation.Rehydrate(Id.New(), LanguageCode.From("en"), ExerciseName.From("Plank")),
@@ -227,6 +228,7 @@ public class AggregateMapperTests
             restored.VideoUrl!.Value.Should().Be("https://videos.example.com/plancha");
             restored.Muscle.Should().Be(Muscles.ABDOMINALS);
             restored.BodyPart.Should().Be(BodyParts.CORE);
+            restored.Type.Should().Be(ExerciseTypes.STRENGTH);
             restored.IsNew.Should().BeFalse();
             restored.Translations
                 .Select(translation => (translation.Id, translation.LanguageCode.Value, translation.Name.Value))
@@ -264,7 +266,7 @@ public class AggregateMapperTests
         public void RoundTrip_ShouldPreserveAMissingVideoUrlFreeExerciseDbIdAndTranslations()
         {
             // Arrange
-            var original = Exercise.Rehydrate(Id.New(), null, null, Muscles.QUADRICEPS, []);
+            var original = Exercise.Rehydrate(Id.New(), null, null, Muscles.QUADRICEPS, ExerciseTypes.STRENGTH, []);
 
             // Act
             var restored = ExerciseMapper.MapToDomain(ExerciseMapper.MapToEntity(original));
@@ -273,6 +275,35 @@ public class AggregateMapperTests
             restored.VideoUrl.Should().BeNull();
             restored.FreeExerciseDbId.Should().BeNull();
             restored.Translations.Should().BeEmpty();
+        }
+
+        [Theory]
+        [InlineData(ExerciseTypes.CARDIO)]
+        [InlineData(ExerciseTypes.STRETCHING)]
+        public void RoundTrip_ShouldPreserveTheType(ExerciseTypes type)
+        {
+            // Arrange
+            var original = Exercise.Rehydrate(Id.New(), null, null, Muscles.QUADRICEPS, type, []);
+
+            // Act
+            var restored = ExerciseMapper.MapToDomain(ExerciseMapper.MapToEntity(original));
+
+            // Assert
+            restored.Type.Should().Be(type);
+        }
+
+        [Fact]
+        public void MapToDomain_ShouldRejectAnUnknownStoredType()
+        {
+            // Arrange
+            var entity = ExerciseMapper.MapToEntity(AStoredExercise());
+            entity.Type = 99;
+
+            // Act
+            var act = () => ExerciseMapper.MapToDomain(entity);
+
+            // Assert
+            act.Should().Throw<PersistenceMappingException>();
         }
 
         [Theory]

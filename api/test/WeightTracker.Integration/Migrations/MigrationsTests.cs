@@ -44,6 +44,9 @@ public class MigrationsTests : IAsyncLifetime
     /// <summary>Last migration before <c>ImportFreeExerciseCatalog_202610271200</c>.</summary>
     private const long BeforeCatalogVersion = 202610270035;
 
+    /// <summary>Last migration before <c>AddTypeToExercises_202610281200</c>.</summary>
+    private const long BeforeExerciseTypeVersion = 202610271847;
+
     /// <summary>Entries in <c>infra/exercises.json</c>.</summary>
     private const int CatalogSize = 876;
 
@@ -227,7 +230,7 @@ public class MigrationsTests : IAsyncLifetime
         DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
 
         // Assert
-        (await ColumnsOf("Exercises")).Should().BeEquivalentTo(["Id", "VideoUrl", "Muscle", "FreeExerciseDbId"]);
+        (await ColumnsOf("Exercises")).Should().BeEquivalentTo(["Id", "VideoUrl", "Muscle", "Type", "FreeExerciseDbId"]);
         (await ColumnsOf("ExerciseTranslations")).Should().BeEquivalentTo(["Id", "ExerciseId", "LanguageCode", "Name"]);
         (await Scalar<int>("""
             SELECT character_maximum_length FROM information_schema.columns
@@ -240,8 +243,8 @@ public class MigrationsTests : IAsyncLifetime
     }
 
     private const string ExerciseWithSpanishTranslation = """
-        INSERT INTO "Exercises" ("Id", "VideoUrl", "Muscle", "FreeExerciseDbId")
-        VALUES ('00000000-0000-0000-0000-0000000000c1', NULL, 6, 'Test_Exercise_With_Translation');
+        INSERT INTO "Exercises" ("Id", "VideoUrl", "Muscle", "Type", "FreeExerciseDbId")
+        VALUES ('00000000-0000-0000-0000-0000000000c1', NULL, 6, 1, 'Test_Exercise_With_Translation');
         INSERT INTO "ExerciseTranslations" ("Id", "ExerciseId", "LanguageCode", "Name")
         VALUES ('00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-0000000000c1', 'es', 'Press Banca');
         """;
@@ -285,16 +288,16 @@ public class MigrationsTests : IAsyncLifetime
         // Arrange
         DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
         await Execute(_connectionString, """
-            INSERT INTO "Exercises" ("Id", "VideoUrl", "Muscle", "FreeExerciseDbId") VALUES
-                ('00000000-0000-0000-0000-0000000000d1', NULL, 6, 'Test_Exercise_Duplicate'),
-                ('00000000-0000-0000-0000-0000000000d2', NULL, 6, NULL),
-                ('00000000-0000-0000-0000-0000000000d3', NULL, 6, NULL);
+            INSERT INTO "Exercises" ("Id", "VideoUrl", "Muscle", "Type", "FreeExerciseDbId") VALUES
+                ('00000000-0000-0000-0000-0000000000d1', NULL, 6, 1, 'Test_Exercise_Duplicate'),
+                ('00000000-0000-0000-0000-0000000000d2', NULL, 6, 1, NULL),
+                ('00000000-0000-0000-0000-0000000000d3', NULL, 6, 1, NULL);
             """);
 
         // Act
         var act = () => Execute(_connectionString, """
-            INSERT INTO "Exercises" ("Id", "VideoUrl", "Muscle", "FreeExerciseDbId")
-            VALUES ('00000000-0000-0000-0000-0000000000d4', NULL, 6, 'Test_Exercise_Duplicate');
+            INSERT INTO "Exercises" ("Id", "VideoUrl", "Muscle", "Type", "FreeExerciseDbId")
+            VALUES ('00000000-0000-0000-0000-0000000000d4', NULL, 6, 1, 'Test_Exercise_Duplicate');
             """);
 
         // Assert
@@ -307,8 +310,8 @@ public class MigrationsTests : IAsyncLifetime
         // Arrange
         DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
         await Execute(_connectionString, """
-            INSERT INTO "Exercises" ("Id", "VideoUrl", "Muscle", "FreeExerciseDbId")
-            VALUES ('00000000-0000-0000-0000-0000000000e1', NULL, 6, NULL);
+            INSERT INTO "Exercises" ("Id", "VideoUrl", "Muscle", "Type", "FreeExerciseDbId")
+            VALUES ('00000000-0000-0000-0000-0000000000e1', NULL, 6, 1, NULL);
             """);
 
         // Act
@@ -559,5 +562,50 @@ public class MigrationsTests : IAsyncLifetime
 
         await using var command = new NpgsqlCommand(sql, connection);
         await command.ExecuteNonQueryAsync();
+    }
+
+    [Fact]
+    public async Task AddType_ShouldTypeEveryCatalogExerciseFromTheCatalog()
+    {
+        // Arrange & Act
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Assert
+        (await Scalar<long>("SELECT COUNT(*) FROM \"Exercises\" WHERE \"Type\" IS NULL")).Should().Be(0);
+        (await Scalar<long>("SELECT COUNT(*) FROM \"Exercises\" WHERE \"Type\" = 1")).Should().Be(739);
+        (await Scalar<long>("SELECT COUNT(*) FROM \"Exercises\" WHERE \"Type\" = 2")).Should().Be(14);
+        (await Scalar<long>("SELECT COUNT(*) FROM \"Exercises\" WHERE \"Type\" = 3")).Should().Be(123);
+        (await Scalar<bool>("""
+            SELECT is_nullable = 'NO' FROM information_schema.columns
+            WHERE table_name = 'Exercises' AND column_name = 'Type'
+            """)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AddType_ShouldKeepTheMuscleOfACardioExercise()
+    {
+        // Arrange & Act
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Assert
+        (await Scalar<int>("SELECT \"Type\" FROM \"Exercises\" WHERE \"FreeExerciseDbId\" = 'Running_Treadmill'")).Should().Be(2);
+        (await Scalar<int>("SELECT \"Muscle\" FROM \"Exercises\" WHERE \"FreeExerciseDbId\" = 'Running_Treadmill'")).Should().Be(14);
+    }
+
+    [Fact]
+    public async Task AddType_Down_ShouldRemoveTheColumn()
+    {
+        // Arrange
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Act
+        DatabaseMigrator.MigrateDown(_connectionString, BeforeExerciseTypeVersion);
+
+        // Assert
+        (await Scalar<bool>("""
+            SELECT EXISTS (SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'Exercises' AND column_name = 'Type')
+            """)).Should().BeFalse();
+        (await Scalar<long>("SELECT COUNT(*) FROM \"Exercises\"")).Should().Be(CatalogSize);
     }
 }
