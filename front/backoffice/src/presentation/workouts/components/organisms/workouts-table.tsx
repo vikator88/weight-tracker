@@ -11,6 +11,7 @@ import TableContainer from "@/presentation/common/components/atoms/table-contain
 import TableHead from "@/presentation/common/components/atoms/table-head";
 import TableRow from "@/presentation/common/components/atoms/table-row";
 import Typography from "@/presentation/common/components/atoms/typography";
+import useWeekLabel from "@/presentation/workouts/hooks/use-week-label";
 import { useTranslation } from "react-i18next";
 
 interface WorkoutsTableProps {
@@ -19,21 +20,10 @@ interface WorkoutsTableProps {
   showTrainer: boolean;
 }
 
-/**
- * Formats a `YYYY-MM-DD` workout date as that calendar day. Built in local time, because `new Date("YYYY-MM-DD")`
- * means UTC midnight and shows the previous day west of UTC.
- */
-function formatWorkoutDate(workoutDate: string, language: string): string {
-  const [year, month, day] = workoutDate.split("-").map(Number);
-
-  return new Intl.DateTimeFormat(language, { dateStyle: "medium" }).format(
-    new Date(year, month - 1, day),
-  );
-}
-
 /** The workouts in the order the API returns them, one row each. */
 export default function WorkoutsTable({ workouts, showTrainer }: WorkoutsTableProps) {
-  const { t, i18n } = useTranslation("workouts");
+  const { t } = useTranslation("workouts");
+  const weekLabelOf = useWeekLabel();
 
   if (workouts.length === 0) {
     return <Typography color="text.secondary">{t("assignedPlans.empty")}</Typography>;
@@ -56,7 +46,7 @@ export default function WorkoutsTable({ workouts, showTrainer }: WorkoutsTablePr
           {workouts.map((workout) => (
             <TableRow key={workout.id}>
               <TableCell>{workout.name}</TableCell>
-              <TableCell>{formatWorkoutDate(workout.workoutDate, i18n.language)}</TableCell>
+              <TableCell>{weekLabelOf(workout.workoutDate)}</TableCell>
               <TableCell>{workout.userId}</TableCell>
               {showTrainer && <TableCell>{workout.trainerId ?? ""}</TableCell>}
               <TableCell align="right">{workout.exercises.length}</TableCell>

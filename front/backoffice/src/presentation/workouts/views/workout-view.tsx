@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useId, useMemo, useState } from "react";
+import { Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 import { arrayMove } from "@dnd-kit/sortable";
 import ArrowBackOutlined from "@mui/icons-material/ArrowBackOutlined";
 import Box from "@mui/material/Box";
@@ -25,9 +25,10 @@ import Typography from "@/presentation/common/components/atoms/typography";
 import HomeSkeleton from "@/presentation/common/components/molecules/home-skeleton";
 import LoadError from "@/presentation/common/components/molecules/load-error";
 import AppShell from "@/presentation/common/components/organisms/app-shell";
-import ExerciseCatalogPanel from "@/presentation/workouts/components/organisms/exercise-catalog-panel";
-import ExerciseConfigurationPanel from "@/presentation/workouts/components/organisms/exercise-configuration-panel";
+import ExerciseCatalogDialog from "@/presentation/workouts/components/organisms/exercise-catalog-dialog";
+import ExerciseConfigurationDialog from "@/presentation/workouts/components/organisms/exercise-configuration-dialog";
 import WorkoutDetailsCard from "@/presentation/workouts/components/organisms/workout-details-card";
+import WorkoutExercisesCard from "@/presentation/workouts/components/organisms/workout-exercises-card";
 import WorkoutExercisesList, {
   type WorkoutExerciseItem,
 } from "@/presentation/workouts/components/organisms/workout-exercises-list";
@@ -36,6 +37,7 @@ import useRemoveWorkoutExercise from "@/presentation/workouts/hooks/use-remove-w
 import useReorderWorkoutExercises from "@/presentation/workouts/hooks/use-reorder-workout-exercises";
 import useUpdateWorkout from "@/presentation/workouts/hooks/use-update-workout";
 import useWorkout from "@/presentation/workouts/hooks/use-workout";
+import { weekMiddleOf, weekStartOf } from "@/presentation/workouts/week";
 
 function WorkoutNotFound() {
   const { t } = useTranslation("workouts");
@@ -77,7 +79,8 @@ function toUpdate(workout: WorkoutDetail, values: WorkoutDetailsFormValues): Upd
   const input: UpdateWorkoutInput = {
     id: workout.id,
     name: values.name.trim(),
-    workoutDate: values.workoutDate,
+    // The form holds the week's Monday; the week is sent as its Wednesday.
+    workoutDate: weekMiddleOf(values.workoutDate),
     userId: workout.userId,
     trainerId: workout.trainerId,
   };
@@ -89,18 +92,23 @@ function toUpdate(workout: WorkoutDetail, values: WorkoutDetailsFormValues): Upd
   return input;
 }
 
-/** A catalog exercise added on screen: no effort and no sets yet; they are defined in the configuration card. */
-function pendingItemOf(exercise: Exercise): WorkoutExerciseItem {
+/** The dialog open over the screen. Only one at a time: choosing from the catalog hands over to the configuration. */
+type OpenDialog =
+  | { kind: "none" }
+  | { kind: "catalog" }
+  | { kind: "configure"; item: WorkoutExerciseItem; adding: boolean };
+
+/** A catalog exercise chosen to be added: no effort and no sets yet; they are defined in the configuration dialog. */
+function newItemOf(exercise: Exercise): WorkoutExerciseItem {
   return {
     workoutExercise: {
-      id: `pending-${exercise.id}`,
+      id: `new-${exercise.id}`,
       exerciseId: exercise.id,
       effort: "",
       sets: [],
       superSeriesId: null,
     },
     exercise,
-    pending: true,
   };
 }
 
@@ -113,88 +121,93 @@ function inOrderOf(entries: WorkoutExerciseDetail[], ids: string[]) {
   return [...entries].sort((a, b) => placeOf(a) - placeOf(b));
 }
 
-/** The editor once both reads are in: it owns the workout's form, its save, and the screen's local selections. */
+/** The editor once both reads are in: it owns the workout's form, its save, the exercises and the open dialog. */
 function LoadedWorkout({ workout, exercises }: { workout: WorkoutDetail; exercises: Exercise[] }) {
   const { t: tc } = useTranslation();
   const { t } = useTranslation("workouts");
-  const structureTitleId = useId();
-  const configurationTitleId = useId();
+  const propertiesTitleId = useId();
+  const exercisesTitleId = useId();
   const { saving, errorCode, saved, save, clearSaved } = useUpdateWorkout();
   const [values, setValues] = useState<WorkoutDetailsFormValues>({
     name: workout.name,
     description: workout.description ?? "",
-    workoutDate: workout.workoutDate,
+    workoutDate: weekStartOf(workout.workoutDate),
   });
   const [errors, setErrors] = useState<WorkoutDetailsFormViolations>({});
   const [filterText, setFilterText] = useState("");
+  const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedBodyPart, setSelectedBodyPart] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  // Added from the catalog on screen; nothing is sent until their sets can be saved.
-  const [pending, setPending] = useState<WorkoutExerciseItem[]>([]);
+  const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<OpenDialog>({ kind: "none" });
   // The workout's saved exercises, kept up to date with what each exercise save answers.
   const [savedExercises, setSavedExercises] = useState<WorkoutExerciseDetail[]>(workout.exercises);
-  const [lastSavedId, setLastSavedId] = useState<string | null>(null);
   const removal = useRemoveWorkoutExercise();
   const reordering = useReorderWorkoutExercises();
+  const addButtonRef = useRef<HTMLButtonElement>(null);
+  // The button that started an add flow is gone once it ends, so the focus goes back to Añadir ejercicio.
+  const addFlowEnded = useRef(false);
+
+  useEffect(() => {
+    if (dialog.kind === "none" && addFlowEnded.current) {
+      addFlowEnded.current = false;
+      addButtonRef.current?.focus();
+    }
+  }, [dialog]);
 
   const catalogById = useMemo(
     () => new Map<string, Exercise>(exercises.map((exercise) => [exercise.id, exercise])),
     [exercises],
   );
+  // Body parts whose catalog exercises all work one muscle: the muscle would only repeat what the body part says.
+  const singleMuscleBodyParts = useMemo(() => {
+    const musclesOf = new Map<string, Set<string>>();
+    for (const { bodyPart, muscle } of exercises) {
+      musclesOf.set(bodyPart, (musclesOf.get(bodyPart) ?? new Set()).add(muscle));
+    }
+    return new Set(
+      [...musclesOf].filter(([, muscles]) => muscles.size === 1).map(([bodyPart]) => bodyPart),
+    );
+  }, [exercises]);
   const items = useMemo<WorkoutExerciseItem[]>(
-    () => [
-      ...savedExercises.map((workoutExercise) => ({
+    () =>
+      savedExercises.map((workoutExercise) => ({
         workoutExercise,
         exercise: catalogById.get(workoutExercise.exerciseId),
       })),
-      ...pending,
-    ],
-    [savedExercises, catalogById, pending],
+    [savedExercises, catalogById],
   );
-  // An exercise already in the workout, saved or pending, leaves the catalog: it cannot be added twice.
+  // An exercise already in the workout leaves the catalog: it cannot be added twice.
   const available = useMemo(() => {
-    const inWorkout = new Set(items.map((item) => item.workoutExercise.exerciseId));
+    const inWorkout = new Set(savedExercises.map((entry) => entry.exerciseId));
     return exercises.filter((exercise) => !inWorkout.has(exercise.id));
-  }, [exercises, items]);
-  const selected = items.find((item) => item.workoutExercise.id === selectedId) ?? null;
+  }, [exercises, savedExercises]);
 
-  function handleAdd(exercise: Exercise) {
-    const item = pendingItemOf(exercise);
-    setPending((current) => [...current, item]);
-    setSelectedId(item.workoutExercise.id);
+  function closeDialog() {
+    if (dialog.kind === "configure" && dialog.adding) {
+      addFlowEnded.current = true;
+    }
+    setDialog({ kind: "none" });
   }
 
-  /** A saved pending exercise joins the saved ones; an updated one replaces its entry. It stays selected. */
-  function handleExerciseSaved(entry: WorkoutExerciseDetail, item: WorkoutExerciseItem) {
-    if (item.pending) {
-      setPending((current) =>
-        current.filter((other) => other.workoutExercise.id !== item.workoutExercise.id),
-      );
+  /** An added exercise joins the end of the list; an edited one replaces its entry. Either way the dialog closes. */
+  function handleExerciseSaved(entry: WorkoutExerciseDetail, adding: boolean) {
+    if (adding) {
       setSavedExercises((current) => [...current, entry]);
     } else {
       setSavedExercises((current) =>
         current.map((other) => (other.exerciseId === entry.exerciseId ? entry : other)),
       );
     }
-    setSelectedId(entry.id);
-    setLastSavedId(entry.id);
+    closeDialog();
   }
 
-  /**
-   * A pending exercise is only dropped from the screen; a saved one is removed through the API first. Either way it
-   * returns to the catalog, which leaves out only the exercises still in the workout.
-   */
+  /** The exercise is removed through the API; on success it returns to the catalog. */
   async function handleRemove(item: WorkoutExerciseItem) {
     const { id, exerciseId } = item.workoutExercise;
 
-    if (item.pending) {
-      setPending((current) => current.filter((other) => other.workoutExercise.id !== id));
-    } else if (await removal.remove(workout.id, id, exerciseId)) {
+    if (await removal.remove(workout.id, id, exerciseId)) {
       setSavedExercises((current) => current.filter((other) => other.id !== id));
-    } else {
-      return;
     }
-    setSelectedId((current) => (current === id ? null : current));
   }
 
   /**
@@ -250,28 +263,8 @@ function LoadedWorkout({ workout, exercises }: { workout: WorkoutDetail; exercis
           {t("workout.details.saved")}
         </Alert>
       )}
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "minmax(0, 1fr)",
-            md: "minmax(0, 25fr) minmax(0, 40fr) minmax(0, 35fr)",
-          },
-          gap: 3,
-          alignItems: "start",
-        }}
-      >
-        <ExerciseCatalogPanel
-          exercises={available}
-          onAdd={handleAdd}
-          filterText={filterText}
-          onFilterTextChange={setFilterText}
-          selectedBodyPart={selectedBodyPart}
-          onToggleBodyPart={(bodyPart) =>
-            setSelectedBodyPart((current) => (current === bodyPart ? null : bodyPart))
-          }
-        />
-        <Box component="section" aria-labelledby={structureTitleId} sx={{ minWidth: 0 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 3 }}>
+        <Box component="section" aria-labelledby={propertiesTitleId} sx={{ minWidth: 0 }}>
           <WorkoutDetailsCard
             values={values}
             errors={errors}
@@ -279,12 +272,19 @@ function LoadedWorkout({ workout, exercises }: { workout: WorkoutDetail; exercis
             onSave={() => void handleSave()}
             disabled={saving}
             onChange={handleChange}
-            titleId={structureTitleId}
+            titleId={propertiesTitleId}
+          />
+        </Box>
+        <Box component="section" aria-labelledby={exercisesTitleId} sx={{ minWidth: 0 }}>
+          <WorkoutExercisesCard
+            titleId={exercisesTitleId}
+            onAdd={() => setDialog({ kind: "catalog" })}
+            addButtonRef={addButtonRef}
           >
             <WorkoutExercisesList
               items={items}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
+              singleMuscleBodyParts={singleMuscleBodyParts}
+              onEdit={(item) => setDialog({ kind: "configure", item, adding: false })}
               onRemove={(item) => void handleRemove(item)}
               removingId={removal.removingId}
               removeErrorCode={removal.errorCode}
@@ -292,21 +292,44 @@ function LoadedWorkout({ workout, exercises }: { workout: WorkoutDetail; exercis
               reordering={reordering.reordering}
               reorderErrorCode={reordering.errorCode}
             />
-          </WorkoutDetailsCard>
-        </Box>
-        <Box component="section" aria-labelledby={configurationTitleId} sx={{ minWidth: 0 }}>
-          {/* Keyed by the selection, so each one starts from the stored values. */}
-          <ExerciseConfigurationPanel
-            key={selected?.workoutExercise.id ?? "none"}
-            item={selected}
-            titleId={configurationTitleId}
-            workoutId={workout.id}
-            justSaved={selected !== null && selected.workoutExercise.id === lastSavedId}
-            onSaved={handleExerciseSaved}
-            onEdit={() => setLastSavedId(null)}
-          />
+          </WorkoutExercisesCard>
         </Box>
       </Box>
+      <ExerciseCatalogDialog
+        open={dialog.kind === "catalog"}
+        exercises={available}
+        filterText={filterText}
+        onFilterTextChange={setFilterText}
+        selectedType={selectedType}
+        onToggleType={(type) => setSelectedType((current) => (current === type ? null : type))}
+        selectedBodyPart={selectedBodyPart}
+        onToggleBodyPart={(bodyPart) => {
+          setSelectedBodyPart((current) => (current === bodyPart ? null : bodyPart));
+          // A muscle only refines its own body part.
+          setSelectedMuscle(null);
+        }}
+        selectedMuscle={selectedMuscle}
+        singleMuscleBodyParts={singleMuscleBodyParts}
+        onToggleMuscle={(muscle) =>
+          setSelectedMuscle((current) => (current === muscle ? null : muscle))
+        }
+        onChoose={(exercise) =>
+          setDialog({ kind: "configure", item: newItemOf(exercise), adding: true })
+        }
+        onClose={closeDialog}
+      />
+      {dialog.kind === "configure" && (
+        // Mounted per opening and keyed by the item, so each one starts from the stored values.
+        <ExerciseConfigurationDialog
+          key={dialog.item.workoutExercise.id}
+          open
+          item={dialog.item}
+          adding={dialog.adding}
+          workoutId={workout.id}
+          onSaved={(entry) => handleExerciseSaved(entry, dialog.adding)}
+          onClose={closeDialog}
+        />
+      )}
     </>
   );
 }
@@ -342,7 +365,7 @@ function WorkoutScreen() {
 export default function WorkoutView() {
   return (
     <AppShell>
-      <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Container maxWidth={false} sx={{ py: 4 }}>
         <Suspense fallback={<HomeSkeleton />}>
           <WorkoutScreen />
         </Suspense>

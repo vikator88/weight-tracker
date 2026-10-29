@@ -1366,6 +1366,7 @@ export interface components {
       videoUrl: null | string;
       muscle: string;
       bodyPart: string;
+      type: string;
       translations: components["schemas"]["ExerciseTranslationResponse"][];
     };
     ExerciseTranslationResponse: {
@@ -1486,6 +1487,7 @@ export interface components {
       translations: components["schemas"]["ExerciseTranslationResponse"][];
       muscle: string;
       bodyPart: string;
+      type: string;
       effort: string;
       sets: components["schemas"]["SetResponse"][];
       /** Format: int32 */

@@ -56,6 +56,7 @@ public class WeightTrackerDbContext : DbContext
             entity.Property(exercise => exercise.FreeExerciseDbId).HasColumnName("FreeExerciseDbId").HasMaxLength(FreeExerciseDbId.MaxLength);
             entity.Property(exercise => exercise.VideoUrl).HasColumnName("VideoUrl").HasMaxLength(Url.MaxLength);
             entity.Property(exercise => exercise.Muscle).HasColumnName("Muscle");
+            entity.Property(exercise => exercise.Type).HasColumnName("Type");
 
             entity.HasIndex(exercise => exercise.FreeExerciseDbId).IsUnique();
 

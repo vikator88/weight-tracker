@@ -28,7 +28,7 @@ public class GetAllWorkoutsUseCaseTests
                 Id.New(), exerciseId, Effort.MID, [new SetPrescription(3, new SetTarget.Reps(10))])));
 
     private static Exercise AnExercise(Id id) =>
-        Exercise.Rehydrate(id, null, null, Muscles.CHEST, []);
+        Exercise.Rehydrate(id, null, null, Muscles.CHEST, ExerciseTypes.STRENGTH, []);
 
     private void NoExercisesStored() =>
         _exercises

@@ -27,7 +27,7 @@ public class ExerciseTests
         var english = ExerciseTranslation.Rehydrate(Id.New(), English, BenchPressName);
 
         // Act
-        var exercise = Exercise.Rehydrate(id, BenchPress, Video, Muscles.CHEST, [spanish, english]);
+        var exercise = Exercise.Rehydrate(id, BenchPress, Video, Muscles.CHEST, ExerciseTypes.STRENGTH, [spanish, english]);
 
         // Assert
         exercise.IsNew.Should().BeFalse();
@@ -43,7 +43,7 @@ public class ExerciseTests
     public void Rehydrate_ShouldAcceptAMissingVideoUrlFreeExerciseDbIdAndTranslations()
     {
         // Arrange & Act
-        var exercise = Exercise.Rehydrate(Id.New(), null, null, Muscles.NECK, []);
+        var exercise = Exercise.Rehydrate(Id.New(), null, null, Muscles.NECK, ExerciseTypes.STRENGTH, []);
 
         // Assert
         exercise.VideoUrl.Should().BeNull();
@@ -59,7 +59,7 @@ public class ExerciseTests
         var second = ExerciseTranslation.Rehydrate(Id.New(), Spanish, ExerciseName.From("Press banca"));
 
         // Act
-        var act = () => Exercise.Rehydrate(Id.New(), null, null, Muscles.CHEST, [first, second]);
+        var act = () => Exercise.Rehydrate(Id.New(), null, null, Muscles.CHEST, ExerciseTypes.STRENGTH, [first, second]);
 
         // Assert
         act.Should().Throw<DuplicateExerciseTranslationException>();
@@ -72,10 +72,53 @@ public class ExerciseTests
         var undefined = (Muscles)99;
 
         // Act
-        var act = () => Exercise.Rehydrate(Id.New(), null, null, undefined, []);
+        var act = () => Exercise.Rehydrate(Id.New(), null, null, undefined, ExerciseTypes.STRENGTH, []);
 
         // Assert
         act.Should().Throw<InvalidMuscleException>();
+    }
+
+    [Theory]
+    [InlineData(ExerciseTypes.STRENGTH)]
+    [InlineData(ExerciseTypes.CARDIO)]
+    [InlineData(ExerciseTypes.STRETCHING)]
+    public void Rehydrate_ShouldKeepTheGivenType(ExerciseTypes type)
+    {
+        // Arrange
+        var id = Id.New();
+
+        // Act
+        var exercise = Exercise.Rehydrate(id, null, null, Muscles.CHEST, type, []);
+
+        // Assert
+        exercise.Type.Should().Be(type);
+    }
+
+    [Fact]
+    public void Rehydrate_ShouldRejectAnUndefinedType()
+    {
+        // Arrange
+        var undefined = (ExerciseTypes)99;
+
+        // Act
+        var act = () => Exercise.Rehydrate(Id.New(), null, null, Muscles.CHEST, undefined, []);
+
+        // Assert
+        act.Should().Throw<InvalidExerciseTypeException>();
+    }
+
+    [Fact]
+    public void Type_ShouldNotChangeTheMuscleOrTheBodyPart()
+    {
+        // Arrange
+        var exercise = Exercise.Rehydrate(Id.New(), null, null, Muscles.QUADRICEPS, ExerciseTypes.CARDIO, []);
+
+        // Act
+        var bodyPart = exercise.BodyPart;
+
+        // Assert
+        exercise.Muscle.Should().Be(Muscles.QUADRICEPS);
+        bodyPart.Should().Be(BodyParts.LEGS);
     }
 
     [Theory]
@@ -85,7 +128,7 @@ public class ExerciseTests
     public void BodyPart_ShouldBeDerivedFromTheStoredMuscle(Muscles muscle, BodyParts expected)
     {
         // Arrange
-        var exercise = Exercise.Rehydrate(Id.New(), null, null, muscle, []);
+        var exercise = Exercise.Rehydrate(Id.New(), null, null, muscle, ExerciseTypes.STRENGTH, []);
 
         // Act
         var bodyPart = exercise.BodyPart;
@@ -99,7 +142,7 @@ public class ExerciseTests
     {
         // Arrange
         var spanish = ExerciseTranslation.Rehydrate(Id.New(), Spanish, PressDeBanca);
-        var exercise = Exercise.Rehydrate(Id.New(), null, null, Muscles.CHEST, [spanish]);
+        var exercise = Exercise.Rehydrate(Id.New(), null, null, Muscles.CHEST, ExerciseTypes.STRENGTH, [spanish]);
 
         // Act
         ((List<ExerciseTranslation>)exercise.Translations).Clear();

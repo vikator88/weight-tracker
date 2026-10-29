@@ -46,18 +46,24 @@ public class DatabaseSeeder
     {
         var exercises = new[]
         {
-            SeededExercise(SeedData.PressBancaId, SeedData.PressBancaFreeExerciseDbId, Muscles.CHEST,
+            SeededExercise(SeedData.PressBancaId, SeedData.PressBancaFreeExerciseDbId, Muscles.CHEST, ExerciseTypes.STRENGTH,
                 (SeedData.PressBancaEsTranslationId, "es", "Press de banca"),
                 (SeedData.PressBancaEnTranslationId, "en", "Barbell Bench Press - Medium Grip")),
-            SeededExercise(SeedData.SentadillaId, SeedData.SentadillaFreeExerciseDbId, Muscles.QUADRICEPS,
+            SeededExercise(SeedData.SentadillaId, SeedData.SentadillaFreeExerciseDbId, Muscles.QUADRICEPS, ExerciseTypes.STRENGTH,
                 (SeedData.SentadillaEsTranslationId, "es", "Sentadilla con barra"),
                 (SeedData.SentadillaEnTranslationId, "en", "Barbell Squat")),
-            SeededExercise(SeedData.PlanchaId, SeedData.PlanchaFreeExerciseDbId, Muscles.ABDOMINALS,
+            SeededExercise(SeedData.PlanchaId, SeedData.PlanchaFreeExerciseDbId, Muscles.ABDOMINALS, ExerciseTypes.STRENGTH,
                 (SeedData.PlanchaEsTranslationId, "es", "Plancha"),
                 (SeedData.PlanchaEnTranslationId, "en", "Plank")),
-            SeededExercise(SeedData.CurlBicepsId, SeedData.CurlBicepsFreeExerciseDbId, Muscles.BICEPS,
+            SeededExercise(SeedData.CurlBicepsId, SeedData.CurlBicepsFreeExerciseDbId, Muscles.BICEPS, ExerciseTypes.STRENGTH,
                 (SeedData.CurlBicepsEsTranslationId, "es", "Curl de bíceps con barra"),
                 (SeedData.CurlBicepsEnTranslationId, "en", "Barbell Curl")),
+            SeededExercise(SeedData.CorrerEnCintaId, SeedData.CorrerEnCintaFreeExerciseDbId, Muscles.QUADRICEPS, ExerciseTypes.CARDIO,
+                (SeedData.CorrerEnCintaEsTranslationId, "es", "Correr en cinta"),
+                (SeedData.CorrerEnCintaEnTranslationId, "en", "Running, Treadmill")),
+            SeededExercise(SeedData.EstiramientoIsquiosId, SeedData.EstiramientoIsquiosFreeExerciseDbId, Muscles.HAMSTRINGS, ExerciseTypes.STRETCHING,
+                (SeedData.EstiramientoIsquiosEsTranslationId, "es", "Estiramiento de isquiotibiales 90/90"),
+                (SeedData.EstiramientoIsquiosEnTranslationId, "en", "90/90 Hamstring")),
         };
 
         // They are catalog rows: in a migrated database they already exist and must not be inserted
@@ -77,12 +83,14 @@ public class DatabaseSeeder
         Guid id,
         string freeExerciseDbId,
         Muscles muscle,
+        ExerciseTypes type,
         params (Guid Id, string LanguageCode, string Name)[] translations)
         => Exercise.Rehydrate(
             Id.From(id),
             FreeExerciseDbId.From(freeExerciseDbId),
             null,
             muscle,
+            type,
             translations.Select(translation => ExerciseTranslation.Rehydrate(
                 Id.From(translation.Id),
                 LanguageCode.From(translation.LanguageCode),

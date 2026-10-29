@@ -11,12 +11,12 @@ interface SaveWorkoutExerciseState {
   saving: boolean;
   errorCode: DomainErrorCode | null;
   /**
-   * Adds a pending exercise to the workout, or replaces a saved one's effort and sets. Resolves to the entry the API
-   * answers with, or `null` when it refused it.
+   * Adds an exercise chosen from the catalog to the workout, or replaces a saved one's effort and sets. Resolves to the
+   * entry the API answers with, or `null` when it refused it.
    */
   save: (
     workoutId: string,
-    pending: boolean,
+    adding: boolean,
     request: AddExerciseRequest & { exerciseId: string },
   ) => Promise<WorkoutExerciseDetail | null>;
 }
@@ -29,14 +29,14 @@ export default function useSaveWorkoutExercise(): SaveWorkoutExerciseState {
 
   async function save(
     workoutId: string,
-    pending: boolean,
+    adding: boolean,
     request: AddExerciseRequest & { exerciseId: string },
   ) {
     setSaving(true);
     setErrorCode(null);
 
     const result = await runWithSession(() =>
-      pending
+      adding
         ? container.resolve("addExerciseToWorkoutUseCase").execute({ workoutId, ...request })
         : container.resolve("updateWorkoutExerciseUseCase").execute({ workoutId, ...request }),
     );

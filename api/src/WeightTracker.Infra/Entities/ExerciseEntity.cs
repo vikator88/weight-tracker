@@ -12,6 +12,9 @@ public class ExerciseEntity
     /// <summary>Value of the <c>Muscles</c> enum. The body part is derived from it and not stored.</summary>
     public int Muscle { get; set; }
 
+    /// <summary>Value of the <c>ExerciseTypes</c> enum.</summary>
+    public int Type { get; set; }
+
     /// <summary>Navigation inside the Exercise aggregate boundary.</summary>
     public List<ExerciseTranslationEntity> Translations { get; set; } = [];
 }

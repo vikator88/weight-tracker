@@ -14,7 +14,7 @@ import {
 import {
   SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
+  rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import EditOutlined from "@mui/icons-material/EditOutlined";
@@ -24,7 +24,7 @@ import Alert from "@/presentation/common/components/atoms/alert";
 import IconButton from "@/presentation/common/components/atoms/icon-button";
 import List from "@/presentation/common/components/atoms/list";
 import Typography from "@/presentation/common/components/atoms/typography";
-import { EXERCISE_LIST_MAX_HEIGHT } from "@/presentation/workouts/components/molecules/exercise-list-item";
+import { EXERCISE_GRID_COLUMNS } from "@/presentation/workouts/components/molecules/exercise-list-item";
 import SortableExerciseListItem from "@/presentation/workouts/components/molecules/sortable-exercise-list-item";
 import useExerciseLabels from "@/presentation/workouts/hooks/use-exercise-labels";
 
@@ -32,14 +32,14 @@ import useExerciseLabels from "@/presentation/workouts/hooks/use-exercise-labels
 export interface WorkoutExerciseItem {
   workoutExercise: WorkoutExerciseDetail;
   exercise?: Exercise;
-  /** Added from the catalog on screen and not saved yet. */
-  pending?: boolean;
 }
 
 interface WorkoutExercisesListProps {
   items: WorkoutExerciseItem[];
-  selectedId: string | null;
-  onSelect: (workoutExerciseId: string) => void;
+  /** Body parts whose catalog exercises all work one muscle: their exercises show no muscle label. */
+  singleMuscleBodyParts: ReadonlySet<string>;
+  /** The pencil was pressed: the exercise's configuration opens. */
+  onEdit: (item: WorkoutExerciseItem) => void;
   onRemove: (item: WorkoutExerciseItem) => void;
   /** The entry whose removal is in progress. */
   removingId: string | null;
@@ -54,14 +54,14 @@ interface WorkoutExercisesListProps {
 }
 
 /**
- * The workout's exercises, saved ones in their current order and then the pending ones, numbered, under an
- * "Ejercicios" header. Saved ones are reordered by dragging their handle; the pencil selects one to configure and the
- * trash removes it; exercises are added from the catalog.
+ * The workout's saved exercises in their current order, numbered, as cards in rows of at most three. They are
+ * reordered by dragging their handle, across rows too; the pencil opens one's configuration and the trash removes it.
+ * The card around it owns the title and the add action.
  */
 export default function WorkoutExercisesList({
   items,
-  selectedId,
-  onSelect,
+  singleMuscleBodyParts,
+  onEdit,
   onRemove,
   removingId,
   removeErrorCode,
@@ -71,7 +71,7 @@ export default function WorkoutExercisesList({
 }: WorkoutExercisesListProps) {
   const { t } = useTranslation("workouts");
   const { t: tc } = useTranslation();
-  const { nameOf, muscleLabel, bodyPartLabel, bodyPartColor, effortLabel, setSummary } =
+  const { nameOf, effortLabel, compactSetSummary, exerciseLabelsOf, typeWatermark } =
     useExerciseLabels();
   // A stable id keeps dnd-kit's generated accessibility ids the same in the static export and in the browser.
   const dndId = useId();
@@ -79,8 +79,7 @@ export default function WorkoutExercisesList({
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-  // Only saved exercises are part of the API's order; pending ones keep their place after them.
-  const sortableIds = items.filter((item) => !item.pending).map((item) => item.workoutExercise.id);
+  const sortableIds = items.map((item) => item.workoutExercise.id);
 
   function displayNameOf({ workoutExercise, exercise }: WorkoutExerciseItem) {
     return exercise ? nameOf(exercise) : workoutExercise.exerciseId;
@@ -101,27 +100,32 @@ export default function WorkoutExercisesList({
     }
   }
 
-  /** The sets on one line, comma separated, and the effort on the next; empty properties are left out. */
-  function linesOf({ sets, effort }: WorkoutExerciseDetail) {
+  /**
+   * The sets on one line, comma separated, and the effort in its type's scale on the next; empty properties are left
+   * out.
+   */
+  function linesOf({ sets, effort }: WorkoutExerciseDetail, type?: string) {
     const lines: string[] = [];
 
     if (sets.length > 0) {
       const summaries = sets.map(({ count, target }) =>
-        setSummary({ count, type: target.type, value: target.value, maxValue: target.maxValue }),
+        compactSetSummary({
+          count,
+          type: target.type,
+          value: target.value,
+          maxValue: target.maxValue,
+        }),
       );
-      lines.push(t("workout.exercises.setsLine", { sets: summaries.join(", ") }));
+      lines.push(summaries.join(", "));
     }
     if (effort) {
-      lines.push(t("workout.exercises.effortLine", { effort: effortLabel(effort) }));
+      lines.push(t("workout.exercises.effortLine", { effort: effortLabel(effort, type) }));
     }
     return lines;
   }
 
   return (
     <>
-      <Typography variant="subtitle1" component="h3" sx={{ fontWeight: 600 }}>
-        {t("workout.exercises.title")}
-      </Typography>
       {removeErrorCode && (
         <Alert severity="error" sx={{ mt: 1 }}>
           {tc(`errors:${removeErrorCode}`)}
@@ -166,37 +170,36 @@ export default function WorkoutExercisesList({
             },
           }}
         >
-          <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+          <SortableContext items={sortableIds} strategy={rectSortingStrategy}>
             <List
               aria-label={t("workout.exercises.title")}
-              sx={{ mt: 1, maxHeight: EXERCISE_LIST_MAX_HEIGHT, overflowY: "auto" }}
+              sx={{
+                mt: 1,
+                display: "grid",
+                // No maximum height: the card grows with the rows.
+                gridTemplateColumns: EXERCISE_GRID_COLUMNS,
+                gap: 2,
+              }}
             >
               {items.map((item, index) => {
-                const { workoutExercise, exercise, pending } = item;
+                const { workoutExercise, exercise } = item;
 
                 return (
                   <SortableExerciseListItem
                     key={workoutExercise.id}
                     id={workoutExercise.id}
-                    disabled={reordering || Boolean(pending)}
+                    disabled={reordering}
                     handleLabel={t("workout.exercises.reorder")}
                     roleDescription={t("workout.exercises.dnd.roleDescription")}
                     position={index + 1}
                     name={displayNameOf(item)}
                     labels={
                       exercise
-                        ? [
-                            {
-                              text: bodyPartLabel(exercise.bodyPart),
-                              color: bodyPartColor(exercise.bodyPart),
-                            },
-                            { text: muscleLabel(exercise.muscle) },
-                          ]
+                        ? exerciseLabelsOf(exercise, !singleMuscleBodyParts.has(exercise.bodyPart))
                         : []
                     }
-                    note={pending ? t("workout.exercises.pending") : undefined}
-                    lines={linesOf(workoutExercise)}
-                    selected={workoutExercise.id === selectedId}
+                    lines={linesOf(workoutExercise, exercise?.type)}
+                    watermark={exercise ? typeWatermark(exercise.type) : undefined}
                     actions={
                       <>
                         <IconButton
@@ -209,8 +212,7 @@ export default function WorkoutExercisesList({
                         <IconButton
                           edge="end"
                           aria-label={t("workout.exercises.edit")}
-                          aria-pressed={workoutExercise.id === selectedId}
-                          onClick={() => onSelect(workoutExercise.id)}
+                          onClick={() => onEdit(item)}
                         >
                           <EditOutlined />
                         </IconButton>

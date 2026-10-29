@@ -4,7 +4,7 @@
     "newWorkout": "Nuevo entrenamiento",
     "columns": {
       "name": "Nombre",
-      "date": "Fecha",
+      "date": "Semana",
       "athlete": "Atleta",
       "trainer": "Entrenador",
       "exercises": "Ejercicios"
@@ -17,7 +17,7 @@
     "fields": {
       "name": "Nombre",
       "description": "Descripción",
-      "date": "Fecha",
+      "date": "Semana",
       "userId": "ID del atleta",
       "trainerId": "ID del entrenador"
     },
@@ -36,8 +36,12 @@
     "catalog": {
       "filter": "Buscar ejercicio",
       "empty": "Ningún ejercicio coincide con el filtro.",
-      "add": "Añadir ejercicio",
-      "title": "Catálogo de ejercicios"
+      "title": "Catálogo de ejercicios",
+      "choose": "Elegir ejercicio",
+      "close": "Cerrar",
+      "bodyParts": "Partes del cuerpo",
+      "muscles": "Músculos",
+      "types": "Tipo"
     },
     "details": {
       "save": "Guardar",
@@ -48,8 +52,6 @@
       "remove": "Quitar ejercicio",
       "edit": "Editar ejercicio",
       "title": "Ejercicios",
-      "pending": "Pendiente",
-      "setsLine": "Series: {{sets}}",
       "effortLine": "Esfuerzo: {{effort}}",
       "reorder": "Reordenar ejercicio",
       "dnd": {
@@ -59,10 +61,17 @@
         "over": "{{name}} está en la posición {{position}}.",
         "dropped": "{{name}} se ha soltado en la posición {{position}}.",
         "cancelled": "Se ha cancelado el movimiento de {{name}}."
+      },
+      "add": "Añadir ejercicio",
+      "compactSummary": {
+        "Reps": "{{series}} × {{value}}",
+        "RepsRange": "{{series}} × {{value}}–{{max}}",
+        "Duration": "{{series}} × {{value}} s",
+        "MaxReps": "{{series}} × máx",
+        "other": "{{series}} × {{value}}"
       }
     },
     "configuration": {
-      "empty": "Selecciona un ejercicio para configurarlo.",
       "effort": "Esfuerzo",
       "sets": "Series",
       "setCount": "Series",
@@ -71,11 +80,10 @@
       "targetMaxValue": "Máximo",
       "video": "Vídeo",
       "openVideo": "Ver vídeo",
-      "title": "Detalles del ejercicio",
+      "title": "Configuración del ejercicio",
       "removeSet": "Quitar serie",
       "addSet": "Añadir serie",
       "save": "Guardar",
-      "saved": "Ejercicio guardado.",
       "noSets": "Todavía no hay series.",
       "validation": {
         "positiveInteger": "Introduce un número entero mayor que 0.",
@@ -88,15 +96,22 @@
         "Duration": "{{series}} × {{value}} s",
         "MaxReps": "{{series}} × máximo",
         "other": "{{series}} × {{value}}"
-      }
+      },
+      "cancel": "Cancelar"
     },
     "notFound": "No hemos encontrado este entrenamiento.",
     "backToList": "Volver a planes asignados",
-    "structure": {
-      "title": "Estructura del entrenamiento"
-    },
     "back": "Volver",
-    "editTitle": "Editar entrenamiento"
+    "editTitle": "Editar entrenamiento",
+    "properties": {
+      "title": "Propiedades del entrenamiento"
+    },
+    "week": {
+      "label": "Semana del {{start}} – {{end}}",
+      "previous": "Semana anterior",
+      "next": "Semana siguiente",
+      "pick": "Elegir semana"
+    }
   },
   "muscles": {
     "ABDOMINALS": "Abdominales",
@@ -138,5 +153,33 @@
     "Duration": "Segundos",
     "MaxReps": "Máximas repeticiones",
     "RepsRange": "Rango de repeticiones"
+  },
+  "exerciseTypes": {
+    "STRENGTH": "Fuerza",
+    "CARDIO": "Cardio",
+    "STRETCHING": "Estiramiento"
+  },
+  "effortsByType": {
+    "STRENGTH": {
+      "LOW": "RIR 5+",
+      "MIDLOW": "RIR 4",
+      "MID": "RIR 3",
+      "MIDHIGH": "RIR 1-2",
+      "HIGH": "RIR 0"
+    },
+    "CARDIO": {
+      "LOW": "RPE 1-2",
+      "MIDLOW": "RPE 3-4",
+      "MID": "RPE 5-6",
+      "MIDHIGH": "RPE 7-8",
+      "HIGH": "RPE 9-10"
+    },
+    "STRETCHING": {
+      "LOW": "Muy suave",
+      "MIDLOW": "Suave",
+      "MID": "Moderado",
+      "MIDHIGH": "Intenso",
+      "HIGH": "Muy intenso"
+    }
   }
 }

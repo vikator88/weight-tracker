@@ -19,7 +19,7 @@ public class GetExerciseByIdUseCaseTests
     public async Task Execute_ShouldReturnTheStoredExercise()
     {
         // Arrange
-        var stored = Exercise.Rehydrate(Id.New(), null, null, Muscles.CHEST, []);
+        var stored = Exercise.Rehydrate(Id.New(), null, null, Muscles.CHEST, ExerciseTypes.STRENGTH, []);
         _exercises.Setup(repository => repository.GetById(stored.Id, It.IsAny<CancellationToken>())).ReturnsAsync(stored);
 
         // Act

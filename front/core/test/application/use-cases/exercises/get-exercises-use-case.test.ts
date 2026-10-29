@@ -9,6 +9,7 @@ const exercise: Exercise = {
   videoUrl: null,
   muscle: "quadriceps",
   bodyPart: "LEGS",
+  type: "STRENGTH",
   translations: [],
 };
 

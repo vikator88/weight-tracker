@@ -1,6 +1,6 @@
 import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { DomainError, fail, ok } from "@weight-tracker/core/domain";
 import type { Result, UserProfile, Workout } from "@weight-tracker/core/domain";
 import i18n from "@/infrastructure/i18n";
@@ -23,6 +23,7 @@ const exercise = {
   translations: [],
   muscle: "QUADRICEPS",
   bodyPart: "LEGS",
+  type: "STRENGTH",
   effort: "HIGH",
   sets: [],
   superSeriesId: null,
@@ -49,11 +50,14 @@ const pushDay: Workout = {
   exercises: [],
 };
 
-/** The date as the screen must show it: that calendar day, in the given language. */
-function calendarDay(language: string, year: number, month: number, day: number) {
-  return new Intl.DateTimeFormat(language, { dateStyle: "medium" }).format(
-    new Date(year, month - 1, day),
-  );
+/** A workout dated `workoutDate`, for the tests about how a date reads as its week. */
+function datedWorkout(id: string, workoutDate: string): Workout {
+  return { ...pushDay, id, name: `W ${workoutDate}`, workoutDate };
+}
+
+function dateCellOf(name: string) {
+  const row = bodyRows().find((candidate) => within(candidate).queryByText(name) !== null)!;
+  return within(row).getAllByRole("cell")[1]!.textContent;
 }
 
 function renderAssignedPlans({
@@ -83,7 +87,8 @@ function bodyRows() {
 }
 
 describe("AssignedPlansView", () => {
-  // A zone behind UTC, where reading "YYYY-MM-DD" as UTC midnight would show the previous day.
+  // A zone behind UTC, where reading "YYYY-MM-DD" as UTC midnight would show the previous day, and so the week before
+  // for a Monday.
   const originalTimeZone = process.env.TZ;
   beforeAll(() => {
     process.env.TZ = "America/New_York";
@@ -95,6 +100,13 @@ describe("AssignedPlansView", () => {
   beforeEach(() => {
     replace.mockClear();
     push.mockClear();
+    // Only `Date` is faked, so user events and promises keep running; the current year is 2026.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 29, 12));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("shows the title, the button and one row per workout in the API's order", async () => {
@@ -113,7 +125,7 @@ describe("AssignedPlansView", () => {
     expect(within(rows[1]).getByText("Empuje")).toBeInTheDocument();
   });
 
-  it("shows the name, the calendar date, the athlete and the exercise count of each workout", async () => {
+  it("shows the name, the week, the athlete and the exercise count of each workout", async () => {
     // Arrange & Act
     await renderAssignedPlans().rendered;
 
@@ -124,7 +136,7 @@ describe("AssignedPlansView", () => {
       within(legsRow)
         .getAllByRole("cell")
         .map((cell) => cell.textContent),
-    ).toEqual(["Pierna", calendarDay("es", 2026, 10, 27), "u-1", "3", ""]);
+    ).toEqual(["Pierna", "Semana del 26 oct – 1 nov", "u-1", "3", ""]);
     expect(within(pushRow).getAllByRole("cell")[3]).toHaveTextContent("0");
   });
 
@@ -139,7 +151,7 @@ describe("AssignedPlansView", () => {
       within(legsRow)
         .getAllByRole("cell")
         .map((cell) => cell.textContent),
-    ).toEqual(["Pierna", calendarDay("es", 2026, 10, 27), "u-1", "t-1", "3", ""]);
+    ).toEqual(["Pierna", "Semana del 26 oct – 1 nov", "u-1", "t-1", "3", ""]);
     expect(within(pushRow).getAllByRole("cell")[3]).toBeEmptyDOMElement();
   });
 
@@ -224,6 +236,43 @@ describe("AssignedPlansView", () => {
     );
   });
 
+  it("shows the Semana column header", async () => {
+    // Arrange & Act
+    await renderAssignedPlans().rendered;
+
+    // Assert
+    expect(await screen.findByRole("columnheader", { name: "Semana" })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Fecha" })).not.toBeInTheDocument();
+  });
+
+  it("shows the same week for a Monday, a Wednesday and a Sunday, behind UTC", async () => {
+    // Arrange
+    const workouts = ["2026-10-26", "2026-10-28", "2026-11-01"].map((date, index) =>
+      datedWorkout(`w-${index}`, date),
+    );
+
+    // Act
+    await renderAssignedPlans({ getWorkouts: async () => ok(workouts) }).rendered;
+
+    // Assert
+    await screen.findByText("W 2026-10-26");
+    for (const date of ["2026-10-26", "2026-10-28", "2026-11-01"]) {
+      expect(dateCellOf(`W ${date}`)).toBe("Semana del 26 oct – 1 nov");
+    }
+  });
+
+  it("shows the year of a week in another year", async () => {
+    // Arrange
+    const workouts = [datedWorkout("w-old", "2025-10-29")];
+
+    // Act
+    await renderAssignedPlans({ getWorkouts: async () => ok(workouts) }).rendered;
+
+    // Assert
+    await screen.findByText("W 2025-10-29");
+    expect(dateCellOf("W 2025-10-29")).toBe("Semana del 27 oct 2025 – 2 nov 2025");
+  });
+
   it("follows the active language", async () => {
     // Arrange
     await renderAssignedPlans({ profile: adminProfile }).rendered;
@@ -235,10 +284,10 @@ describe("AssignedPlansView", () => {
     // Assert
     expect(screen.getByRole("heading", { level: 1, name: "Assigned plans" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "New workout" })).toBeInTheDocument();
-    for (const header of ["Name", "Date", "Athlete", "Trainer", "Exercises"]) {
+    for (const header of ["Name", "Week", "Athlete", "Trainer", "Exercises"]) {
       expect(screen.getByRole("columnheader", { name: header })).toBeInTheDocument();
     }
-    expect(screen.getByText(calendarDay("en", 2026, 10, 27))).toBeInTheDocument();
+    expect(screen.getByText("Week of Oct 26 – Nov 1")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Edit Pierna" })).toBeInTheDocument();
   });
 });

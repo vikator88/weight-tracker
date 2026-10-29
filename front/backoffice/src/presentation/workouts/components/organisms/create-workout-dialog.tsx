@@ -20,7 +20,9 @@ import DialogContent from "@/presentation/common/components/atoms/dialog-content
 import DialogTitle from "@/presentation/common/components/atoms/dialog-title";
 import TextField from "@/presentation/common/components/atoms/text-field";
 import useCurrentUser from "@/presentation/common/hooks/use-current-user";
+import WeekField from "@/presentation/workouts/components/molecules/week-field";
 import useCreateWorkout from "@/presentation/workouts/hooks/use-create-workout";
+import { currentWeekStart, weekMiddleOf } from "@/presentation/workouts/week";
 
 interface CreateWorkoutDialogProps {
   open: boolean;
@@ -44,7 +46,8 @@ const maxLengthOf: Partial<Record<keyof CreateWorkoutFormValues, number>> = {
 function toRequest(values: CreateWorkoutFormValues, withTrainer: boolean): CreateWorkoutRequest {
   const request: CreateWorkoutRequest = {
     name: values.name.trim(),
-    workoutDate: values.workoutDate,
+    // The form holds the week's Monday; the week is sent as its Wednesday.
+    workoutDate: weekMiddleOf(values.workoutDate),
     userId: values.userId.trim(),
   };
   const description = values.description.trim();
@@ -58,14 +61,20 @@ function toRequest(values: CreateWorkoutFormValues, withTrainer: boolean): Creat
   return request;
 }
 
-/** The form lives inside the dialog, which unmounts it on close: every opening starts empty and without errors. */
+/**
+ * The form lives inside the dialog, which unmounts it on close: every opening starts empty, on the current week and
+ * without errors.
+ */
 function CreateWorkoutForm({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation("workouts");
   const { t: tc } = useTranslation();
   const router = useRouter();
   const { profile } = useCurrentUser();
   const { creating, errorCode, create } = useCreateWorkout();
-  const [values, setValues] = useState<CreateWorkoutFormValues>(emptyValues);
+  const [values, setValues] = useState<CreateWorkoutFormValues>(() => ({
+    ...emptyValues,
+    workoutDate: currentWeekStart(),
+  }));
   const [errors, setErrors] = useState<CreateWorkoutFormViolations>({});
   // Mirrors whom the API requires a trainer from; the API keeps the rule.
   const withTrainer = profile?.role === "ADMIN";
@@ -110,10 +119,13 @@ function CreateWorkoutForm({ onClose }: { onClose: () => void }) {
           {errorCode && <Alert severity="error">{tc(`errors:${errorCode}`)}</Alert>}
           <TextField {...field("name")} autoFocus />
           <TextField {...field("description")} multiline minRows={2} />
-          <TextField
-            {...field("workoutDate")}
-            type="date"
-            slotProps={{ inputLabel: { shrink: true } }}
+          <WeekField
+            value={values.workoutDate}
+            onChange={(monday) => setValues((current) => ({ ...current, workoutDate: monday }))}
+            disabled={creating}
+            error={
+              errors.workoutDate ? t(`createWorkout.validation.${errors.workoutDate}`) : undefined
+            }
           />
           <TextField {...field("userId")} />
           {withTrainer && <TextField {...field("trainerId")} />}

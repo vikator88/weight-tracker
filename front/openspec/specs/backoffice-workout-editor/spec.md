@@ -23,35 +23,24 @@ catalog once on opening. A visitor without a session SHALL end on `/login`.
 - **WHEN** a visitor with no stored session opens `/workout?id=w-1`
 - **THEN** the visitor ends on `/login` and no workout is read
 
-### Requirement: The screen shows three columns
-
-On wide screens the workout screen SHALL lay out three cards side by side taking about 25%, 40% and 35% of the width, titled "Catálogo de ejercicios", "Estructura del entrenamiento" and "Detalles del ejercicio". On narrow screens
-they SHALL stack in that order. The page SHALL NOT scroll horizontally.
-
-#### Scenario: Columns in order
-
-- **WHEN** the workout and the catalog are loaded
-- **THEN** the cards "Catálogo de ejercicios", "Estructura del entrenamiento" and "Detalles del ejercicio" are shown, in
-  that order
-
 ### Requirement: The screen has a page header
 
 Above the cards, the screen SHALL show the page heading "Editar entrenamiento" and a "Volver" link to
-`/assigned-plans`. The "Guardar" button that saves the workout's data SHALL sit inside the workout card, between its
-fields and its list of exercises.
+`/assigned-plans`. The "Guardar" button that saves the workout's data SHALL sit inside the properties card, after its
+fields.
 
 #### Scenario: Header shown
 
 - **WHEN** workout "Pierna" is loaded
 - **THEN** the page heading reads "Editar entrenamiento"
 - **AND** a "Volver" link leads to `/assigned-plans`
-- **AND** the workout card shows "Guardar" after Descripción and before "Ejercicios"
+- **AND** the properties card shows "Guardar" after Descripción
 
 ### Requirement: Guardar checks the workout's data and sends nothing when invalid
 
 On "Guardar", the screen SHALL check the card's fields structurally and, if any fails, SHALL show the message under
 that field and SHALL NOT send any request. Nombre is required and at most 256 characters after trimming; Descripción
-is optional and at most 1024 characters; Fecha is a required date.
+is optional and at most 1024 characters; Semana always holds a week, so it is never reported.
 
 #### Scenario: Blank name
 
@@ -66,14 +55,19 @@ is optional and at most 1024 characters; Fecha is a required date.
 ### Requirement: Guardar replaces the workout's editable data
 
 When the fields are valid, "Guardar" SHALL send exactly one update of the workout with its id, the trimmed name, the
-date, the trimmed description or none when blank, and the athlete and trainer exactly as they were read. While it is in
-progress, "Guardar" SHALL be disabled.
+Wednesday of the selected week as its date, the trimmed description or none when blank, and the athlete and trainer
+exactly as they were read. While it is in progress, "Guardar" SHALL be disabled.
 
 #### Scenario: Workout saved
 
-- **WHEN** the user changes the name to " Pierna B " and clicks "Guardar"
-- **THEN** exactly one update of workout `w-1` is sent with name "Pierna B", the loaded date, description "Día 1", and the
-  loaded athlete and trainer
+- **WHEN** workout `w-1` dated 2026-11-02 is loaded, the user changes the name to " Pierna B " and clicks "Guardar"
+- **THEN** exactly one update of workout `w-1` is sent with name "Pierna B", date "2026-11-04" (the Wednesday of the
+  loaded week), description "Día 1", and the loaded athlete and trainer
+
+#### Scenario: Week changed
+
+- **WHEN** workout `w-1` dated 2026-11-02 is loaded, the user clicks "Semana anterior" and clicks "Guardar"
+- **THEN** the update carries the date "2026-10-28"
 
 #### Scenario: Description cleared
 
@@ -101,28 +95,13 @@ confirmation. When it fails, the screen SHALL show the message for the error cod
 - **THEN** "No tienes permiso para realizar esta acción." is shown
 - **AND** the fields keep the typed values
 
-### Requirement: The catalog column lists and filters the exercises
-
-The catalog column SHALL show a "Buscar ejercicio" text field, then one pill per distinct body part of the catalog, then
-every catalog exercise. Pills that do not fit SHALL wrap onto the next line, never scroll horizontally. The list of
-exercises SHALL have a maximum height and scroll inside its card, so a long catalog does not lengthen the page.
-
-#### Scenario: Catalog shown
-
-- **WHEN** the catalog has three exercises over two body parts
-- **THEN** two body-part pills and three exercises are shown
-
-#### Scenario: Long catalog scrolls inside its card
-
-- **WHEN** the catalog is shown
-- **THEN** its list of exercises has a maximum height and scrolls vertically on its own
-
 ### Requirement: Catalog filters combine and are local
 
 Typing SHALL keep only exercises whose name in the active language contains the text, ignoring case and accents.
-Selecting a pill SHALL keep only exercises of that body part; selecting the selected pill again SHALL clear it. Both
-filters SHALL apply together, and filtering SHALL NOT send any request. No match SHALL show "Ningún ejercicio coincide
-con el filtro.".
+Selecting a pill SHALL keep only exercises of that type, body part or muscle; selecting the selected pill again SHALL
+clear it. All the filters SHALL apply together, and filtering SHALL NOT send any request. No match SHALL show "Ningún
+ejercicio coincide con el filtro.". The filters SHALL be kept when the catalog dialog is closed and opened again on the
+same screen.
 
 #### Scenario: Filter by text
 
@@ -134,6 +113,11 @@ con el filtro.".
 - **WHEN** the user selects the pill "Piernas" and types "prensa"
 - **THEN** only legs exercises whose name contains "prensa" are shown
 
+#### Scenario: Filter by type and body part together
+
+- **WHEN** the user selects the pills "Fuerza" and "Piernas"
+- **THEN** only strength exercises of the legs are shown
+
 #### Scenario: Clear the body part
 
 - **WHEN** the user selects the already selected pill "Piernas"
@@ -144,6 +128,16 @@ con el filtro.".
 - **WHEN** no exercise matches the filters
 - **THEN** "Ningún ejercicio coincide con el filtro." is shown
 
+#### Scenario: Filters kept on reopening
+
+- **WHEN** the user types "prensa", closes the catalog dialog and clicks "Añadir ejercicio" again
+- **THEN** the filter field holds "prensa" and only matching exercises are shown
+
+#### Scenario: Type kept on reopening
+
+- **WHEN** the user selects "Cardio", closes the catalog dialog and opens it again
+- **THEN** "Cardio" is still selected and only cardio exercises are shown
+
 ### Requirement: Each exercise shows its name, body part and muscle
 
 Each exercise, in the catalog and in the workout, SHALL show its name in the active language and, below it, labels with
@@ -152,7 +146,8 @@ from the catalog exercise with the same id; with no match it SHALL show its exer
 
 #### Scenario: Labels in Spanish
 
-- **WHEN** an exercise of body part `LEGS` and muscle `QUADRICEPS` is shown in Spanish
+- **WHEN** an exercise of body part `LEGS` and muscle `QUADRICEPS` is shown in Spanish, and the catalog has legs
+  exercises for another muscle too
 - **THEN** its labels read "Piernas" and "Cuádriceps"
 
 #### Scenario: Name in the active language
@@ -167,37 +162,27 @@ from the catalog exercise with the same id; with no match it SHALL show its exer
 
 ### Requirement: Body-part labels are coloured by body part
 
-The body-part label of an exercise SHALL use a colour of its own for each body part, the same everywhere on the screen;
-an unknown body part SHALL use the neutral colour. The muscle label SHALL stay neutral.
+The body-part label of an exercise SHALL use a colour of its own for each body part, the same everywhere on the
+screen, filled with that colour; an unknown body part SHALL use the neutral colour. The muscle label SHALL use the
+colour of the exercise's body part as its outline only. The body-part and muscle filter pills SHALL use the same
+colours, outlined while unselected and filled while selected.
 
 #### Scenario: Chest and legs differ
 
 - **WHEN** a chest exercise and a legs exercise are shown
-- **THEN** their body-part labels have different colours
-- **AND** their muscle labels have the neutral colour
+- **THEN** their body-part labels are filled with different colours
+- **AND** each muscle label shown is outlined in its body part's colour
 
-### Requirement: The plus adds a catalog exercise to the workout locally
+#### Scenario: Pills follow the labels
 
-Each catalog exercise SHALL show an "Añadir ejercicio" plus icon button on its right. Activating it SHALL append the
-exercise to the end of the workout's exercises as pending, select it, and open it in the configuration card. It SHALL
-NOT send any request: a pending exercise is only kept on screen until its sets can be saved.
-
-#### Scenario: Add pressed
-
-- **WHEN** the user clicks "Añadir ejercicio" on "Prensa de piernas" in a workout with two exercises
-- **THEN** "Prensa de piernas" is listed third, marked "Pendiente" and selected
-- **AND** the configuration card shows "Prensa de piernas"
-- **AND** no request is sent
-
-#### Scenario: Pending exercise starts without sets
-
-- **WHEN** a pending exercise is shown in the configuration card
-- **THEN** its effort is empty, its list of sets is empty, and the set form is empty and ready to be defined
+- **WHEN** the pill "Piernas" is selected in the catalog
+- **THEN** it is filled with the legs colour, the other body-part pills are outlined in their colours, and the muscle
+  pills are outlined in the legs colour
 
 ### Requirement: The catalog hides exercises already in the workout
 
-The catalog SHALL NOT list an exercise that is already in the workout, whether saved or pending, so the same exercise
-cannot be added twice.
+The catalog SHALL NOT list an exercise that is already saved in the workout, so the same exercise cannot be added
+twice.
 
 #### Scenario: Saved exercise hidden
 
@@ -206,94 +191,13 @@ cannot be added twice.
 
 #### Scenario: Added exercise leaves the catalog
 
-- **WHEN** the user adds "Prensa de piernas" with the plus
+- **WHEN** the API accepts the addition of "Prensa de piernas" and the user opens the catalog again
 - **THEN** the catalog no longer lists "Prensa de piernas"
-
-### Requirement: The workout card shows the workout's data
-
-The "Estructura del entrenamiento" card SHALL start with the workout's Nombre, Fecha and Descripción in editable
-fields, filled with the loaded values. Editing them SHALL change nothing until "Guardar" is pressed.
-
-#### Scenario: Card filled
-
-- **WHEN** workout "Pierna" dated 2026-11-02 with description "Día 1" is loaded
-- **THEN** the card's fields hold "Pierna", 2026-11-02 and "Día 1"
-
-### Requirement: The workout card lists the workout's exercises
-
-Inside the same card, below the fields, the workout's exercises SHALL be listed in their current order (the order the
-API returns them until the user reorders them), numbered from 1 and laid out like the catalog exercises. Each SHALL
-have a "Reordenar ejercicio" drag handle on its left, a "Quitar ejercicio" trash icon button and an "Editar ejercicio"
-pencil icon button. With no exercises it SHALL show "Este entrenamiento aún no tiene ejercicios.".
-
-#### Scenario: Exercises listed
-
-- **WHEN** the workout has two exercises
-- **THEN** both are listed in that order, numbered 1 and 2, each with "Reordenar ejercicio", "Quitar ejercicio" and "Editar ejercicio"
-
-### Requirement: Each workout exercise shows its sets and effort
-
-Under its labels, each exercise of the workout SHALL show its sets on one line, as the configuration card summarises
-them and separated by commas, and its effort on the next line. A line SHALL NOT be shown while its property is empty,
-as for a pending exercise before it is defined.
-
-#### Scenario: Sets and effort shown
-
-- **WHEN** an exercise has effort `HIGH` and the sets 2 × 15, 1 × 10–12 and 1 × max reps
-- **THEN** its item shows "Series: 2 × 15 repeticiones, 1 × 10–12 repeticiones, 1 × máximo" on one line
-- **AND** "Esfuerzo: Alto" on the next line
-
-#### Scenario: Pending exercise without sets nor effort
-
-- **WHEN** a pending exercise has no sets nor effort yet
-- **THEN** its item shows neither line
-
-#### Scenario: No exercises
-
-- **WHEN** the workout has no exercises
-- **THEN** "Este entrenamiento aún no tiene ejercicios." is shown
-
-### Requirement: The exercises list has a header and scrolls in its card
-
-The workout's exercises SHALL be preceded by an "Ejercicios" header, without any add button (exercises are added from
-the catalog), and their list SHALL have a maximum height and scroll inside the card.
-
-#### Scenario: No add button in the workout card
-
-- **WHEN** the workout card is shown
-- **THEN** it shows the "Ejercicios" header and no "Añadir ejercicio" button
-
-#### Scenario: Long workout scrolls inside its card
-
-- **WHEN** the workout's exercises are shown
-- **THEN** their list has a maximum height and scrolls vertically on its own
-
-### Requirement: Quitar ejercicio removes the exercise from the workout
-
-"Quitar ejercicio" on a saved exercise SHALL send exactly one removal of that catalog exercise from the workout, and
-on success SHALL take it out of the list and show it again in the catalog. On a pending exercise it SHALL only take it
-out of the list, without a request. A removed exercise that was selected SHALL leave the configuration card empty.
-
-#### Scenario: Saved exercise removed
-
-- **WHEN** the user clicks "Quitar ejercicio" on the saved "Sentadilla"
-- **THEN** exactly one removal of "Sentadilla" from the workout is sent
-- **AND** "Sentadilla" leaves the workout's list and is listed again in the catalog
-
-#### Scenario: Pending exercise removed
-
-- **WHEN** the user clicks "Quitar ejercicio" on a pending exercise
-- **THEN** it leaves the list and is listed again in the catalog, and no request is sent
-
-#### Scenario: Selected exercise removed
-
-- **WHEN** the removed exercise was selected
-- **THEN** the configuration card shows "Selecciona un ejercicio para configurarlo."
 
 ### Requirement: A removal in progress or refused is shown
 
 While a removal is in progress, its "Quitar ejercicio" button SHALL be disabled. A failed removal SHALL show the
-message for the error code in the workout card and keep the exercise listed.
+message for the error code in the exercises card and keep the exercise listed.
 
 #### Scenario: Removal rejected
 
@@ -308,7 +212,7 @@ the new order. On success the list SHALL keep the new order.
 
 #### Scenario: Exercise moved down
 
-- **WHEN** the workout lists "Sentadilla" then "Press banca" and the user drops "Sentadilla" below "Press banca"
+- **WHEN** the workout lists "Sentadilla" then "Press banca" and the user drops "Sentadilla" after "Press banca"
 - **THEN** "Press banca" is listed as 1 and "Sentadilla" as 2 before the API answers
 - **AND** exactly one reorder is sent with the ids of "Press banca" and "Sentadilla" in that order
 
@@ -334,7 +238,7 @@ Dropping an exercise where it was, or cancelling the drag, SHALL leave the order
 ### Requirement: A refused reorder restores the previous order
 
 When the reorder fails, the list SHALL go back to the order it had before the drop, and the message for the error code
-SHALL be shown in the workout card.
+SHALL be shown in the exercises card.
 
 #### Scenario: Reorder rejected
 
@@ -352,79 +256,20 @@ the first one is answered.
 - **WHEN** a reorder has been sent and the API has not answered yet
 - **THEN** every "Reordenar ejercicio" handle is disabled
 
-### Requirement: Pending exercises cannot be reordered
-
-A pending exercise (added from the catalog and not saved yet) SHALL keep its place after the saved ones, with its
-handle disabled. Pending exercises SHALL never be included in a reorder request.
-
-#### Scenario: Pending exercise handle
-
-- **WHEN** the workout lists a saved exercise and a pending one
-- **THEN** the pending exercise's "Reordenar ejercicio" handle is disabled
-
-#### Scenario: Reorder with a pending exercise listed
-
-- **WHEN** the user reorders two saved exercises while a pending exercise is listed
-- **THEN** the reorder sent holds only the two saved exercises' ids
-
 ### Requirement: Exercises can be reordered from the keyboard
 
-A focused drag handle SHALL pick up its exercise with Space or Enter. The arrow keys SHALL move it, Space or Enter SHALL
-drop it, and Escape SHALL cancel. Screen readers SHALL get the pick-up, move, drop and cancel announcements in the
-active language.
+A focused drag handle SHALL pick up its exercise with Space or Enter. The arrow keys SHALL move it across the rows of
+cards, Space or Enter SHALL drop it, and Escape SHALL cancel. Screen readers SHALL get the pick-up, move, drop and
+cancel announcements in the active language.
 
 #### Scenario: Keyboard reorder
 
-- **WHEN** the user focuses the handle of exercise 1, presses Space, ArrowDown and Space
+- **WHEN** the user focuses the handle of exercise 1, presses Space, ArrowRight and Space
 - **THEN** that exercise is listed as 2 and a reorder is sent
-
-### Requirement: Reordering keeps the selection
-
-Reordering SHALL NOT change which exercise is selected for configuration.
-
-#### Scenario: Selected exercise moved
-
-- **WHEN** "Sentadilla" is selected and the user moves it to another position
-- **THEN** "Sentadilla" stays selected and the configuration card still shows it
-
-### Requirement: The pencil selects a workout exercise to configure
-
-Clicking "Editar ejercicio" SHALL select that workout exercise, mark it as selected in the list, and show it in the
-configuration column. It SHALL NOT send any request.
-
-#### Scenario: Select an exercise
-
-- **WHEN** the user clicks "Editar ejercicio" on the second exercise
-- **THEN** the second exercise is marked as selected
-- **AND** the configuration column shows that exercise
-- **AND** no request is sent
-
-### Requirement: The configuration column shows the selected exercise
-
-With nothing selected, the configuration column SHALL show "Selecciona un ejercicio para configurarlo.". With an
-exercise selected, it SHALL show its video when the catalog gives one, then its name, body part and muscle, then its
-effort, then the list of its sets, then a form to define a new set with an "Añadir serie" button, then "Guardar".
-Selecting another exercise SHALL show that exercise's stored values, discarding any unsaved edit.
-
-#### Scenario: Nothing selected
-
-- **WHEN** the screen opens
-- **THEN** the configuration column shows "Selecciona un ejercicio para configurarlo."
-
-#### Scenario: Selected exercise shown
-
-- **WHEN** a squat with effort `HIGH` and one set of 3 × 10 repetitions is selected
-- **THEN** the column shows "Sentadilla", "Piernas" and "Cuádriceps"
-- **AND** the effort field shows "Alto" and the list of sets shows "3 × 10 repeticiones"
-
-#### Scenario: Edits discarded on another selection
-
-- **WHEN** the user changes the effort and then selects another exercise
-- **THEN** the column shows the other exercise's stored effort
 
 ### Requirement: The sets of an exercise are listed with a delete action
 
-The configuration column SHALL list the selected exercise's sets in order, each as a summary — "2 × 15 repeticiones",
+The configuration dialog SHALL list the exercise's sets in order, each as a summary — "2 × 15 repeticiones",
 "1 × 10–12 repeticiones", "3 × 40 s" or "1 × máximo" by target type — with a "Quitar serie" trash button on its right.
 Removing a set SHALL take it out of the list only; nothing is sent until "Guardar".
 
@@ -460,48 +305,9 @@ show the message under each invalid field, and otherwise append the set to the e
 - **WHEN** the user clicks "Añadir serie" with Series empty or below 1, or a needed Valor or Máximo empty or below 1
 - **THEN** each of those fields shows "Introduce un número entero mayor que 0." and the list is unchanged
 
-### Requirement: Guardar saves the exercise's effort and sets
-
-"Guardar" in the configuration column SHALL require an effort ("Elige un esfuerzo.") and at least one set ("Añade al
-menos una serie."), sending nothing otherwise. When both are present it SHALL send exactly one request: an addition to
-the workout for a pending exercise, or a replacement of the exercise's effort and sets for a saved one, with the
-catalog exercise id, the effort and the listed sets. While it is in progress, "Guardar" SHALL be disabled.
-
-#### Scenario: Pending exercise saved
-
-- **WHEN** a pending "Prensa de piernas" has effort "Alto" and the sets 2 × 15 and 1 × max reps and the user clicks
-  "Guardar"
-- **THEN** exactly one addition of that exercise to the workout is sent with effort `HIGH` and those two sets
-
-#### Scenario: Saved exercise updated
-
-- **WHEN** the user removes a set of the saved "Sentadilla" and clicks "Guardar"
-- **THEN** exactly one replacement of the effort and sets of "Sentadilla" in the workout is sent with the remaining sets
-
-#### Scenario: Missing effort or sets
-
-- **WHEN** a pending exercise has no effort and no sets and the user clicks "Guardar"
-- **THEN** "Elige un esfuerzo." and "Añade al menos una serie." are shown and no request is sent
-
-### Requirement: The exercise save outcome is shown
-
-When the save succeeds, the exercise SHALL stay selected and show "Ejercicio guardado.", lose its "Pendiente" mark,
-and show the sets as the API answered them. When it fails, the column SHALL show the message for the error code and
-keep the effort and sets as edited.
-
-#### Scenario: Pending exercise becomes saved
-
-- **WHEN** the API accepts the addition of the pending "Prensa de piernas"
-- **THEN** "Ejercicio guardado." is shown, "Prensa de piernas" is no longer marked "Pendiente" and stays selected
-
-#### Scenario: Exercise rejected
-
-- **WHEN** the API answers 409 to the addition
-- **THEN** "La operación entra en conflicto con el estado actual." is shown and the listed sets are kept
-
 ### Requirement: The exercise video is embedded when it is a YouTube link
 
-When the selected exercise's video is a YouTube watch link, the configuration column SHALL embed it as a player from
+When the exercise's video is a YouTube watch link, the configuration dialog SHALL embed it as a player from
 `https://www.youtube-nocookie.com/embed/<video id>`, titled with the exercise name. Any other link SHALL be shown as a
 "Ver vídeo" link opening in a new tab. An exercise without video SHALL show no video section.
 
@@ -544,10 +350,360 @@ API does not find, SHALL show "No hemos encontrado este entrenamiento." with a "
 
 ### Requirement: The workout screen is translated
 
-Every text of the screen, including muscle, body-part and effort labels, SHALL be available in Spanish and English and
-SHALL follow the active language.
+Every text of the screen and its dialogs, including muscle, body-part and effort labels, SHALL be available in Spanish
+and English and SHALL follow the active language.
 
 #### Scenario: Screen in English
 
 - **WHEN** the active language is English
-- **THEN** the screen shows "Search exercise", "Save", "Select an exercise to configure it." and the label "Quadriceps"
+- **THEN** the screen shows "Workout properties", "Add exercise", "Save" and, in the catalog dialog, "Search exercise"
+  and the label "Quadriceps"
+
+### Requirement: The screen shows two stacked cards at full width
+
+The workout screen SHALL use the full width of the page beside the navigation drawer. It SHALL show two cards, one
+above the other and each taking the full width, on every screen size: "Propiedades del entrenamiento" on top and
+"Ejercicios" below. The page SHALL NOT scroll horizontally.
+
+#### Scenario: Cards in order
+
+- **WHEN** the workout and the catalog are loaded
+- **THEN** the card "Propiedades del entrenamiento" is shown above the card "Ejercicios", both at full width
+- **AND** neither the catalog nor the exercise configuration is shown on the page
+
+### Requirement: Añadir ejercicio opens the catalog dialog
+
+The "Ejercicios" card SHALL show an "Añadir ejercicio" button in its header. Activating it SHALL open the "Catálogo de
+ejercicios" dialog, at least 75% of the viewport width on wide screens, without sending any request.
+
+#### Scenario: Catalog opened
+
+- **WHEN** the user clicks "Añadir ejercicio"
+- **THEN** the "Catálogo de ejercicios" dialog is shown
+- **AND** no request is sent
+
+### Requirement: The catalog dialog can be dismissed
+
+The catalog dialog SHALL close with its "Cerrar" button, with Escape and with a click outside it. Closing it SHALL add
+nothing to the workout and send no request.
+
+#### Scenario: Catalog dismissed with Escape
+
+- **WHEN** the catalog dialog is open and the user presses Escape
+- **THEN** the dialog closes, the workout's list is unchanged and no request is sent
+
+#### Scenario: Catalog dismissed with Cerrar
+
+- **WHEN** the catalog dialog is open and the user clicks "Cerrar"
+- **THEN** the dialog closes and no request is sent
+
+### Requirement: Choosing a catalog exercise opens its configuration
+
+Each exercise in the catalog dialog SHALL show an "Elegir ejercicio" plus icon button on its right. Activating it SHALL
+close the catalog dialog and open the configuration dialog for that exercise, with no effort, no sets and an empty set
+form. It SHALL NOT send any request and SHALL NOT add the exercise to the list.
+
+#### Scenario: Exercise chosen
+
+- **WHEN** the user clicks "Elegir ejercicio" on "Prensa de piernas"
+- **THEN** the catalog dialog closes and the configuration dialog shows "Prensa de piernas"
+- **AND** its effort is empty, its list of sets is empty and the set form is empty
+- **AND** the workout's list is unchanged and no request is sent
+
+### Requirement: The configuration dialog can be dismissed
+
+The configuration dialog SHALL close with its "Cancelar" button, with Escape and with a click outside it, except while
+its save is in progress. Closing it SHALL discard the edits and send no request. Closing it while adding SHALL leave the
+exercise out of the workout and still listed in the catalog.
+
+#### Scenario: Add dismissed
+
+- **WHEN** the configuration dialog is open for "Prensa de piernas" being added, the user adds a set and clicks
+  "Cancelar"
+- **THEN** the dialog closes, "Prensa de piernas" is not in the workout's list and no request is sent
+- **AND** reopening the catalog lists "Prensa de piernas"
+
+#### Scenario: Edit dismissed
+
+- **WHEN** the user opens "Sentadilla" with the pencil, changes its effort and presses Escape
+- **THEN** the dialog closes and no request is sent
+- **AND** opening "Sentadilla" again shows its stored effort
+
+#### Scenario: Save in progress
+
+- **WHEN** the save has been sent and has not answered yet
+- **THEN** "Cancelar" is disabled and Escape does not close the dialog
+
+### Requirement: Each listed exercise shows its sets and effort
+
+Under its labels, each exercise of the workout SHALL show its sets on one line, without a label, each as its count
+and target only ("2 × 15", "1 × 10–12", "3 × 40 s", "1 × máx") and separated by commas, and its effort on the next
+line. A line SHALL NOT be shown while its property is empty.
+
+#### Scenario: Sets and effort shown
+
+- **WHEN** an exercise has effort `HIGH` and the sets 2 × 15, 1 × 10–12 and 1 × max reps
+- **THEN** its item shows "2 × 15, 1 × 10–12, 1 × máx" on one line
+- **AND** "Esfuerzo: Alto" on the next line
+
+#### Scenario: No exercises
+
+- **WHEN** the workout has no exercises
+- **THEN** "Este entrenamiento aún no tiene ejercicios." is shown
+
+### Requirement: The exercises card has an add button and grows with its list
+
+The workout's exercises SHALL be preceded by the "Ejercicios" card title with the "Añadir ejercicio" button beside it,
+and their list SHALL have no maximum height and no scroll of its own: the card SHALL grow with its rows and the page
+SHALL scroll instead.
+
+#### Scenario: Add button in the exercises card
+
+- **WHEN** the exercises card is shown
+- **THEN** it shows the "Ejercicios" title and an "Añadir ejercicio" button
+
+#### Scenario: Long workout grows the card
+
+- **WHEN** the workout's exercises are shown
+- **THEN** their list has no maximum height and does not scroll on its own
+
+### Requirement: Quitar ejercicio removes a saved exercise from the workout
+
+"Quitar ejercicio" SHALL send exactly one removal of that catalog exercise from the workout, and on success SHALL take
+it out of the list and list it again in the catalog.
+
+#### Scenario: Saved exercise removed
+
+- **WHEN** the user clicks "Quitar ejercicio" on "Sentadilla"
+- **THEN** exactly one removal of "Sentadilla" from the workout is sent
+- **AND** "Sentadilla" leaves the workout's list and is listed again in the catalog
+
+### Requirement: Guardar in the configuration dialog saves the effort and sets
+
+"Guardar" in the configuration dialog SHALL require an effort ("Elige un esfuerzo.") and at least one set ("Añade al
+menos una serie."), sending nothing otherwise. When both are present it SHALL send exactly one request: an addition to
+the workout for an exercise chosen from the catalog, or a replacement of the exercise's effort and sets for one opened
+with the pencil, with the catalog exercise id, the effort and the listed sets. While it is in progress, "Guardar" SHALL
+be disabled.
+
+#### Scenario: Chosen exercise added
+
+- **WHEN** "Prensa de piernas", chosen from the catalog, has effort "Alto" and the sets 2 × 15 and 1 × max reps and the
+  user clicks "Guardar"
+- **THEN** exactly one addition of that exercise to the workout is sent with effort `HIGH` and those two sets
+
+#### Scenario: Saved exercise updated
+
+- **WHEN** the user removes a set of "Sentadilla", opened with the pencil, and clicks "Guardar"
+- **THEN** exactly one replacement of the effort and sets of "Sentadilla" in the workout is sent with the remaining sets
+
+#### Scenario: Missing effort or sets
+
+- **WHEN** a chosen exercise has no effort and no sets and the user clicks "Guardar"
+- **THEN** "Elige un esfuerzo." and "Añade al menos una serie." are shown and no request is sent
+
+### Requirement: The exercise save closes the dialog or shows the error
+
+When the save succeeds, the configuration dialog SHALL close. An added exercise SHALL be appended to the end of the
+workout's list, and an edited one SHALL show the sets and effort as the API answered them. When the save fails, the
+dialog SHALL stay open, show the message for the error code and keep the effort and sets as edited.
+
+#### Scenario: Chosen exercise added to the list
+
+- **WHEN** the API accepts the addition of "Prensa de piernas" in a workout with two exercises
+- **THEN** the dialog closes and "Prensa de piernas" is listed third with the sets the API answered
+
+#### Scenario: Edited exercise updated in the list
+
+- **WHEN** the API accepts the replacement of the sets of "Sentadilla"
+- **THEN** the dialog closes and the "Sentadilla" item shows the sets the API answered
+
+#### Scenario: Exercise rejected
+
+- **WHEN** the API answers 409 to the addition
+- **THEN** the dialog stays open, "La operación entra en conflicto con el estado actual." is shown and the listed sets
+  are kept
+- **AND** the exercise is not in the workout's list
+
+### Requirement: The properties card shows the workout's data
+
+The "Propiedades del entrenamiento" card SHALL hold the workout's Nombre and Descripción in editable fields and its
+week in the week field Semana, filled with the loaded values, and no exercises. Editing them SHALL change nothing until
+"Guardar" is pressed.
+
+#### Scenario: Card filled
+
+- **WHEN** workout "Pierna" dated 2026-11-02 with description "Día 1" is loaded, in 2026
+- **THEN** the card's fields hold "Pierna" and "Día 1", and the week field shows "Semana del 2 nov – 8 nov"
+- **AND** the card lists no exercises
+
+### Requirement: The exercises card lists the workout's exercises
+
+The "Ejercicios" card SHALL list the workout's saved exercises in their current order (the order the API returns
+them until the user reorders them), numbered from 1. Each SHALL have a "Reordenar ejercicio" drag handle on its left,
+a "Quitar ejercicio" trash icon button and an "Editar ejercicio" pencil icon button. With no exercises it SHALL show
+"Este entrenamiento aún no tiene ejercicios.".
+
+#### Scenario: Exercises listed
+
+- **WHEN** the workout has two exercises
+- **THEN** both are listed in that order, numbered 1 and 2, each in its own bordered card with "Reordenar ejercicio",
+  "Quitar ejercicio" and "Editar ejercicio"
+
+### Requirement: Listed exercises are cards in rows of up to three
+
+Each exercise of the workout SHALL be shown in its own bordered card. The cards SHALL flow left to right in rows of at
+most three, wrapping onto the next row, with fewer per row on narrower screens. Inside a card, the first row SHALL hold
+the drag handle, the position, the name and the action icons; the second the body-part and muscle labels; the third
+the sets.
+
+#### Scenario: Rows inside a card
+
+- **WHEN** "Sentadilla", listed first, with the sets 3 × 10, is shown and the catalog has more than one legs muscle
+- **THEN** its card's first row holds "Reordenar ejercicio", "1", "Sentadilla", "Quitar ejercicio" and "Editar
+  ejercicio"
+- **AND** the labels "Piernas" and "Cuádriceps" come below that row, and "3 × 10" below the labels
+
+#### Scenario: Exercises in a row
+
+- **WHEN** the workout has two exercises on a wide screen
+- **THEN** their cards sit side by side in the same row, the first on the left
+
+#### Scenario: At most three per row
+
+- **WHEN** the workout has four exercises on a wide screen
+- **THEN** the first three share a row and the fourth starts the next one
+
+### Requirement: The pencil opens the exercise's configuration
+
+Clicking "Editar ejercicio" SHALL open the configuration dialog for that workout exercise, the same dialog used to add
+one, filled with its stored effort and sets. It SHALL NOT send any request.
+
+#### Scenario: Edit an exercise
+
+- **WHEN** the user clicks "Editar ejercicio" on the second exercise
+- **THEN** the configuration dialog shows that exercise with its stored effort and sets
+- **AND** no request is sent
+
+### Requirement: The configuration dialog shows the exercise
+
+The configuration dialog SHALL be titled "Configuración del ejercicio" and SHALL show the exercise's video when the catalog
+gives one, then its name, body part and muscle; then its effort, the list of its sets and a form to define a new set
+with an "Añadir serie" button; and SHALL end with "Cancelar" and "Guardar". Each opening SHALL start from the stored
+values, discarding any edit left unsaved.
+
+#### Scenario: Exercise shown
+
+- **WHEN** a squat with effort `HIGH` and one set of 3 × 10 repetitions is opened with the pencil
+- **THEN** the dialog shows "Sentadilla", "Piernas" and "Cuádriceps"
+- **AND** the effort field shows "Alto" and the list of sets shows "3 × 10 repeticiones"
+
+#### Scenario: Another exercise opened
+
+- **WHEN** the user changes the effort of one exercise, cancels, and opens another exercise
+- **THEN** the dialog shows the other exercise's stored effort
+
+### Requirement: Catalog exercises are cards in rows of up to three
+
+In the catalog dialog, each exercise SHALL be shown in its own bordered card, with its name and the "Elegir
+ejercicio" button on the first row and its body-part and muscle labels below. The cards SHALL flow left to right in
+rows of at most three, wrapping onto the next row, with fewer per row on narrower screens. The list SHALL keep its
+maximum height and scroll inside the dialog.
+
+#### Scenario: Catalog as cards
+
+- **WHEN** the catalog dialog lists three exercises on a wide screen
+- **THEN** each one is in its own bordered card, and the three cards share one row from left to right
+
+### Requirement: Each row of filter pills has a label
+
+In the catalog, the type pills SHALL be preceded by the label "Tipo", the body-part pills by the label "Partes del
+cuerpo", and the muscle pills by the label "Músculos". Each label SHALL name its group of pills, and the muscle label
+SHALL be shown and hidden together with its row.
+
+#### Scenario: Labels shown
+
+- **WHEN** the user selects the pill "Piernas" in the catalog
+- **THEN** the label "Partes del cuerpo" precedes the body-part pills and "Músculos" precedes the muscle pills
+
+#### Scenario: Type label first
+
+- **WHEN** the catalog dialog opens
+- **THEN** the label "Tipo" precedes the type pills, and comes before "Partes del cuerpo"
+
+### Requirement: Muscle pills refine a selected body part
+
+While a body part is selected in the catalog, a second row of pills SHALL show one pill per distinct muscle of the
+catalog exercises of that body part, sorted by name. Selecting a muscle SHALL keep only the exercises of that body
+part and muscle; selecting it again SHALL clear it. Changing or clearing the body part SHALL clear the muscle. With no
+body part selected, or when the listed exercises of that body part work a single muscle, the row SHALL NOT be shown.
+
+#### Scenario: No body part, no muscle row
+
+- **WHEN** the catalog dialog opens with no body part selected
+- **THEN** no muscle pills and no "Músculos" label are shown
+
+#### Scenario: Muscles of the body part
+
+- **WHEN** the user selects the pill "Brazos" and the catalog's arms exercises work biceps and triceps
+- **THEN** a second row shows the pills "Bíceps" and "Tríceps"
+
+#### Scenario: Filter by muscle
+
+- **WHEN** the user selects "Brazos" and then "Bíceps"
+- **THEN** only arms exercises that work the biceps are listed
+
+#### Scenario: Single muscle, no muscle row
+
+- **WHEN** the user selects the pill "Pecho" and every listed chest exercise works the chest
+- **THEN** no muscle pills and no "Músculos" label are shown
+
+#### Scenario: Muscle cleared with its body part
+
+- **WHEN** a muscle is selected and the user selects another body part
+- **THEN** no muscle is selected and the new body part's muscles are shown
+
+### Requirement: The configuration dialog shows the exercise beside its configuration
+
+On wide screens the configuration dialog SHALL show the exercise (video, name and labels) in a left column of about
+30% of its width, and the configuration (effort, sets and set form) in a right column of about 70%. On narrow screens
+the columns SHALL stack, the exercise first.
+
+#### Scenario: Exercise beside its configuration
+
+- **WHEN** the dialog is open on a wide screen
+- **THEN** the exercise's name is in the left column and the effort field in the right one, side by side
+
+### Requirement: A single muscle is left out of the exercise lists
+
+In the catalog and the workout list, an exercise's muscle label SHALL be left out when every catalog exercise of the
+same body part works that one muscle. The configuration dialog SHALL always show it.
+
+#### Scenario: Single-muscle body part
+
+- **WHEN** every chest exercise of the catalog works the chest
+- **THEN** a chest exercise in the catalog and in the workout list shows only the label "Pecho"
+- **AND** its configuration dialog shows both "Pecho" labels
+
+### Requirement: Type pills filter the catalog by exercise type
+
+The catalog dialog SHALL show, before the body-part row, a row of pills with one pill per exercise type, in the order
+"Fuerza", "Cardio" and "Estiramiento". The row SHALL always be shown, and selecting a type SHALL NOT show or hide any
+other row. Each pill SHALL use its type's colour, outlined while unselected and filled while selected.
+
+#### Scenario: Type row first
+
+- **WHEN** the catalog dialog opens
+- **THEN** the type pills "Fuerza", "Cardio" and "Estiramiento" are shown, outlined in blue, red and green, before the
+  body-part pills
+
+#### Scenario: Type selected
+
+- **WHEN** the user selects the pill "Cardio"
+- **THEN** only cardio exercises are listed
+- **AND** "Cardio" is filled in red, and the body-part row is shown as before
+
+#### Scenario: Type cleared
+
+- **WHEN** the user selects the already selected pill "Cardio"
+- **THEN** no type is selected and the type no longer filters the list

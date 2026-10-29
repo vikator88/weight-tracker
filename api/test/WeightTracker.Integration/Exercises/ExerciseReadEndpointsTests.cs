@@ -35,11 +35,12 @@ public class ExerciseReadEndpointsTests : IntegrationTest
 
         payload.EnumerateArray().Select(exercise => exercise.GetProperty("id").GetGuid())
             .Should().BeEquivalentTo(
-                [SeedData.PressBancaId, SeedData.SentadillaId, SeedData.PlanchaId, SeedData.CurlBicepsId]);
+                [SeedData.PressBancaId, SeedData.SentadillaId, SeedData.PlanchaId, SeedData.CurlBicepsId,
+                    SeedData.CorrerEnCintaId, SeedData.EstiramientoIsquiosId]);
     }
 
     [Fact]
-    public async Task GetAll_ShouldReturnTranslationsMuscleAndBodyPartOfEveryExercise()
+    public async Task GetAll_ShouldReturnTranslationsMuscleBodyPartAndTypeOfEveryExercise()
     {
         // Arrange & Act
         var payload = await Client.GetFromJsonAsync<JsonElement>("/exercises", JsonOptions);
@@ -48,7 +49,8 @@ public class ExerciseReadEndpointsTests : IntegrationTest
         payload.EnumerateArray().Should().OnlyContain(exercise =>
             exercise.GetProperty("translations").GetArrayLength() == 2
             && exercise.GetProperty("muscle").ValueKind == JsonValueKind.String
-            && exercise.GetProperty("bodyPart").ValueKind == JsonValueKind.String);
+            && exercise.GetProperty("bodyPart").ValueKind == JsonValueKind.String
+            && exercise.GetProperty("type").ValueKind == JsonValueKind.String);
     }
 
     [Fact]
@@ -67,8 +69,34 @@ public class ExerciseReadEndpointsTests : IntegrationTest
         payload.GetProperty("videoUrl").ValueKind.Should().Be(JsonValueKind.Null);
         payload.GetProperty("muscle").GetString().Should().Be("QUADRICEPS");
         payload.GetProperty("bodyPart").GetString().Should().Be("LEGS");
+        payload.GetProperty("type").GetString().Should().Be("STRENGTH");
         ExerciseJson.Translations(payload).Should().BeEquivalentTo([("es", "Sentadilla con barra"), ("en", "Barbell Squat")]);
         payload.TryGetProperty("name", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetById_ShouldReturnACardioExerciseWithItsMuscleAndBodyPart()
+    {
+        // Arrange & Act
+        var payload = await Client.GetFromJsonAsync<JsonElement>($"/exercises/{SeedData.CorrerEnCintaId}", JsonOptions);
+
+        // Assert
+        payload.GetProperty("type").GetString().Should().Be("CARDIO");
+        payload.GetProperty("muscle").GetString().Should().Be("QUADRICEPS");
+        payload.GetProperty("bodyPart").GetString().Should().Be("LEGS");
+        ExerciseJson.Translations(payload).Should().BeEquivalentTo([("es", "Correr en cinta"), ("en", "Running, Treadmill")]);
+    }
+
+    [Fact]
+    public async Task GetById_ShouldReturnAStretchingExercise()
+    {
+        // Arrange & Act
+        var payload = await Client.GetFromJsonAsync<JsonElement>($"/exercises/{SeedData.EstiramientoIsquiosId}", JsonOptions);
+
+        // Assert
+        payload.GetProperty("type").GetString().Should().Be("STRETCHING");
+        payload.GetProperty("muscle").GetString().Should().Be("HAMSTRINGS");
+        payload.GetProperty("bodyPart").GetString().Should().Be("LEGS");
     }
 
     [Fact]
@@ -80,7 +108,7 @@ public class ExerciseReadEndpointsTests : IntegrationTest
         await Factory.WithScope(async services =>
         {
             var context = services.GetRequiredService<WeightTrackerDbContext>();
-            context.Exercises.Add(new ExerciseEntity { Id = id, Muscle = (int)Muscles.NECK });
+            context.Exercises.Add(new ExerciseEntity { Id = id, Muscle = (int)Muscles.NECK, Type = (int)ExerciseTypes.STRETCHING });
             await context.SaveChangesAsync();
 
             return true;
@@ -106,7 +134,7 @@ public class ExerciseReadEndpointsTests : IntegrationTest
 
         // Assert
         response.IsSuccessStatusCode.Should().BeFalse();
-        (await Client.GetFromJsonAsync<JsonElement>("/exercises", JsonOptions)).GetArrayLength().Should().Be(4);
+        (await Client.GetFromJsonAsync<JsonElement>("/exercises", JsonOptions)).GetArrayLength().Should().Be(6);
     }
 
     [Fact]
