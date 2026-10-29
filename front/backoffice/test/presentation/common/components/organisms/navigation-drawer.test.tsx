@@ -1,9 +1,12 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ok } from "@weight-tracker/core/domain";
+import type { DomainError, Result, UserProfile } from "@weight-tracker/core/domain";
 import NavigationDrawerProvider from "@/presentation/common/components/navigation-drawer-provider";
 import NavigationDrawer from "@/presentation/common/components/organisms/navigation-drawer";
-import renderWithProviders from "../../../../support/render-with-providers";
+import LoadProfile from "../../../../support/load-profile";
+import renderWithProviders, { completeProfile } from "../../../../support/render-with-providers";
 
 const replace = vi.fn();
 const navigation = vi.hoisted(() => ({ pathname: "/" }));
@@ -12,6 +15,21 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace }),
   usePathname: () => navigation.pathname,
 }));
+
+const adminProfile: UserProfile = { ...completeProfile, email: "admin@example.com", role: "ADMIN" };
+
+function renderDrawerFor(getProfile: () => Promise<Result<UserProfile, DomainError>>) {
+  return renderWithProviders(
+    <LoadProfile>
+      <NavigationDrawer />
+    </LoadProfile>,
+    { getMyProfileUseCase: () => ({ execute: getProfile }) },
+  );
+}
+
+function renderAsAdmin() {
+  return renderDrawerFor(async () => ok(adminProfile));
+}
 
 const items = [
   "Inicio",
@@ -151,6 +169,56 @@ describe("NavigationDrawer", () => {
     // Assert
     expect(execute).not.toHaveBeenCalled();
     expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("shows the users copy to an admin, linked to the users screen", async () => {
+    // Arrange & Act
+    await renderAsAdmin();
+
+    // Assert
+    const entry = await screen.findByRole("link", { name: "Todos los usuarios" });
+    expect(entry).toHaveAttribute("href", "/users");
+    expect(entry).not.toHaveClass("Mui-selected");
+    expect(screen.getByText("Usuarios")).toBeInTheDocument();
+    expect(screen.getByText("Invitaciones pendientes")).toBeInTheDocument();
+    expect(screen.queryByText("Atletas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Todos los atletas")).not.toBeInTheDocument();
+  });
+
+  it("selects Todos los usuarios and not Inicio on the users screen", async () => {
+    // Arrange
+    navigation.pathname = "/users";
+
+    // Act
+    await renderAsAdmin();
+
+    // Assert
+    expect(await screen.findByRole("link", { name: "Todos los usuarios" })).toHaveClass(
+      "Mui-selected",
+    );
+    expect(screen.getByRole("link", { name: "Inicio" })).not.toHaveClass("Mui-selected");
+  });
+
+  it("keeps the athletes copy for a trainer, with no link to the users screen", async () => {
+    // Arrange & Act
+    await renderDrawerFor(async () => ok(completeProfile));
+
+    // Assert
+    expect(await screen.findByText("Atletas")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Todos los atletas" })).not.toHaveAttribute("href");
+    expect(screen.queryByText("Usuarios")).not.toBeInTheDocument();
+    expect(screen.queryByText("Todos los usuarios")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /usuarios/i })).not.toBeInTheDocument();
+  });
+
+  it("shows the athletes copy while the profile loads", async () => {
+    // Arrange & Act
+    await renderDrawerFor(() => new Promise(() => {}));
+
+    // Assert
+    expect(screen.getByText("Atletas")).toBeInTheDocument();
+    expect(screen.getByText("Todos los atletas")).toBeInTheDocument();
+    expect(screen.queryByText("Todos los usuarios")).not.toBeInTheDocument();
   });
 
   it("shows the collapse button in the logo row, expanded", async () => {

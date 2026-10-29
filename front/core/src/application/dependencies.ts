@@ -1,6 +1,8 @@
 import type {
   AddExerciseToWorkoutInput,
   AuthResponse,
+  CreatedUserResponse,
+  CreateUserRequest,
   CreateWorkoutRequest,
   Exercise,
   GetWorkoutByIdInput,
@@ -13,6 +15,7 @@ import type {
   UpdateWorkoutExerciseInput,
   UpdateWorkoutInput,
   UserProfile,
+  UserSummary,
   Workout,
   WorkoutDetail,
   WorkoutExerciseDetail,
@@ -48,6 +51,10 @@ export default interface Dependencies {
   setPreferredThemeModeUseCase: UseCaseInterface<string, void>;
   getMyProfileUseCase: UseCaseInterface<void, UserProfile>;
   updateMyProfileUseCase: UseCaseInterface<UpdateProfileRequest, UserProfile>;
+  getUsersUseCase: UseCaseInterface<void, UserSummary[]>;
+  createUserUseCase: UseCaseInterface<CreateUserRequest, CreatedUserResponse>;
+  activateUserUseCase: UseCaseInterface<string, UserSummary>;
+  deactivateUserUseCase: UseCaseInterface<string, UserSummary>;
   getWorkoutsUseCase: UseCaseInterface<void, Workout[]>;
   getWorkoutByIdUseCase: UseCaseInterface<GetWorkoutByIdInput, WorkoutDetail>;
   createWorkoutUseCase: UseCaseInterface<CreateWorkoutRequest, Workout>;

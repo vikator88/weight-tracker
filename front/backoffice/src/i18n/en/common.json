@@ -14,6 +14,10 @@
       "all": "All athletes",
       "pendingInvitations": "Pending invitations"
     },
+    "users": {
+      "title": "Users",
+      "all": "All users"
+    },
     "programming": {
       "title": "Programming",
       "assignedPlans": "Assigned plans",

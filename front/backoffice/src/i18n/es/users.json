@@ -1,0 +1,71 @@
+{
+  "list": {
+    "title": "Todos los usuarios",
+    "search": "Buscar por nombre o email",
+    "addUser": "Añadir usuario",
+    "columns": {
+      "fullName": "Nombre completo",
+      "email": "Email",
+      "profile": "Perfil",
+      "actions": "Acciones"
+    },
+    "profileFilter": "Perfil",
+    "empty": "Todavía no hay usuarios.",
+    "noMatches": "Ningún usuario coincide con la búsqueda.",
+    "showInactive": "Mostrar inactivos",
+    "status": {
+      "inactive": "Inactivo",
+      "deactivatedAt": "Desactivado el {{date}}"
+    },
+    "actions": {
+      "open": "Acciones de {{name}}",
+      "activate": "Activar",
+      "deactivate": "Desactivar"
+    }
+  },
+  "roles": {
+    "USER": "Usuario",
+    "TRAINER": "Entrenador",
+    "ADMIN": "Administrador"
+  },
+  "create": {
+    "title": "Nuevo usuario",
+    "fields": {
+      "email": "Email",
+      "password": "Contraseña",
+      "role": "Perfil",
+      "dateBirth": "Fecha de nacimiento"
+    },
+    "submit": "Crear usuario",
+    "cancel": "Cancelar",
+    "success": "Usuario creado.",
+    "validation": {
+      "required": "Este campo es obligatorio.",
+      "email": "Introduce un email válido.",
+      "date": "Introduce una fecha válida."
+    },
+    "errors": {
+      "VALIDATION": "Revisa los datos. La contraseña debe cumplir los requisitos de seguridad.",
+      "CONFLICT": "Ya existe un usuario con este email."
+    }
+  },
+  "activation": {
+    "deactivate": {
+      "title": "¿Desactivar a {{name}}?",
+      "body": "No podrá iniciar sesión ni recibir nuevos entrenamientos. Sus datos se conservan y podrás reactivarlo cuando quieras.",
+      "confirm": "Desactivar",
+      "success": "Usuario desactivado."
+    },
+    "activate": {
+      "title": "¿Activar a {{name}}?",
+      "body": "Podrá volver a iniciar sesión y recibir entrenamientos.",
+      "confirm": "Activar",
+      "success": "Usuario activado."
+    },
+    "cancel": "Cancelar",
+    "errors": {
+      "NOT_FOUND": "Este usuario ya no existe.",
+      "CONFLICT": "El usuario ya estaba en ese estado. Recarga la lista."
+    }
+  }
+}
