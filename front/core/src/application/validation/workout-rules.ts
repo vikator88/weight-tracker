@@ -1,3 +1,5 @@
+import { isCalendarDate } from "./calendar-date";
+
 export const WORKOUT_NAME_MAX_LENGTH = 256;
 export const WORKOUT_DESCRIPTION_MAX_LENGTH = 1024;
 
@@ -25,21 +27,6 @@ export type CreateWorkoutFormViolations = Partial<
 >;
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
-
-/** A `YYYY-MM-DD` value that names a real calendar day. */
-function isCalendarDate(value: string): boolean {
-  const match = DATE_PATTERN.exec(value);
-  if (match === null) {
-    return false;
-  }
-  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-  const date = new Date(Date.UTC(year, month - 1, day));
-
-  return (
-    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
-  );
-}
 
 function validateId(value: string): WorkoutFieldViolation | null {
   const id = value.trim();

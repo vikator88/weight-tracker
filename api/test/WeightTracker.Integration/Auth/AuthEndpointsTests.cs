@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using WeightTracker.Application.Interfaces;
 using WeightTracker.Domain.Common;
 using WeightTracker.Domain.Users;
+using WeightTracker.Infra.Seed;
 using WeightTracker.Integration.Bootstrap;
 using Xunit;
 
@@ -186,6 +187,82 @@ public class AuthEndpointsTests : IntegrationTest
 
         // Assert
         workouts.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    private async Task SetAthleteActivationAsAdmin(string action)
+    {
+        var admin = await AuthenticatedClientFor(SeedCredentials.Admin);
+        var response = await admin.PutAsync($"/users/{SeedData.UserId}/{action}", null);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    private static async Task AssertDeactivatedProblemWithoutTokens(HttpResponseMessage response)
+    {
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
+        body.GetProperty("code").GetString().Should().Be("USER_DEACTIVATED");
+        body.TryGetProperty("accessToken", out _).Should().BeFalse();
+        body.TryGetProperty("refreshToken", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Login_ShouldRejectADeactivatedUserWithADistinctCode()
+    {
+        // Arrange
+        await SetAthleteActivationAsAdmin("deactivate");
+
+        // Act
+        var response = await Client.PostAsJsonAsync(
+            "/auth/login", new { email = SeedCredentials.User, password = SeedCredentials.Password });
+
+        // Assert
+        await AssertDeactivatedProblemWithoutTokens(response);
+    }
+
+    [Fact]
+    public async Task Login_ShouldKeepRejectingAWrongPasswordOfADeactivatedUserAsInvalidCredentials()
+    {
+        // Arrange
+        await SetAthleteActivationAsAdmin("deactivate");
+
+        // Act
+        var response = await Client.PostAsJsonAsync(
+            "/auth/login", new { email = SeedCredentials.User, password = "not-the-password" });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await response.Content.ReadAsStringAsync()).Should().NotContain("USER_DEACTIVATED");
+    }
+
+    [Fact]
+    public async Task Login_ShouldSucceedAgainAfterReactivation()
+    {
+        // Arrange
+        await SetAthleteActivationAsAdmin("deactivate");
+        await SetAthleteActivationAsAdmin("activate");
+
+        // Act
+        var response = await Client.PostAsJsonAsync(
+            "/auth/login", new { email = SeedCredentials.User, password = SeedCredentials.Password });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Refresh_ShouldRejectADeactivatedUserWithADistinctCode()
+    {
+        // Arrange
+        var login = await Login(SeedCredentials.User);
+        var refreshToken = login.GetProperty("refreshToken").GetString();
+        await SetAthleteActivationAsAdmin("deactivate");
+
+        // Act
+        var response = await Client.PostAsJsonAsync("/auth/refresh", new { refreshToken });
+
+        // Assert
+        await AssertDeactivatedProblemWithoutTokens(response);
     }
 
     private const string NewUserEmail = "new.user@weighttracker.test";

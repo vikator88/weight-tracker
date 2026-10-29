@@ -1,0 +1,71 @@
+{
+  "list": {
+    "title": "All users",
+    "search": "Search by name or email",
+    "addUser": "Add user",
+    "columns": {
+      "fullName": "Full name",
+      "email": "Email",
+      "profile": "Profile",
+      "actions": "Actions"
+    },
+    "profileFilter": "Profile",
+    "empty": "No users yet.",
+    "noMatches": "No users match your search.",
+    "showInactive": "Show inactive",
+    "status": {
+      "inactive": "Inactive",
+      "deactivatedAt": "Deactivated on {{date}}"
+    },
+    "actions": {
+      "open": "Actions for {{name}}",
+      "activate": "Activate",
+      "deactivate": "Deactivate"
+    }
+  },
+  "roles": {
+    "USER": "User",
+    "TRAINER": "Trainer",
+    "ADMIN": "Administrator"
+  },
+  "create": {
+    "title": "New user",
+    "fields": {
+      "email": "Email",
+      "password": "Password",
+      "role": "Profile",
+      "dateBirth": "Date of birth"
+    },
+    "submit": "Create user",
+    "cancel": "Cancel",
+    "success": "User created.",
+    "validation": {
+      "required": "This field is required.",
+      "email": "Enter a valid email.",
+      "date": "Enter a valid date."
+    },
+    "errors": {
+      "VALIDATION": "Check the details. The password must meet the security requirements.",
+      "CONFLICT": "A user with this email already exists."
+    }
+  },
+  "activation": {
+    "deactivate": {
+      "title": "Deactivate {{name}}?",
+      "body": "They will not be able to log in or be given new workouts. Their data is kept and you can reactivate them at any time.",
+      "confirm": "Deactivate",
+      "success": "User deactivated."
+    },
+    "activate": {
+      "title": "Activate {{name}}?",
+      "body": "They will be able to log in and be given workouts again.",
+      "confirm": "Activate",
+      "success": "User activated."
+    },
+    "cancel": "Cancel",
+    "errors": {
+      "NOT_FOUND": "This user no longer exists.",
+      "CONFLICT": "The user was already in that state. Reload the list."
+    }
+  }
+}

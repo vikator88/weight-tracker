@@ -23,6 +23,7 @@ import ListItemText from "@/presentation/common/components/atoms/list-item-text"
 import ListSubheader from "@/presentation/common/components/atoms/list-subheader";
 import Toolbar from "@/presentation/common/components/atoms/toolbar";
 import Tooltip from "@/presentation/common/components/atoms/tooltip";
+import useCurrentUser from "@/presentation/common/hooks/use-current-user";
 import useNavigationDrawer from "@/presentation/common/hooks/use-navigation-drawer";
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
@@ -53,15 +54,24 @@ interface DrawerItemProps {
   expanded: boolean;
 }
 
-/** Sections after Inicio. */
-const sections: { title: string; items: MenuItemDefinition[] }[] = [
-  {
-    title: "menu.athletes.title",
+/**
+ * The people section: an admin manages every user from it; anyone else, or a visitor whose profile has not loaded yet,
+ * sees the athletes copy, whose screen does not exist yet.
+ */
+function peopleSection(isAdmin: boolean): { title: string; items: MenuItemDefinition[] } {
+  return {
+    title: isAdmin ? "menu.users.title" : "menu.athletes.title",
     items: [
-      { label: "menu.athletes.all", icon: GroupOutlined },
+      isAdmin
+        ? { label: "menu.users.all", icon: GroupOutlined, href: "/users" }
+        : { label: "menu.athletes.all", icon: GroupOutlined },
       { label: "menu.athletes.pendingInvitations", icon: PersonAddAltOutlined },
     ],
-  },
+  };
+}
+
+/** Sections after Inicio and the people section. */
+const sections: { title: string; items: MenuItemDefinition[] }[] = [
   {
     title: "menu.programming.title",
     items: [
@@ -119,6 +129,7 @@ export default function NavigationDrawer() {
   const { t } = useTranslation("common");
   const pathname = usePathname();
   const { expanded, toggleExpanded } = useNavigationDrawer();
+  const { profile } = useCurrentUser();
   const width = expanded ? DRAWER_WIDTH : COLLAPSED_WIDTH;
   const widthTransition = (theme: Theme) =>
     theme.transitions.create("width", { duration: theme.transitions.duration.shorter });
@@ -167,7 +178,7 @@ export default function NavigationDrawer() {
           expanded={expanded}
         />
       </List>
-      {sections.map((section) => (
+      {[peopleSection(profile?.role === "ADMIN"), ...sections].map((section) => (
         <List
           key={section.title}
           subheader={expanded ? <ListSubheader>{t(section.title)}</ListSubheader> : undefined}

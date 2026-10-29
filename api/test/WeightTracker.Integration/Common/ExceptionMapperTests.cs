@@ -39,6 +39,19 @@ public class ExceptionMapperTests
     }
 
     [Fact]
+    public void Map_ShouldReturnNotImplementedWhenATrainerListsTheirAthletes()
+    {
+        // Arrange
+        var exception = new TrainerAthletesNotImplementedException();
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status501NotImplemented);
+    }
+
+    [Fact]
     public void Map_ShouldReturnBadRequestForAnInvalidExerciseName()
     {
         // Arrange
@@ -302,5 +315,71 @@ public class ExceptionMapperTests
 
         // Assert
         status.Should().Be(StatusCodes.Status409Conflict);
+    }
+
+    [Fact]
+    public void Map_ShouldReturnConflictForAnAlreadyActiveUser()
+    {
+        // Arrange
+        var exception = new UserAlreadyActiveException(Id.New());
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status409Conflict);
+    }
+
+    [Fact]
+    public void Map_ShouldReturnConflictForAnAlreadyDeactivatedUser()
+    {
+        // Arrange
+        var exception = new UserAlreadyDeactivatedException(Id.New());
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status409Conflict);
+    }
+
+    [Fact]
+    public void Map_ShouldReturnForbiddenWithACodeForADeactivatedUser()
+    {
+        // Arrange
+        var mapper = new ExceptionMapper(NullLogger<ExceptionMapper>.Instance);
+
+        // Act
+        var result = (ObjectResult)mapper.Map(new UserDeactivatedException());
+
+        // Assert
+        result.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
+        ((ProblemDetails)result.Value!).Extensions["code"].Should().Be("USER_DEACTIVATED");
+    }
+
+    [Fact]
+    public void Map_ShouldAddNoCodeToOtherProblems()
+    {
+        // Arrange
+        var mapper = new ExceptionMapper(NullLogger<ExceptionMapper>.Instance);
+
+        // Act
+        var result = (ObjectResult)mapper.Map(new InvalidCredentialsException());
+
+        // Assert
+        ((ProblemDetails)result.Value!).Extensions.Should().NotContainKey("code");
+    }
+
+    [Fact]
+    public void Map_ShouldReturnBadRequestForAnInvalidUserActivationState()
+    {
+        // Arrange
+        var exception = new InvalidUserActivationStateException(Id.New());
+
+        // Act
+        var status = StatusOf(exception);
+
+        // Assert
+        status.Should().Be(StatusCodes.Status400BadRequest);
     }
 }

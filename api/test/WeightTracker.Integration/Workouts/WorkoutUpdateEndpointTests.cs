@@ -51,6 +51,13 @@ public class WorkoutUpdateEndpointTests : WorkoutEndpointTest
         return workouts.EnumerateArray().Select(workout => workout.GetProperty("id").GetGuid()).ToHashSet();
     }
 
+    private async Task DeactivateAsAdmin(Guid userId)
+    {
+        var admin = await AuthenticatedClientFor(SeedCredentials.Admin);
+        var response = await admin.PutAsync($"/users/{userId}/deactivate", null);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
     private async Task ShouldBeUnchangedOwnedWorkout()
     {
         var stored = await StoredWorkout(SeedData.OwnedWorkoutId);
@@ -431,5 +438,52 @@ public class WorkoutUpdateEndpointTests : WorkoutEndpointTest
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         await ShouldBeUnchangedTrainedWorkout();
+    }
+
+    [Fact]
+    public async Task Admin_ShouldNotMoveAWorkoutToADeactivatedOwner()
+    {
+        // Arrange
+        await DeactivateAsAdmin(SeedData.TrainerId);
+        var admin = await AuthenticatedClientFor(SeedCredentials.Admin);
+
+        // Act
+        var response = await Put(admin, SeedData.OwnedWorkoutId,
+            new { name = NewName, workoutDate = NewDate, userId = SeedData.TrainerId });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        await ShouldBeUnchangedOwnedWorkout();
+    }
+
+    [Fact]
+    public async Task Admin_ShouldNotAssignADeactivatedTrainer()
+    {
+        // Arrange
+        await DeactivateAsAdmin(SeedData.TrainerId);
+        var admin = await AuthenticatedClientFor(SeedCredentials.Admin);
+
+        // Act
+        var response = await Put(admin, SeedData.OwnedWorkoutId,
+            new { name = NewName, workoutDate = NewDate, userId = SeedData.UserId, trainerId = SeedData.TrainerId });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        await ShouldBeUnchangedOwnedWorkout();
+    }
+
+    [Fact]
+    public async Task Admin_ShouldStillUpdateAWorkoutWhoseUnchangedOwnerIsDeactivated()
+    {
+        // Arrange
+        await DeactivateAsAdmin(SeedData.UserId);
+        var admin = await AuthenticatedClientFor(SeedCredentials.Admin);
+
+        // Act
+        var response = await Put(admin, SeedData.TrainedWorkoutId, TrainedWorkoutChange());
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await StoredWorkout(SeedData.TrainedWorkoutId)).GetProperty("name").GetString().Should().Be(NewName);
     }
 }

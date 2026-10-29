@@ -23,7 +23,7 @@ public class RefreshTokenUseCaseTests
 
     private readonly User _user = User.Rehydrate(
         Id.New(), Email.From("user@weighttracker.test"), PersonName.From("Ada"), PersonName.From("Lovelace"),
-        new DateOnly(1988, 5, 12), Role.USER, PasswordHash.From("stored-hash"), Now);
+        new DateOnly(1988, 5, 12), Role.USER, PasswordHash.From("stored-hash"), Now, true, null);
 
     public RefreshTokenUseCaseTests()
     {
@@ -107,6 +107,28 @@ public class RefreshTokenUseCaseTests
 
         // Assert
         await act.Should().ThrowAsync<UserNotFoundException>();
+    }
+
+    [Fact]
+    public async Task TokenOfADeactivatedUser_ShouldBeRejectedWithoutRotatingOrSaving()
+    {
+        // Arrange
+        var storedToken = AStoredToken();
+        var deactivatedUser = User.Rehydrate(
+            _user.Id, _user.Email, _user.Name, _user.Surname, _user.DateBirth, _user.Role, _user.PasswordHash,
+            _user.CreatedAt, false, Now.AddHours(-1));
+        _refreshTokens.Setup(repository => repository.GetByTokenHash("hashed-refresh", It.IsAny<CancellationToken>())).ReturnsAsync(storedToken);
+        _users.Setup(repository => repository.GetById(It.IsAny<Id>(), It.IsAny<CancellationToken>())).ReturnsAsync(deactivatedUser);
+
+        // Act
+        var act = async () => await AUseCase().Execute("raw-refresh", CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<UserDeactivatedException>();
+        storedToken.RevokedAt.Should().BeNull();
+        _tokens.Verify(service => service.GenerateAccessToken(It.IsAny<User>()), Times.Never);
+        _refreshTokens.Verify(repository => repository.Save(It.IsAny<RefreshToken>(), It.IsAny<CancellationToken>()), Times.Never);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

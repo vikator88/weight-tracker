@@ -39,9 +39,13 @@ public class UpdateWorkoutUseCaseTests
     private static Workout ASelfPlannedWorkout(WorkoutStatus status = WorkoutStatus.DRAFT)
         => Workout.Rehydrate(Id.New(), OwnerId, null, Name, null, WorkoutDate, status, []);
 
-    private static User AUser(Id id, Role role) => User.Rehydrate(
+    private static User AUser(Id id, Role role, bool isActive = true) => User.Rehydrate(
         id, Email.From($"{id.Value}@weighttracker.test"), PersonName.From("Grace"), PersonName.From("Hopper"),
-        new DateOnly(1985, 12, 9), role, PasswordHash.From("stored-hash"), WorkoutDate);
+        new DateOnly(1985, 12, 9), role, PasswordHash.From("stored-hash"), WorkoutDate,
+        isActive, isActive ? null : WorkoutDate.AddDays(1));
+
+    private void GivenDeactivated(Id id, Role role)
+        => _users.Setup(repository => repository.GetById(id, It.IsAny<CancellationToken>())).ReturnsAsync(AUser(id, role, isActive: false));
 
     private void GivenStored(Workout workout)
         => _workouts.Setup(repository => repository.GetById(workout.Id, It.IsAny<CancellationToken>())).ReturnsAsync(workout);
@@ -53,7 +57,8 @@ public class UpdateWorkoutUseCaseTests
         => _users.Setup(repository => repository.GetById(id, It.IsAny<CancellationToken>())).ReturnsAsync((User?)null);
 
     private void GivenTrainerCheck(Id id, bool canTrain)
-        => _users.Setup(repository => repository.IsTrainerOrAdmin(id, It.IsAny<CancellationToken>())).ReturnsAsync(canTrain);
+        => _users.Setup(repository => repository.GetById(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(AUser(id, canTrain ? Role.TRAINER : Role.USER));
 
     private void GivenSaveAndCommitSucceed(Workout workout)
     {
@@ -420,5 +425,57 @@ public class UpdateWorkoutUseCaseTests
         await act.Should().ThrowAsync<TrainerCannotBeWorkoutOwnerException>();
         ShouldBeUnchanged(workout, OwnerId, TrainerId);
         VerifyNothingSavedOrCommitted();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRejectAnAdminReassigningToADeactivatedOwner()
+    {
+        // Arrange
+        var workout = ASelfPlannedWorkout();
+        var newOwner = Id.New();
+        GivenStored(workout);
+        GivenDeactivated(newOwner, Role.USER);
+
+        // Act
+        var act = () => Update(AdminId, Role.ADMIN, workout, newOwner, null);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidWorkoutAssignmentException>();
+        ShouldBeUnchanged(workout, OwnerId, null);
+        VerifyNothingSavedOrCommitted();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRejectAnAdminAssigningADeactivatedTrainer()
+    {
+        // Arrange
+        var workout = ASelfPlannedWorkout();
+        GivenStored(workout);
+        GivenDeactivated(TrainerId, Role.TRAINER);
+
+        // Act
+        var act = () => Update(AdminId, Role.ADMIN, workout, OwnerId, TrainerId);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidWorkoutAssignmentException>();
+        ShouldBeUnchanged(workout, OwnerId, null);
+        VerifyNothingSavedOrCommitted();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldNotCheckAnUnchangedOwnerOrTrainer()
+    {
+        // Arrange
+        var workout = APrescribedWorkout();
+        GivenStored(workout);
+        GivenSaveAndCommitSucceed(workout);
+
+        // Act
+        var updated = await Update(AdminId, Role.ADMIN, workout, OwnerId, TrainerId);
+
+        // Assert
+        updated.Name.Should().Be(NewName);
+        VerifySavedAndCommittedOnce(workout);
+        _users.VerifyNoOtherCalls();
     }
 }

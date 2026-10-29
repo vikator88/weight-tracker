@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import type { UserRepositoryInterface } from "../../../../src/application";
 import { GetMyProfileUseCase } from "../../../../src/application";
 import {
+  type CreatedUserResponse,
   DomainError,
   fail,
   ok,
   type Result,
   type UpdateProfileRequest,
   type UserProfile,
+  type UserSummary,
 } from "../../../../src/domain";
 
 const profile: UserProfile = {
@@ -32,6 +34,22 @@ class FakeUserRepository implements UserRepositoryInterface {
   async updateMe(request: UpdateProfileRequest): Promise<Result<UserProfile, DomainError>> {
     this.updates.push(request);
     return this.result;
+  }
+
+  async getAll(): Promise<Result<UserSummary[], DomainError>> {
+    return fail(new DomainError("UNEXPECTED", "Not used"));
+  }
+
+  async create(): Promise<Result<CreatedUserResponse, DomainError>> {
+    return fail(new DomainError("UNEXPECTED", "Not used"));
+  }
+
+  async activate(): Promise<Result<UserSummary, DomainError>> {
+    return fail(new DomainError("UNEXPECTED", "Not used"));
+  }
+
+  async deactivate(): Promise<Result<UserSummary, DomainError>> {
+    return fail(new DomainError("UNEXPECTED", "Not used"));
   }
 }
 

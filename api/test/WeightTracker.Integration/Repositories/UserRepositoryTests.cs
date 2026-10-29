@@ -78,37 +78,6 @@ public class UserRepositoryTests : IntegrationTest
         exists.Should().BeFalse();
     }
 
-    [Theory]
-    [InlineData(nameof(SeedData.TrainerId), true)]
-    [InlineData(nameof(SeedData.AdminId), true)]
-    [InlineData(nameof(SeedData.UserId), false)]
-    public async Task IsTrainerOrAdmin_ShouldOnlyAcceptTrainersAndAdmins(string seededUser, bool expected)
-    {
-        // Arrange
-        var userId = seededUser switch
-        {
-            nameof(SeedData.TrainerId) => SeedData.TrainerId,
-            nameof(SeedData.AdminId) => SeedData.AdminId,
-            _ => SeedData.UserId,
-        };
-
-        // Act
-        var result = await OnRepository(repository => repository.IsTrainerOrAdmin(Id.From(userId), CancellationToken.None));
-
-        // Assert
-        result.Should().Be(expected);
-    }
-
-    [Fact]
-    public async Task IsTrainerOrAdmin_ShouldBeFalseForAnUnknownUser()
-    {
-        // Arrange & Act
-        var result = await OnRepository(repository => repository.IsTrainerOrAdmin(Id.New(), CancellationToken.None));
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
     [Fact]
     public async Task GetById_ShouldRestoreTheWholeUser()
     {

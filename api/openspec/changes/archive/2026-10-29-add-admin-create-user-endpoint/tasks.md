@@ -1,0 +1,21 @@
+# Tasks
+
+## 1. Application
+
+- [x] 1.1 Add `CreateUserDTO` (`Email`, `Password`, `Role`, `Name?`, `Surname?`, `DateBirth?`) in `Application/UseCases/Users`, following `UpdateProfileDTO`. Verify that `dotnet build WeightTracker.slnx` succeeds.
+- [x] 1.2 Add `CreateUserUseCase` in `Application/UseCases/Users`, following `SignupUseCase` without tokens or the `ADMIN` restriction: parse `Email`, `Password` (rethrow `InvalidPasswordException` as `PasswordNotStrongEnoughException`), `PersonName.From` for given names or `PersonName.Empty()` when null, `DateOnly.MinValue` when `DateBirth` is null; then `ExistsByEmail` (throw `EmailAlreadyExistException`), hash, `User.Create`, `Save`, `SaveChangesAsync`; return the `User`. XML docs with `<exception>` entries. Verify that the solution builds.
+- [x] 1.3 Register `CreateUserUseCase` in `Program.cs` next to `UpdateMyProfileUseCase`. Verify that the API starts.
+- [x] 1.4 Add `test/WeightTracker.Unit/Application/Users/CreateUserUseCaseTests.cs`, following `SignupUseCaseTests` and Arrange/Act/Assert: creates and saves a user for each role (including `ADMIN`); optional fields absent store empty names and `DateOnly.MinValue`; given names are trimmed; malformed email throws `InvalidEmailException`; weak password throws `PasswordNotStrongEnoughException`; invalid name throws `InvalidPersonNameException`; existing email throws `EmailAlreadyExistException`; in every failure `Save` and `SaveChangesAsync` are not called. Verify that `dotnet test test/WeightTracker.Unit` passes.
+- [x] 1.5 Review `CreateUserUseCase` against `SignupUseCase` and `STPR_INVARIANTS.md`: value objects validated before any persistence, mutation only through `User.Create`, one unit of work. Record any deviation, or confirm there is none.
+
+## 2. Api
+
+- [x] 2.1 Add `CreateUserRequest` in `Endpoints/Users/Dtos`: `Email`, `Password` `[Required]`; `Role?` `[Required]` + `[EnumDataType(typeof(Role))]`; `Name`, `Surname` `string?`; `DateBirth` `DateOnly?`; `ToDto()`. Add `CreatedUserResponse(Guid Id, string Email, string Name, string Surname, DateOnly DateBirth, string Role)` with `From(User)`. Leave `UserProfileResponse` unchanged. Verify that the solution builds.
+- [x] 2.2 Add `UsersController.Create` (`[HttpPost]`, `[RequireRole(Role.ADMIN)]`), returning `StatusCode(201, CreatedUserResponse.From(user))` as `CreateSuperSeries` does, with `ProducesResponseType` for `201`, `400`, `401`, `403`, `409`, and every catch through `ExceptionMapper.Map`. Update the controller's summary, which today says no route takes another user. Verify that the solution builds.
+- [x] 2.3 Add `test/WeightTracker.Integration/Users/CreateUserEndpointTests.cs`, following `UserProfileEndpointTests` and `AuthEndpointsTests`, one test per scenario in `specs/user-administration/spec.md`: `401` without token and with an invalid token; `403` for seeded `USER` and `TRAINER`; `201` for each target role, then `POST /auth/login` with the new credentials succeeds; `201` with only required fields (empty names, `dateBirth` `0001-01-01`); `201` with every field echoed and names trimmed; response has exactly the six fields and no token field; no refresh token persisted for the new user; `400` for malformed email, weak password, missing `email`/`password`/`role`, unknown role, invalid name; `409` for an existing seeded email. In each rejection, assert no user was created. Verify that the integration tests pass with Docker running.
+- [x] 2.4 Add `POST /users` to `test/WeightTracker.Integration/OpenApi/OpenApiDocumentTests.cs` in the same style as the `/users/me` entries (path present, secured, declared response codes). Verify that the OpenAPI tests pass.
+- [x] 2.5 Review the action and DTOs against the template `WorkoutsController` create actions and `RequireRoleAttribute`'s contract: `401` before `403`, no logic in the controller, no `try`/`catch` bypassing `ExceptionMapper`. Confirm `GET /users/me`, `PUT /users/me` and `POST /auth/signup` behaviour is unchanged.
+
+## 3. Integration check
+
+- [x] 3.1 Run `dotnet build WeightTracker.slnx` and `dotnet test` for the whole solution. Verify that everything passes and the `.stpr/template` parity loop from `AGENTS.md` prints no `DRIFT`.

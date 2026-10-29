@@ -18,9 +18,12 @@ public class WorkoutAssignmentValidatorTests
 
     private WorkoutAssignmentValidator AValidator() => new(_users.Object);
 
-    private static User AUser(Id id, Role role) => User.Rehydrate(
+    private static readonly DateTime CreatedAt = new(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    private static User AUser(Id id, Role role, bool isActive = true) => User.Rehydrate(
         id, Email.From($"{id.Value}@weighttracker.test"), PersonName.From("Grace"), PersonName.From("Hopper"),
-        new DateOnly(1985, 12, 9), role, PasswordHash.From("stored-hash"), new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc));
+        new DateOnly(1985, 12, 9), role, PasswordHash.From("stored-hash"), CreatedAt,
+        isActive, isActive ? null : CreatedAt.AddDays(1));
 
     [Fact]
     public async Task EnsureOwnerExists_ShouldReturnTheStoredOwner()
@@ -51,11 +54,39 @@ public class WorkoutAssignmentValidatorTests
     }
 
     [Fact]
-    public async Task EnsureCanTrain_ShouldAcceptATrainerOrAnAdmin()
+    public void EnsureCanBeAssigned_ShouldAcceptAnActiveUser()
     {
         // Arrange
-        _users.Setup(repository => repository.IsTrainerOrAdmin(UserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        var owner = AUser(UserId, Role.USER);
+
+        // Act
+        var act = () => AValidator().EnsureCanBeAssigned(owner);
+
+        // Assert
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void EnsureCanBeAssigned_ShouldRejectADeactivatedUser()
+    {
+        // Arrange
+        var owner = AUser(UserId, Role.USER, isActive: false);
+
+        // Act
+        var act = () => AValidator().EnsureCanBeAssigned(owner);
+
+        // Assert
+        act.Should().Throw<InvalidWorkoutAssignmentException>();
+    }
+
+    [Theory]
+    [InlineData(Role.TRAINER)]
+    [InlineData(Role.ADMIN)]
+    public async Task EnsureCanTrain_ShouldAcceptAnActiveTrainerOrAdmin(Role role)
+    {
+        // Arrange
+        _users.Setup(repository => repository.GetById(UserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(AUser(UserId, role));
 
         // Act
         var act = () => AValidator().EnsureCanTrain(UserId, CancellationToken.None);
@@ -65,11 +96,39 @@ public class WorkoutAssignmentValidatorTests
     }
 
     [Fact]
-    public async Task EnsureCanTrain_ShouldRejectAUserWhoCannotTrainOrDoesNotExist()
+    public async Task EnsureCanTrain_ShouldRejectAUserWhoCannotTrain()
     {
         // Arrange
-        _users.Setup(repository => repository.IsTrainerOrAdmin(UserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false);
+        _users.Setup(repository => repository.GetById(UserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(AUser(UserId, Role.USER));
+
+        // Act
+        var act = () => AValidator().EnsureCanTrain(UserId, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidWorkoutAssignmentException>();
+    }
+
+    [Fact]
+    public async Task EnsureCanTrain_ShouldRejectAMissingTrainer()
+    {
+        // Arrange
+        _users.Setup(repository => repository.GetById(UserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+
+        // Act
+        var act = () => AValidator().EnsureCanTrain(UserId, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidWorkoutAssignmentException>();
+    }
+
+    [Fact]
+    public async Task EnsureCanTrain_ShouldRejectADeactivatedTrainer()
+    {
+        // Arrange
+        _users.Setup(repository => repository.GetById(UserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(AUser(UserId, Role.TRAINER, isActive: false));
 
         // Act
         var act = () => AValidator().EnsureCanTrain(UserId, CancellationToken.None);

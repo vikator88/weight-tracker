@@ -10,7 +10,13 @@ export type {
   SignupCredentials,
   SignupRequest,
 } from "./auth/auth";
-export type { UpdateProfileRequest, UserProfile } from "./users/user";
+export type {
+  CreatedUserResponse,
+  CreateUserRequest,
+  UpdateProfileRequest,
+  UserProfile,
+  UserSummary,
+} from "./users/user";
 export type {
   AddExerciseRequest,
   AddExerciseToWorkoutInput,

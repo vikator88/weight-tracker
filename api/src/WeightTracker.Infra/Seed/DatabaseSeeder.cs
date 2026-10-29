@@ -282,5 +282,5 @@ public class DatabaseSeeder
         Guid id, string email, string name, string surname, DateOnly dateBirth, Role role, PasswordHash passwordHash)
         => User.Rehydrate(
             Id.From(id), Email.From(email), PersonName.From(name), PersonName.From(surname),
-            dateBirth, role, passwordHash, SeedData.CreatedAt);
+            dateBirth, role, passwordHash, SeedData.CreatedAt, true, null);
 }

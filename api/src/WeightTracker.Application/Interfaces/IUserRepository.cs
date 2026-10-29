@@ -19,9 +19,9 @@ public interface IUserRepository
     public Task<bool> ExistsByEmail(Email email, CancellationToken cancellationToken);
 
     /// <summary>
-    /// True when the user exists and is allowed to be assigned as the trainer of a workout.
+    /// Every stored user, whatever their role, ordered by email ascending.
     /// </summary>
-    public Task<bool> IsTrainerOrAdmin(Id userId, CancellationToken cancellationToken);
+    public Task<IEnumerable<User>> GetAll(CancellationToken cancellationToken);
 
     public Task Save(User user, CancellationToken cancellationToken);
 

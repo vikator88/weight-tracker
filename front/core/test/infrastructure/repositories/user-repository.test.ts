@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { HttpClientInterface, HttpRequest } from "../../../src/application";
-import { ok, type UpdateProfileRequest, type UserProfile } from "../../../src/domain";
+import {
+  type CreatedUserResponse,
+  type CreateUserRequest,
+  ok,
+  type UpdateProfileRequest,
+  type UserProfile,
+  type UserSummary,
+} from "../../../src/domain";
 import { HttpError, UserRepository } from "../../../src/infrastructure";
 
 const profile: UserProfile = {
@@ -11,7 +18,27 @@ const profile: UserProfile = {
   role: "TRAINER",
 };
 
+const summary: UserSummary = { ...profile, isActive: true, deactivatedAtUtc: null };
+
 const updateRequest: UpdateProfileRequest = { name: "Ana", surname: "García" };
+
+const createRequest: CreateUserRequest = {
+  email: "new@example.com",
+  password: "Str0ng!Passw0rd",
+  role: 2,
+  name: "Luis",
+  surname: "Pérez",
+  dateBirth: "1990-05-17",
+};
+
+const createdUser: CreatedUserResponse = {
+  id: "7a2b3c4d-1e2f-4a5b-9c8d-0e1f2a3b4c5d",
+  email: "new@example.com",
+  name: "Luis",
+  surname: "Pérez",
+  dateBirth: "1990-05-17",
+  role: "TRAINER",
+};
 
 class FakeHttpClient implements HttpClientInterface {
   readonly requests: HttpRequest[] = [];
@@ -153,6 +180,243 @@ describe("UserRepository", () => {
       expect(result).toEqual({
         ok: false,
         error: expect.objectContaining({ message: "Name is too long" }),
+      });
+    });
+  });
+
+  describe("getAll", () => {
+    it("gets /users without a body", async () => {
+      // Arrange
+      const httpClient = new FakeHttpClient(async () => [summary]);
+      const repository = new UserRepository(httpClient);
+
+      // Act
+      await repository.getAll();
+
+      // Assert
+      expect(httpClient.requests).toEqual([{ method: "GET", path: "/users" }]);
+    });
+
+    it("returns the users in the API's order on success", async () => {
+      // Arrange
+      const other: UserSummary = {
+        ...summary,
+        id: "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e",
+        role: "USER",
+      };
+      const repository = new UserRepository(new FakeHttpClient(async () => [other, summary]));
+
+      // Act
+      const result = await repository.getAll();
+
+      // Assert
+      expect(result).toEqual(ok([other, summary]));
+    });
+
+    it("keeps each user's activation state unchanged", async () => {
+      // Arrange
+      const deactivated: UserSummary = {
+        ...summary,
+        id: "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e",
+        isActive: false,
+        deactivatedAtUtc: "2026-10-20T09:30:00Z",
+      };
+      const repository = new UserRepository(new FakeHttpClient(async () => [summary, deactivated]));
+
+      // Act
+      const result = await repository.getAll();
+
+      // Assert
+      expect(result).toEqual(ok([summary, deactivated]));
+    });
+
+    it.each([
+      [401, "UNAUTHORIZED"],
+      [403, "FORBIDDEN"],
+      [500, "UNEXPECTED"],
+      [501, "UNEXPECTED"],
+    ])("maps status %i to %s", async (status, code) => {
+      // Arrange
+      const httpClient = new FakeHttpClient(async () => {
+        throw new HttpError(status, { status, detail: "Something failed" });
+      });
+      const repository = new UserRepository(httpClient);
+
+      // Act
+      const result = await repository.getAll();
+
+      // Assert
+      expect(result).toEqual({ ok: false, error: expect.objectContaining({ code }) });
+    });
+
+    it("returns the network code when there is no response", async () => {
+      // Arrange
+      const httpClient = new FakeHttpClient(async () => {
+        throw new TypeError("Failed to fetch");
+      });
+      const repository = new UserRepository(httpClient);
+
+      // Act
+      const result = await repository.getAll();
+
+      // Assert
+      expect(result).toEqual({ ok: false, error: expect.objectContaining({ code: "NETWORK" }) });
+    });
+  });
+
+  describe("create", () => {
+    it("posts the request to /users unchanged", async () => {
+      // Arrange
+      const httpClient = new FakeHttpClient(async () => createdUser);
+      const repository = new UserRepository(httpClient);
+
+      // Act
+      await repository.create(createRequest);
+
+      // Assert
+      expect(httpClient.requests).toEqual([
+        { method: "POST", path: "/users", body: createRequest },
+      ]);
+    });
+
+    it("returns the created user on success", async () => {
+      // Arrange
+      const repository = new UserRepository(new FakeHttpClient(async () => createdUser));
+
+      // Act
+      const result = await repository.create(createRequest);
+
+      // Assert
+      expect(result).toEqual(ok(createdUser));
+    });
+
+    it.each([
+      [400, "VALIDATION"],
+      [401, "UNAUTHORIZED"],
+      [403, "FORBIDDEN"],
+      [409, "CONFLICT"],
+      [500, "UNEXPECTED"],
+    ])("maps status %i to %s", async (status, code) => {
+      // Arrange
+      const httpClient = new FakeHttpClient(async () => {
+        throw new HttpError(status, { status, detail: "Something failed" });
+      });
+      const repository = new UserRepository(httpClient);
+
+      // Act
+      const result = await repository.create(createRequest);
+
+      // Assert
+      expect(result).toEqual({ ok: false, error: expect.objectContaining({ code }) });
+    });
+
+    it("returns the network code when there is no response", async () => {
+      // Arrange
+      const httpClient = new FakeHttpClient(async () => {
+        throw new TypeError("Failed to fetch");
+      });
+      const repository = new UserRepository(httpClient);
+
+      // Act
+      const result = await repository.create(createRequest);
+
+      // Assert
+      expect(result).toEqual({ ok: false, error: expect.objectContaining({ code: "NETWORK" }) });
+    });
+
+    it("keeps the problem detail as the message", async () => {
+      // Arrange
+      const httpClient = new FakeHttpClient(async () => {
+        throw new HttpError(409, { status: 409, detail: "Email already exists" });
+      });
+      const repository = new UserRepository(httpClient);
+
+      // Act
+      const result = await repository.create(createRequest);
+
+      // Assert
+      expect(result).toEqual({
+        ok: false,
+        error: expect.objectContaining({ message: "Email already exists" }),
+      });
+    });
+  });
+
+  describe.each(["activate", "deactivate"] as const)("%s", (operation) => {
+    const id = "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e";
+
+    it(`puts /users/{id}/${operation} without a body`, async () => {
+      // Arrange
+      const httpClient = new FakeHttpClient(async () => summary);
+      const repository = new UserRepository(httpClient);
+
+      // Act
+      await repository[operation](id);
+
+      // Assert
+      expect(httpClient.requests).toEqual([{ method: "PUT", path: `/users/${id}/${operation}` }]);
+    });
+
+    it("returns the user the API answers with on success", async () => {
+      // Arrange
+      const repository = new UserRepository(new FakeHttpClient(async () => summary));
+
+      // Act
+      const result = await repository[operation](id);
+
+      // Assert
+      expect(result).toEqual(ok(summary));
+    });
+
+    it.each([
+      [400, "VALIDATION"],
+      [401, "UNAUTHORIZED"],
+      [403, "FORBIDDEN"],
+      [404, "NOT_FOUND"],
+      [409, "CONFLICT"],
+      [500, "UNEXPECTED"],
+    ])("maps status %i to %s", async (status, code) => {
+      // Arrange
+      const httpClient = new FakeHttpClient(async () => {
+        throw new HttpError(status, { status, detail: "Something failed" });
+      });
+      const repository = new UserRepository(httpClient);
+
+      // Act
+      const result = await repository[operation](id);
+
+      // Assert
+      expect(result).toEqual({ ok: false, error: expect.objectContaining({ code }) });
+    });
+
+    it("returns the network code when there is no response", async () => {
+      // Arrange
+      const httpClient = new FakeHttpClient(async () => {
+        throw new TypeError("Failed to fetch");
+      });
+      const repository = new UserRepository(httpClient);
+
+      // Act
+      const result = await repository[operation](id);
+
+      // Assert
+      expect(result).toEqual({ ok: false, error: expect.objectContaining({ code: "NETWORK" }) });
+    });
+
+    it("keeps the problem detail as the message", async () => {
+      // Arrange
+      const httpClient = new FakeHttpClient(async () => {
+        throw new HttpError(409, { status: 409, detail: "User is already in that state" });
+      });
+      const repository = new UserRepository(httpClient);
+
+      // Act
+      const result = await repository[operation](id);
+
+      // Assert
+      expect(result).toEqual({
+        ok: false,
+        error: expect.objectContaining({ message: "User is already in that state" }),
       });
     });
   });

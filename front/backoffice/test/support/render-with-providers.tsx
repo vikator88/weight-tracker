@@ -33,6 +33,10 @@ const unusedDependencies: Registrations<Dependencies> = {
   userRepository: () => ({
     getMe: async () => undefined as never,
     updateMe: async () => undefined as never,
+    getAll: async () => undefined as never,
+    create: async () => undefined as never,
+    activate: async () => undefined as never,
+    deactivate: async () => undefined as never,
   }),
   workoutRepository: () => ({
     getAll: async () => undefined as never,
@@ -56,6 +60,10 @@ const unusedDependencies: Registrations<Dependencies> = {
   setPreferredThemeModeUseCase: () => ({ execute: async () => ok(undefined) }),
   getMyProfileUseCase: () => ({ execute: async () => ok(completeProfile) }),
   updateMyProfileUseCase: () => ({ execute: async () => undefined as never }),
+  getUsersUseCase: () => ({ execute: async () => undefined as never }),
+  createUserUseCase: () => ({ execute: async () => undefined as never }),
+  activateUserUseCase: () => ({ execute: async () => undefined as never }),
+  deactivateUserUseCase: () => ({ execute: async () => undefined as never }),
   getWorkoutsUseCase: () => ({ execute: async () => undefined as never }),
   getWorkoutByIdUseCase: () => ({ execute: async () => undefined as never }),
   createWorkoutUseCase: () => ({ execute: async () => undefined as never }),

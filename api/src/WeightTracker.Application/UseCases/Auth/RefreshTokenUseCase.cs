@@ -39,6 +39,9 @@ public class RefreshTokenUseCase
     /// When the token is missing, unknown, expired or already revoked.
     /// </exception>
     /// <exception cref="UserNotFoundException">When the token points at a user that no longer exists.</exception>
+    /// <exception cref="UserDeactivatedException">
+    /// When the user is deactivated. Nothing is rotated, so the token works again if the user is reactivated.
+    /// </exception>
     public async Task<AuthResult> Execute(string refreshToken, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(refreshToken))
@@ -56,6 +59,9 @@ public class RefreshTokenUseCase
 
         var user = await _users.GetById(storedToken.UserId, cancellationToken)
             ?? throw new UserNotFoundException(storedToken.UserId);
+
+        if (user.IsActive == false)
+            throw new UserDeactivatedException();
 
         var accessToken = _tokens.GenerateAccessToken(user);
         var generatedRefreshToken = _tokens.GenerateRefreshToken();
