@@ -1,11 +1,13 @@
 {
   "home": {
-    "title": "Weight Tracker",
+    "title": "Trainera",
     "signedIn": "Has iniciado sesión."
   },
   "menu": {
-    "appName": "Weight Tracker",
+    "appName": "Trainera",
     "label": "Menú principal",
+    "collapse": "Contraer menú",
+    "expand": "Expandir menú",
     "home": "Inicio",
     "athletes": {
       "title": "Atletas",
@@ -33,6 +35,9 @@
     "search": {
       "placeholder": "Escribe para buscar...",
       "label": "Buscar"
+    },
+    "themeMode": {
+      "label": "Modo oscuro"
     },
     "language": {
       "label": "Cambiar idioma",

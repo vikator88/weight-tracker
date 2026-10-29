@@ -44,6 +44,8 @@ export default interface Dependencies {
   refreshSessionUseCase: UseCaseInterface<void, Session>;
   getPreferredLanguageUseCase: UseCaseInterface<void, string | null>;
   setPreferredLanguageUseCase: UseCaseInterface<string, void>;
+  getPreferredThemeModeUseCase: UseCaseInterface<void, string | null>;
+  setPreferredThemeModeUseCase: UseCaseInterface<string, void>;
   getMyProfileUseCase: UseCaseInterface<void, UserProfile>;
   updateMyProfileUseCase: UseCaseInterface<UpdateProfileRequest, UserProfile>;
   getWorkoutsUseCase: UseCaseInterface<void, Workout[]>;

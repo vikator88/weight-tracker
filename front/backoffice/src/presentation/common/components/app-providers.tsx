@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
-import CssBaseline from "@mui/material/CssBaseline";
-import { ThemeProvider } from "@mui/material/styles";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { I18nextProvider } from "react-i18next";
 import container from "@/infrastructure/container";
@@ -10,7 +8,8 @@ import i18n, { detectLanguage, supportedLanguages } from "@/infrastructure/i18n"
 import SessionProvider from "@/presentation/auth/components/session-provider";
 import ContainerProvider from "../context/container-provider";
 import CurrentUserProvider from "./current-user-provider";
-import theme from "../theme";
+import ThemeModeProvider from "./theme-mode-provider";
+import NavigationDrawerProvider from "./navigation-drawer-provider";
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -45,16 +44,17 @@ export default function AppProviders({ children }: AppProvidersProps) {
 
   return (
     <AppRouterCacheProvider>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <I18nextProvider i18n={i18n}>
-          <ContainerProvider container={container}>
+      <I18nextProvider i18n={i18n}>
+        <ContainerProvider container={container}>
+          <ThemeModeProvider>
             <SessionProvider>
-              <CurrentUserProvider>{children}</CurrentUserProvider>
+              <CurrentUserProvider>
+                <NavigationDrawerProvider>{children}</NavigationDrawerProvider>
+              </CurrentUserProvider>
             </SessionProvider>
-          </ContainerProvider>
-        </I18nextProvider>
-      </ThemeProvider>
+          </ThemeModeProvider>
+        </ContainerProvider>
+      </I18nextProvider>
     </AppRouterCacheProvider>
   );
 }

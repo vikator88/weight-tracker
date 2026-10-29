@@ -52,6 +52,8 @@ const unusedDependencies: Registrations<Dependencies> = {
   refreshSessionUseCase: () => ({ execute: async () => undefined as never }),
   getPreferredLanguageUseCase: () => ({ execute: async () => ok(null) }),
   setPreferredLanguageUseCase: () => ({ execute: async () => ok(undefined) }),
+  getPreferredThemeModeUseCase: () => ({ execute: async () => ok(null) }),
+  setPreferredThemeModeUseCase: () => ({ execute: async () => ok(undefined) }),
   getMyProfileUseCase: () => ({ execute: async () => ok(completeProfile) }),
   updateMyProfileUseCase: () => ({ execute: async () => undefined as never }),
   getWorkoutsUseCase: () => ({ execute: async () => undefined as never }),

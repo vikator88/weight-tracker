@@ -16,6 +16,9 @@ vi.mock("@/infrastructure/container", () => ({
       if (key === "getSessionUseCase") {
         return { execute: async () => ok(null) };
       }
+      if (key === "getPreferredThemeModeUseCase") {
+        return { execute: async () => ok(null) };
+      }
       if (key !== "getPreferredLanguageUseCase") {
         throw new Error(`Unexpected dependency ${key}`);
       }
