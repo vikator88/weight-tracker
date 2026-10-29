@@ -47,6 +47,9 @@ public class MigrationsTests : IAsyncLifetime
     /// <summary>Last migration before <c>AddTypeToExercises_202610281200</c>.</summary>
     private const long BeforeExerciseTypeVersion = 202610271847;
 
+    /// <summary>Last migration before <c>AddActivationToUsers_202610291200</c>.</summary>
+    private const long BeforeActivationVersion = 202610281200;
+
     /// <summary>Entries in <c>infra/exercises.json</c>.</summary>
     private const int CatalogSize = 876;
 
@@ -464,6 +467,55 @@ public class MigrationsTests : IAsyncLifetime
 
         // Assert
         (await Scalar<long>("SELECT count(*) FROM \"Users\"")).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AddActivation_ShouldBackfillExistingUsersAsActive()
+    {
+        // Arrange
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser, BeforeActivationVersion);
+        await Execute(_connectionString, """
+            INSERT INTO "Users" ("Id", "Email", "Name", "Surname", "DateBirth", "Role", "PasswordHash", "CreatedAt")
+            VALUES ('00000000-0000-0000-0000-0000000000c1', 'legacy-activation@weighttracker.test', 'Legacy', 'User',
+                    '1990-01-01', 1, 'hash', now());
+            """);
+
+        // Act
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Assert
+        (await Scalar<long>("SELECT count(*) FROM \"Users\"")).Should().Be(2);
+        (await Scalar<bool>("SELECT bool_and(\"IsActive\") FROM \"Users\"")).Should().BeTrue();
+        (await Scalar<bool>("SELECT bool_and(\"DeactivatedAtUtc\" IS NULL) FROM \"Users\"")).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AddActivation_ShouldLeaveNoDefaultForNewRows()
+    {
+        // Arrange & Act
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Assert
+        (await Scalar<bool>("""
+            SELECT column_default IS NULL FROM information_schema.columns
+            WHERE table_name = 'Users' AND column_name = 'IsActive'
+            """)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AddActivation_Down_ShouldRemoveBothColumns()
+    {
+        // Arrange
+        DatabaseMigrator.MigrateUp(_connectionString, ApiFactory.AdminUser);
+
+        // Act
+        DatabaseMigrator.MigrateDown(_connectionString, BeforeActivationVersion);
+
+        // Assert
+        (await Scalar<bool>("""
+            SELECT EXISTS (SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'Users' AND column_name IN ('IsActive', 'DeactivatedAtUtc'))
+            """)).Should().BeFalse();
     }
 
     private static string AdminColumn(string column) =>

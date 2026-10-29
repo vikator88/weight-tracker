@@ -38,6 +38,7 @@ public class ExceptionMapper
             or InvalidWorkoutStatusException
             or InvalidPasswordException
             or InvalidPasswordHashException
+            or InvalidUserActivationStateException
             or TrainerCannotBeWorkoutOwnerException
             or InvalidSuperSeriesIdException
             or SuperSeriesRequiresTwoExercisesException
@@ -57,6 +58,12 @@ public class ExceptionMapper
                 exception.Message
             ),
 
+            UserDeactivatedException => Problem(
+                StatusCodes.Status403Forbidden,
+                exception.Message,
+                UserDeactivatedException.Code
+            ),
+
             UnauthorizedOperationException or AdminSignupNotAllowedException => Problem(
                 StatusCodes.Status403Forbidden,
                 exception.Message
@@ -72,8 +79,14 @@ public class ExceptionMapper
             RefreshTokenAlreadyRevokedException or EmailAlreadyExistException
                 or ExerciseAlreadyInWorkoutException or ExerciseAlreadyInSuperSeriesException
                 or InvalidWorkoutStatusTransitionException or WorkoutLockedException
-                or WorkoutExerciseOrderMismatchException => Problem(
+                or WorkoutExerciseOrderMismatchException or UserAlreadyActiveException
+                or UserAlreadyDeactivatedException => Problem(
                 StatusCodes.Status409Conflict,
+                exception.Message
+            ),
+
+            TrainerAthletesNotImplementedException => Problem(
+                StatusCodes.Status501NotImplemented,
                 exception.Message
             ),
 
@@ -91,9 +104,20 @@ public class ExceptionMapper
         return Problem(StatusCodes.Status500InternalServerError, "An unexpected error occurred");
     }
 
-    private static IActionResult Problem(int statusCode, string detail) =>
-        new ObjectResult(new ProblemDetails { Status = statusCode, Detail = detail })
+    /// <param name="code">
+    /// Stable, machine-readable reason, added as the <c>code</c> member of the body. Only set for the
+    /// failures a client must tell apart from others with the same status.
+    /// </param>
+    private static IActionResult Problem(int statusCode, string detail, string? code = null)
+    {
+        var problem = new ProblemDetails { Status = statusCode, Detail = detail };
+
+        if (code is not null)
+            problem.Extensions["code"] = code;
+
+        return new ObjectResult(problem)
         {
             StatusCode = statusCode,
         };
+    }
 }

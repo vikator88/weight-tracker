@@ -19,7 +19,7 @@ public class GetAuthenticatedUserUseCaseTests
 
     private static User AUser() => User.Rehydrate(
         Id.New(), Email.From("trainer@weighttracker.test"), PersonName.From("Ada"), PersonName.From("Lovelace"),
-        new DateOnly(1988, 5, 12), Role.TRAINER, PasswordHash.From("stored-hash"), Now);
+        new DateOnly(1988, 5, 12), Role.TRAINER, PasswordHash.From("stored-hash"), Now, true, null);
 
     [Fact]
     public async Task ExistingUser_ShouldBeReturnedWithoutItsPasswordHash()

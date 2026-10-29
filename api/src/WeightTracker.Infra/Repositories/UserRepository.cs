@@ -33,10 +33,15 @@ public class UserRepository : IUserRepository
     public Task<bool> ExistsByEmail(Email email, CancellationToken cancellationToken)
         => _context.Users.AnyAsync(user => user.Email == email.Value, cancellationToken);
 
-    public Task<bool> IsTrainerOrAdmin(Id userId, CancellationToken cancellationToken)
-        => _context.Users.AnyAsync(user =>
-            user.Id == userId.Value
-            && (user.Role == (int)Role.TRAINER || user.Role == (int)Role.ADMIN), cancellationToken);
+    public async Task<IEnumerable<User>> GetAll(CancellationToken cancellationToken)
+    {
+        var entities = await _context.Users
+            .AsNoTracking()
+            .OrderBy(user => user.Email)
+            .ToListAsync(cancellationToken);
+
+        return entities.Select(UserMapper.MapToDomain).ToList();
+    }
 
     public async Task Save(User user, CancellationToken cancellationToken)
     {
@@ -62,5 +67,7 @@ public class UserRepository : IUserRepository
         tracked.DateBirth = entity.DateBirth;
         tracked.Role = entity.Role;
         tracked.PasswordHash = entity.PasswordHash;
+        tracked.IsActive = entity.IsActive;
+        tracked.DeactivatedAtUtc = entity.DeactivatedAtUtc;
     }
 }

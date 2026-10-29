@@ -45,6 +45,8 @@ public class WeightTrackerDbContext : DbContext
             entity.Property(user => user.Role).HasColumnName("Role");
             entity.Property(user => user.PasswordHash).HasColumnName("PasswordHash").HasMaxLength(500).IsRequired();
             entity.Property(user => user.CreatedAt).HasColumnName("CreatedAt").HasColumnType("timestamptz");
+            entity.Property(user => user.IsActive).HasColumnName("IsActive");
+            entity.Property(user => user.DeactivatedAtUtc).HasColumnName("DeactivatedAtUtc").HasColumnType("timestamptz");
             entity.HasIndex(user => user.Email).IsUnique();
         });
 

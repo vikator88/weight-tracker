@@ -36,7 +36,7 @@ public class CreateWorkoutUseCase
     /// <param name="trainerId">Requested trainer. Only an admin may send it.</param>
     /// <param name="description">Optional description, <c>null</c> when the workout has none.</param>
     /// <returns>The created workout.</returns>
-    /// <exception cref="InvalidWorkoutAssignmentException">When the requested owner or trainer is not allowed for the caller's role.</exception>
+    /// <exception cref="InvalidWorkoutAssignmentException">When the requested owner or trainer is not allowed for the caller's role, or is deactivated.</exception>
     /// <exception cref="UserNotFoundException">When the requested owner does not exist.</exception>
     /// <exception cref="UnauthorizedOperationException">When a trainer names an owner who is not a regular user.</exception>
     /// <exception cref="TrainerCannotBeWorkoutOwnerException">When the trainer is the owner.</exception>
@@ -58,6 +58,8 @@ public class CreateWorkoutUseCase
 
             if (callerRole == Role.TRAINER && owner.Role != Role.USER)
                 throw new UnauthorizedOperationException("POST /workouts");
+
+            _assignment.EnsureCanBeAssigned(owner);
         }
 
         if (callerRole == Role.ADMIN && prescriberId is not null)

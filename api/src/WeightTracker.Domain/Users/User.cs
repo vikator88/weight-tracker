@@ -1,4 +1,5 @@
 using WeightTracker.Domain.Common;
+using WeightTracker.Domain.Exceptions;
 
 namespace WeightTracker.Domain.Users;
 
@@ -27,6 +28,14 @@ public sealed class User : AggregateRoot
 
     public DateTime CreatedAt { get; private set; }
 
+    /// <summary>
+    /// False once an administrator deactivates the user. Always the opposite of whether
+    /// <see cref="DeactivatedAtUtc"/> has a value.
+    /// </summary>
+    public bool IsActive { get; private set; }
+
+    public DateTime? DeactivatedAtUtc { get; private set; }
+
     private User(
         Id id,
         Email email,
@@ -35,7 +44,9 @@ public sealed class User : AggregateRoot
         DateOnly dateBirth,
         Role role,
         PasswordHash passwordHash,
-        DateTime createdAt
+        DateTime createdAt,
+        bool isActive,
+        DateTime? deactivatedAtUtc
     )
     {
         this.Id = id;
@@ -46,10 +57,12 @@ public sealed class User : AggregateRoot
         Role = role;
         PasswordHash = passwordHash;
         CreatedAt = createdAt;
+        IsActive = isActive;
+        DeactivatedAtUtc = deactivatedAtUtc;
     }
 
     /// <summary>
-    /// Creates a brand new user.
+    /// Creates a brand new user. Every user starts active.
     /// </summary>
     /// <param name="passwordHash">Password already hashed by the infrastructure hasher.</param>
     public static User Create(
@@ -62,7 +75,7 @@ public sealed class User : AggregateRoot
         DateTime createdAtUtc
     )
     {
-        return new User(Id.New(), email, name, surname, dateBirth, role, passwordHash, createdAtUtc)
+        return new User(Id.New(), email, name, surname, dateBirth, role, passwordHash, createdAtUtc, true, null)
         {
             IsNew = true,
         };
@@ -71,6 +84,9 @@ public sealed class User : AggregateRoot
     /// <summary>
     /// Restores a user already stored in the system.
     /// </summary>
+    /// <exception cref="InvalidUserActivationStateException">
+    /// When <paramref name="deactivatedAtUtc"/> is set on an active user, or missing on a deactivated one.
+    /// </exception>
     public static User Rehydrate(
         Id id,
         Email email,
@@ -79,10 +95,15 @@ public sealed class User : AggregateRoot
         DateOnly dateBirth,
         Role role,
         PasswordHash passwordHash,
-        DateTime createdAt
+        DateTime createdAt,
+        bool isActive,
+        DateTime? deactivatedAtUtc
     )
     {
-        return new User(id, email, name, surname, dateBirth, role, passwordHash, createdAt)
+        if (isActive != (deactivatedAtUtc is null))
+            throw new InvalidUserActivationStateException(id);
+
+        return new User(id, email, name, surname, dateBirth, role, passwordHash, createdAt, isActive, deactivatedAtUtc)
         {
             IsNew = false,
         };
@@ -102,4 +123,35 @@ public sealed class User : AggregateRoot
     /// True when this user is allowed to be assigned as the trainer of a workout.
     /// </summary>
     public bool CanTrain() => Role is Role.TRAINER or Role.ADMIN;
+
+    /// <summary>
+    /// True when this user may be given a new workout, as its owner or its trainer.
+    /// </summary>
+    public bool CanBeAssignedWorkouts() => IsActive;
+
+    /// <summary>
+    /// Switches the account off and records when.
+    /// </summary>
+    /// <exception cref="UserAlreadyDeactivatedException">When the user is already deactivated.</exception>
+    public void Deactivate(DateTime nowUtc)
+    {
+        if (IsActive == false)
+            throw new UserAlreadyDeactivatedException(Id);
+
+        IsActive = false;
+        DeactivatedAtUtc = nowUtc;
+    }
+
+    /// <summary>
+    /// Switches a deactivated account back on and clears the deactivation date.
+    /// </summary>
+    /// <exception cref="UserAlreadyActiveException">When the user is already active.</exception>
+    public void Activate()
+    {
+        if (IsActive)
+            throw new UserAlreadyActiveException(Id);
+
+        IsActive = true;
+        DeactivatedAtUtc = null;
+    }
 }

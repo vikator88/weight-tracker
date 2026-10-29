@@ -204,6 +204,65 @@ public class OpenApiDocumentTests : IntegrationTest
     }
 
     [Fact]
+    public async Task ListUsers_ShouldDocumentItsSecurityAndResponses()
+    {
+        // Arrange & Act
+        var document = await Document();
+
+        // Assert
+        var operation = Operation(document, "/users", "get");
+
+        operation.GetProperty("security")[0].TryGetProperty("Bearer", out _).Should().BeTrue();
+        operation.GetProperty("responses").EnumerateObject().Select(property => property.Name)
+            .Should().Contain(["200", "401", "403", "501"]);
+    }
+
+    [Fact]
+    public async Task CreateUser_ShouldDocumentItsSecurityAndResponses()
+    {
+        // Arrange & Act
+        var document = await Document();
+
+        // Assert
+        var operation = Operation(document, "/users", "post");
+
+        operation.GetProperty("security")[0].TryGetProperty("Bearer", out _).Should().BeTrue();
+        operation.GetProperty("responses").EnumerateObject().Select(property => property.Name)
+            .Should().Contain(["201", "400", "401", "403", "409"]);
+    }
+
+    [Theory]
+    [InlineData("/users/{id}/activate")]
+    [InlineData("/users/{id}/deactivate")]
+    public async Task UserActivation_ShouldDocumentItsSecurityAndResponses(string path)
+    {
+        // Arrange & Act
+        var document = await Document();
+
+        // Assert
+        var operation = Operation(document, path, "put");
+
+        operation.GetProperty("security")[0].TryGetProperty("Bearer", out _).Should().BeTrue();
+        operation.GetProperty("responses").EnumerateObject().Select(property => property.Name)
+            .Should().Contain(["200", "401", "403", "404", "409"]);
+    }
+
+    [Fact]
+    public async Task UserSummary_ShouldDocumentTheActivationFields()
+    {
+        // Arrange & Act
+        var document = await Document();
+
+        // Assert
+        var properties = document
+            .GetProperty("components").GetProperty("schemas").GetProperty("UserSummaryResponse")
+            .GetProperty("properties");
+
+        properties.EnumerateObject().Select(property => property.Name)
+            .Should().Contain(["isActive", "deactivatedAtUtc"]);
+    }
+
+    [Fact]
     public async Task WorkoutDetail_ShouldDocumentTheStatusField()
     {
         // Arrange & Act
@@ -227,7 +286,20 @@ public class OpenApiDocumentTests : IntegrationTest
         var responses = Operation(document, "/auth/login", "post").GetProperty("responses");
 
         responses.EnumerateObject().Select(property => property.Name)
-            .Should().Contain(["200", "400", "401"]);
+            .Should().Contain(["200", "400", "401", "403"]);
+    }
+
+    [Fact]
+    public async Task Refresh_ShouldDocumentItsFailureResponses()
+    {
+        // Arrange & Act
+        var document = await Document();
+
+        // Assert
+        var responses = Operation(document, "/auth/refresh", "post").GetProperty("responses");
+
+        responses.EnumerateObject().Select(property => property.Name)
+            .Should().Contain(["200", "401", "403", "404"]);
     }
 
     [Fact]

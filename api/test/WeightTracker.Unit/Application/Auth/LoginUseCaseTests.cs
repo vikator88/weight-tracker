@@ -38,7 +38,7 @@ public class LoginUseCaseTests
 
     private static User AUser() => User.Rehydrate(
         Id.New(), Email.From("user@weighttracker.test"), PersonName.From("Ada"), PersonName.From("Lovelace"),
-        new DateOnly(1988, 5, 12), Role.USER, PasswordHash.From("stored-hash"), Now);
+        new DateOnly(1988, 5, 12), Role.USER, PasswordHash.From("stored-hash"), Now, true, null);
 
     [Fact]
     public async Task UnknownEmail_ShouldBeRejectedAsInvalidCredentials()
@@ -185,5 +185,40 @@ public class LoginUseCaseTests
         // Assert
         _refreshTokens.Verify(repository => repository.Save(It.IsAny<RefreshToken>(), It.IsAny<CancellationToken>()), Times.Never);
         _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    private static User ADeactivatedUser() => User.Rehydrate(
+        Id.New(), Email.From("user@weighttracker.test"), PersonName.From("Ada"), PersonName.From("Lovelace"),
+        new DateOnly(1988, 5, 12), Role.USER, PasswordHash.From("stored-hash"), Now, false, Now.AddDays(-1));
+
+    [Fact]
+    public async Task DeactivatedUserWithValidCredentials_ShouldBeRejectedWithoutIssuingTokens()
+    {
+        // Arrange
+        _users.Setup(repository => repository.GetByEmail(It.IsAny<Email>(), It.IsAny<CancellationToken>())).ReturnsAsync(ADeactivatedUser());
+        _passwordHasher.Setup(hasher => hasher.Verify(It.IsAny<string>(), It.IsAny<PasswordHash>())).Returns(true);
+
+        // Act
+        var act = async () => await AUseCase().Execute("user@weighttracker.test", "Passw0rd!", CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<UserDeactivatedException>();
+        _tokens.Verify(service => service.GenerateAccessToken(It.IsAny<User>()), Times.Never);
+        _refreshTokens.Verify(repository => repository.Save(It.IsAny<RefreshToken>(), It.IsAny<CancellationToken>()), Times.Never);
+        _unitOfWork.Verify(unitOfWork => unitOfWork.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeactivatedUserWithWrongPassword_ShouldStillBeRejectedAsInvalidCredentials()
+    {
+        // Arrange
+        _users.Setup(repository => repository.GetByEmail(It.IsAny<Email>(), It.IsAny<CancellationToken>())).ReturnsAsync(ADeactivatedUser());
+        _passwordHasher.Setup(hasher => hasher.Verify(It.IsAny<string>(), It.IsAny<PasswordHash>())).Returns(false);
+
+        // Act
+        var act = async () => await AUseCase().Execute("user@weighttracker.test", "wrong", CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidCredentialsException>();
     }
 }

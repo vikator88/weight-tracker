@@ -79,6 +79,10 @@ builder.Services.AddScoped<SignupUseCase>();
 builder.Services.AddScoped<RefreshTokenUseCase>();
 builder.Services.AddScoped<GetAuthenticatedUserUseCase>();
 builder.Services.AddScoped<UpdateMyProfileUseCase>();
+builder.Services.AddScoped<CreateUserUseCase>();
+builder.Services.AddScoped<GetAllUsersUseCase>();
+builder.Services.AddScoped<ActivateUserUseCase>();
+builder.Services.AddScoped<DeactivateUserUseCase>();
 
 builder.Services.AddScoped<DatabaseSeeder>();
 builder.Services.AddScoped<ExceptionMapper>();

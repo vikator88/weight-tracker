@@ -30,6 +30,13 @@ public class WorkoutCreateEndpointTests : IntegrationTest
     private static async Task<JsonElement> BodyOf(HttpResponseMessage response)
         => await response.Content.ReadFromJsonAsync<JsonElement>(JsonOptions);
 
+    private async Task SetActivationAsAdmin(Guid userId, string action)
+    {
+        var admin = await AuthenticatedClientFor(SeedCredentials.Admin);
+        var response = await admin.PutAsync($"/users/{userId}/{action}", null);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
     public static TheoryData<string, object, HttpStatusCode> Rejections => new()
     {
         // USER
@@ -359,5 +366,70 @@ public class WorkoutCreateEndpointTests : IntegrationTest
         var body = await BodyOf(response);
         body.GetProperty("name").GetString().Should().Be(name);
         body.GetProperty("description").GetString().Should().Be(description);
+    }
+
+    [Fact]
+    public async Task Post_ShouldRejectATrainerPrescribingToADeactivatedUserAndCreateNothing()
+    {
+        // Arrange
+        await SetActivationAsAdmin(SeedData.UserId, "deactivate");
+        var before = await WorkoutIdsSeenBy(SeedCredentials.Admin);
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/workouts", new { name = "Leg day", userId = SeedData.UserId, workoutDate = Date });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await WorkoutIdsSeenBy(SeedCredentials.Admin)).Should().BeEquivalentTo(before);
+    }
+
+    [Fact]
+    public async Task Post_ShouldRejectAnAdminCreatingAWorkoutForADeactivatedUserAndCreateNothing()
+    {
+        // Arrange
+        await SetActivationAsAdmin(SeedData.UserId, "deactivate");
+        var before = await WorkoutIdsSeenBy(SeedCredentials.Admin);
+        var client = await AuthenticatedClientFor(SeedCredentials.Admin);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/workouts", new { name = "Leg day", userId = SeedData.UserId, workoutDate = Date });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await WorkoutIdsSeenBy(SeedCredentials.Admin)).Should().BeEquivalentTo(before);
+    }
+
+    [Fact]
+    public async Task Post_ShouldRejectAnAdminAssigningADeactivatedTrainerAndCreateNothing()
+    {
+        // Arrange
+        await SetActivationAsAdmin(SeedData.TrainerId, "deactivate");
+        var before = await WorkoutIdsSeenBy(SeedCredentials.Admin);
+        var client = await AuthenticatedClientFor(SeedCredentials.Admin);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/workouts",
+            new { name = "Leg day", userId = SeedData.UserId, trainerId = SeedData.TrainerId, workoutDate = Date });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await WorkoutIdsSeenBy(SeedCredentials.Admin)).Should().BeEquivalentTo(before);
+    }
+
+    [Fact]
+    public async Task Post_ShouldLetATrainerPrescribeToAReactivatedUser()
+    {
+        // Arrange
+        await SetActivationAsAdmin(SeedData.UserId, "deactivate");
+        await SetActivationAsAdmin(SeedData.UserId, "activate");
+        var client = await AuthenticatedClientFor(SeedCredentials.Trainer);
+
+        // Act
+        var response = await client.PostAsJsonAsync("/workouts", new { name = "Leg day", userId = SeedData.UserId, workoutDate = Date });
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await BodyOf(response)).GetProperty("userId").GetGuid().Should().Be(SeedData.UserId);
     }
 }

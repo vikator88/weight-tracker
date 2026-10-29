@@ -24,10 +24,24 @@ public class WorkoutAssignmentValidator
         => await _users.GetById(ownerId, cancellationToken)
             ?? throw new UserNotFoundException(ownerId);
 
-    /// <exception cref="InvalidWorkoutAssignmentException">When the user does not exist or is neither a trainer nor an admin.</exception>
+    /// <exception cref="InvalidWorkoutAssignmentException">When the owner is deactivated.</exception>
+    public void EnsureCanBeAssigned(User owner)
+    {
+        if (owner.CanBeAssignedWorkouts() == false)
+            throw new InvalidWorkoutAssignmentException("A deactivated user cannot be assigned a workout");
+    }
+
+    /// <exception cref="InvalidWorkoutAssignmentException">
+    /// When the user does not exist, is neither a trainer nor an admin, or is deactivated.
+    /// </exception>
     public async Task EnsureCanTrain(Id trainerId, CancellationToken cancellationToken)
     {
-        if (await _users.IsTrainerOrAdmin(trainerId, cancellationToken) == false)
+        var trainer = await _users.GetById(trainerId, cancellationToken);
+
+        if (trainer is null || trainer.CanTrain() == false)
             throw new InvalidWorkoutAssignmentException("The trainer of a workout must be a trainer or an admin");
+
+        if (trainer.CanBeAssignedWorkouts() == false)
+            throw new InvalidWorkoutAssignmentException("A deactivated user cannot be assigned as trainer");
     }
 }

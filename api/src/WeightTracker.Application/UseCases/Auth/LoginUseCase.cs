@@ -41,6 +41,10 @@ public class LoginUseCase
     /// cases are deliberately indistinguishable so the endpoint cannot be used to
     /// enumerate registered users.
     /// </exception>
+    /// <exception cref="UserDeactivatedException">
+    /// When the credentials are valid but the account is deactivated. Checked only after the password
+    /// matches, so the account state is never revealed to someone without the credentials.
+    /// </exception>
     public async Task<AuthResult> Execute(string email, string password, CancellationToken cancellationToken)
     {
         Email parsedEmail;
@@ -59,6 +63,9 @@ public class LoginUseCase
 
         if (_passwordHasher.Verify(password, user.PasswordHash) == false)
             throw new InvalidCredentialsException();
+
+        if (user.IsActive == false)
+            throw new UserDeactivatedException();
 
         var accessToken = _tokens.GenerateAccessToken(user);
         var refreshToken = _tokens.GenerateRefreshToken();

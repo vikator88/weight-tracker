@@ -22,7 +22,7 @@ public class AggregateMapperTests
     {
         private static User AUser(Role role = Role.TRAINER) => User.Rehydrate(
             Id.New(), Email.From("trainer@weighttracker.test"), PersonName.From("Grace"), PersonName.From("Hopper"),
-            new DateOnly(1985, 12, 9), role, PasswordHash.From("stored-hash"), CreatedAt);
+            new DateOnly(1985, 12, 9), role, PasswordHash.From("stored-hash"), CreatedAt, true, null);
 
         [Fact]
         public void RoundTrip_ShouldPreserveEveryField()
@@ -42,7 +42,26 @@ public class AggregateMapperTests
             restored.Role.Should().Be(Role.TRAINER);
             restored.PasswordHash.Should().Be(original.PasswordHash);
             restored.CreatedAt.Should().Be(original.CreatedAt);
+            restored.IsActive.Should().BeTrue();
+            restored.DeactivatedAtUtc.Should().BeNull();
             restored.IsNew.Should().BeFalse();
+        }
+
+        [Fact]
+        public void RoundTrip_ShouldPreserveTheDeactivation()
+        {
+            // Arrange
+            var deactivatedAt = new DateTime(2026, 10, 20, 18, 30, 0, DateTimeKind.Utc);
+            var original = User.Rehydrate(
+                Id.New(), Email.From("trainer@weighttracker.test"), PersonName.From("Grace"), PersonName.From("Hopper"),
+                new DateOnly(1985, 12, 9), Role.USER, PasswordHash.From("stored-hash"), CreatedAt, false, deactivatedAt);
+
+            // Act
+            var restored = UserMapper.MapToDomain(UserMapper.MapToEntity(original));
+
+            // Assert
+            restored.IsActive.Should().BeFalse();
+            restored.DeactivatedAtUtc.Should().Be(deactivatedAt);
         }
 
         [Fact]
@@ -51,7 +70,7 @@ public class AggregateMapperTests
             // Arrange
             var original = User.Rehydrate(
                 Id.New(), Email.From("trainer@weighttracker.test"), PersonName.Empty(), PersonName.Empty(),
-                new DateOnly(1985, 12, 9), Role.USER, PasswordHash.From("stored-hash"), CreatedAt);
+                new DateOnly(1985, 12, 9), Role.USER, PasswordHash.From("stored-hash"), CreatedAt, true, null);
 
             // Act
             var restored = UserMapper.MapToDomain(UserMapper.MapToEntity(original));
@@ -68,7 +87,7 @@ public class AggregateMapperTests
             var user = User.Rehydrate(
                 Id.New(), Email.From("Trainer@WeightTracker.TEST"), PersonName.From("Grace"),
                 PersonName.From("Hopper"), new DateOnly(1985, 12, 9), Role.TRAINER,
-                PasswordHash.From("stored-hash"), CreatedAt);
+                PasswordHash.From("stored-hash"), CreatedAt, true, null);
 
             // Assert
             UserMapper.MapToEntity(user).Email.Should().Be("trainer@weighttracker.test");
@@ -93,6 +112,20 @@ public class AggregateMapperTests
             // Arrange
             var entity = UserMapper.MapToEntity(AUser());
             entity.Role = 99;
+
+            // Act
+            var act = () => UserMapper.MapToDomain(entity);
+
+            // Assert
+            act.Should().Throw<PersistenceMappingException>();
+        }
+
+        [Fact]
+        public void MapToDomain_ShouldRejectADeactivatedUserWithoutDeactivationDate()
+        {
+            // Arrange
+            var entity = UserMapper.MapToEntity(AUser());
+            entity.IsActive = false;
 
             // Act
             var act = () => UserMapper.MapToDomain(entity);

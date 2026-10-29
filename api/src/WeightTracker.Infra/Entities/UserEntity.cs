@@ -18,4 +18,8 @@ public class UserEntity
     public string PasswordHash { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; }
+
+    public bool IsActive { get; set; }
+
+    public DateTime? DeactivatedAtUtc { get; set; }
 }

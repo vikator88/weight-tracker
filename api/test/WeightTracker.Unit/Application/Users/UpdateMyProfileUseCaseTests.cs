@@ -26,7 +26,9 @@ public class UpdateMyProfileUseCaseTests
         new DateOnly(1990, 4, 12),
         Role.USER,
         PasswordHash.From("stored-hash"),
-        new DateTime(2026, 10, 1, 9, 0, 0, DateTimeKind.Utc));
+        new DateTime(2026, 10, 1, 9, 0, 0, DateTimeKind.Utc),
+        true,
+        null);
 
     [Fact]
     public async Task Execute_ShouldReplaceNameAndSurnameAndCommitOnce()

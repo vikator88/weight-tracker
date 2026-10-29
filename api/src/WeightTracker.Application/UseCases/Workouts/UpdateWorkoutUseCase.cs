@@ -46,7 +46,7 @@ public class UpdateWorkoutUseCase
     /// <exception cref="WorkoutNotFoundException">When no workout has the given id.</exception>
     /// <exception cref="UnauthorizedOperationException">When the caller may not edit the workout, or a non-admin changes its owner or trainer.</exception>
     /// <exception cref="WorkoutLockedException">When the caller may edit the workout but it has already started.</exception>
-    /// <exception cref="InvalidWorkoutAssignmentException">When an admin makes themselves the owner, or the new trainer cannot train.</exception>
+    /// <exception cref="InvalidWorkoutAssignmentException">When an admin makes themselves the owner, the new trainer cannot train, or the new owner or trainer is deactivated.</exception>
     /// <exception cref="UserNotFoundException">When the new owner does not exist.</exception>
     /// <exception cref="TrainerCannotBeWorkoutOwnerException">When the trainer is the owner.</exception>
     public async Task<Workout> Execute(
@@ -79,7 +79,9 @@ public class UpdateWorkoutUseCase
                 if (userId == callerId)
                     throw new InvalidWorkoutAssignmentException("Admins cannot make themselves the owner of a workout");
 
-                await _assignment.EnsureOwnerExists(userId, cancellationToken);
+                var owner = await _assignment.EnsureOwnerExists(userId, cancellationToken);
+
+                _assignment.EnsureCanBeAssigned(owner);
             }
 
             if (trainerChanged && trainerId is not null)

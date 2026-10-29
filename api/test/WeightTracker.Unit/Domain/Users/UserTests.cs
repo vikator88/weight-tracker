@@ -1,5 +1,6 @@
 using FluentAssertions;
 using WeightTracker.Domain.Common;
+using WeightTracker.Domain.Exceptions;
 using WeightTracker.Domain.Users;
 using Xunit;
 
@@ -9,6 +10,11 @@ public class UserTests
 {
     private static readonly DateOnly Birth = new(1988, 5, 12);
     private static readonly DateTime CreatedAt = new(2026, 10, 1, 9, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime DeactivatedAt = new(2026, 10, 20, 18, 30, 0, DateTimeKind.Utc);
+
+    private static User AnActiveUser() => User.Create(
+        Email.From("user@weighttracker.test"), PersonName.From("Ada"), PersonName.From("Lovelace"),
+        Birth, Role.USER, PasswordHash.From("hash"), CreatedAt);
 
     [Fact]
     public void Create_ShouldMarkTheUserAsNew()
@@ -61,7 +67,7 @@ public class UserTests
         // Arrange & Act
         var user = User.Rehydrate(
             Id.New(), Email.From("user@weighttracker.test"), PersonName.From("Ada"),
-            PersonName.From("Lovelace"), Birth, Role.USER, PasswordHash.From("hash"), CreatedAt);
+            PersonName.From("Lovelace"), Birth, Role.USER, PasswordHash.From("hash"), CreatedAt, true, null);
 
         // Assert
         user.IsNew.Should().BeFalse();
@@ -77,7 +83,7 @@ public class UserTests
         // Act
         var user = User.Rehydrate(
             id, email, PersonName.From("Grace"), PersonName.From("Hopper"),
-            Birth, Role.ADMIN, PasswordHash.From("stored-hash"), CreatedAt);
+            Birth, Role.ADMIN, PasswordHash.From("stored-hash"), CreatedAt, false, DeactivatedAt);
 
         // Assert
         user.Id.Should().Be(id);
@@ -88,6 +94,8 @@ public class UserTests
         user.Role.Should().Be(Role.ADMIN);
         user.PasswordHash.Should().Be(PasswordHash.From("stored-hash"));
         user.CreatedAt.Should().Be(CreatedAt);
+        user.IsActive.Should().BeFalse();
+        user.DeactivatedAtUtc.Should().Be(DeactivatedAt);
     }
 
     [Theory]
@@ -132,7 +140,7 @@ public class UserTests
         var email = Email.From("trainer@weighttracker.test");
         var user = User.Rehydrate(
             id, email, PersonName.From("Ada"), PersonName.From("Lovelace"),
-            Birth, Role.TRAINER, PasswordHash.From("stored-hash"), CreatedAt);
+            Birth, Role.TRAINER, PasswordHash.From("stored-hash"), CreatedAt, true, null);
 
         // Act
         user.UpdateProfile(PersonName.From("Grace"), PersonName.From("Hopper"));
@@ -145,5 +153,108 @@ public class UserTests
         user.PasswordHash.Should().Be(PasswordHash.From("stored-hash"));
         user.CreatedAt.Should().Be(CreatedAt);
         user.IsNew.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Create_ShouldStartActive()
+    {
+        // Arrange & Act
+        var user = AnActiveUser();
+
+        // Assert
+        user.IsActive.Should().BeTrue();
+        user.DeactivatedAtUtc.Should().BeNull();
+    }
+
+    [Fact]
+    public void Deactivate_ShouldSwitchTheUserOffAndRecordWhen()
+    {
+        // Arrange
+        var user = AnActiveUser();
+
+        // Act
+        user.Deactivate(DeactivatedAt);
+
+        // Assert
+        user.IsActive.Should().BeFalse();
+        user.DeactivatedAtUtc.Should().Be(DeactivatedAt);
+    }
+
+    [Fact]
+    public void Deactivate_ShouldRejectAnAlreadyDeactivatedUserAndKeepTheDate()
+    {
+        // Arrange
+        var user = AnActiveUser();
+        user.Deactivate(DeactivatedAt);
+
+        // Act
+        var act = () => user.Deactivate(DeactivatedAt.AddDays(1));
+
+        // Assert
+        act.Should().Throw<UserAlreadyDeactivatedException>();
+        user.DeactivatedAtUtc.Should().Be(DeactivatedAt);
+    }
+
+    [Fact]
+    public void Activate_ShouldRejectAnActiveUser()
+    {
+        // Arrange
+        var user = AnActiveUser();
+
+        // Act
+        var act = () => user.Activate();
+
+        // Assert
+        act.Should().Throw<UserAlreadyActiveException>();
+        user.IsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Activate_ShouldSwitchADeactivatedUserBackOnAndClearTheDate()
+    {
+        // Arrange
+        var user = AnActiveUser();
+        user.Deactivate(DeactivatedAt);
+
+        // Act
+        user.Activate();
+
+        // Assert
+        user.IsActive.Should().BeTrue();
+        user.DeactivatedAtUtc.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void CanBeAssignedWorkouts_ShouldFollowTheActivationState(bool deactivated, bool expected)
+    {
+        // Arrange
+        var user = AnActiveUser();
+        if (deactivated)
+            user.Deactivate(DeactivatedAt);
+
+        // Act
+        var canBeAssigned = user.CanBeAssignedWorkouts();
+
+        // Assert
+        canBeAssigned.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public void Rehydrate_ShouldRejectAnInconsistentActivationState(bool isActive, bool hasDeactivationDate)
+    {
+        // Arrange
+        DateTime? deactivatedAt = hasDeactivationDate ? DeactivatedAt : null;
+
+        // Act
+        var act = () => User.Rehydrate(
+            Id.New(), Email.From("user@weighttracker.test"), PersonName.From("Ada"),
+            PersonName.From("Lovelace"), Birth, Role.USER, PasswordHash.From("hash"), CreatedAt, isActive, deactivatedAt);
+
+        // Assert
+        act.Should().Throw<InvalidUserActivationStateException>();
     }
 }

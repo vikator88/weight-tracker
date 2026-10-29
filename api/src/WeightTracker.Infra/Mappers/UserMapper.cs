@@ -20,6 +20,10 @@ public static class UserMapper
             Role = (int)user.Role,
             PasswordHash = user.PasswordHash.Value,
             CreatedAt = DateTime.SpecifyKind(user.CreatedAt, DateTimeKind.Utc),
+            IsActive = user.IsActive,
+            DeactivatedAtUtc = user.DeactivatedAtUtc is { } deactivatedAt
+                ? DateTime.SpecifyKind(deactivatedAt, DateTimeKind.Utc)
+                : null,
         };
     }
 
@@ -35,7 +39,9 @@ public static class UserMapper
                 entity.DateBirth,
                 MapRole(entity.Role),
                 PasswordHash.From(entity.PasswordHash),
-                entity.CreatedAt);
+                entity.CreatedAt,
+                entity.IsActive,
+                entity.DeactivatedAtUtc);
         }
         catch (DomainException exception)
         {
