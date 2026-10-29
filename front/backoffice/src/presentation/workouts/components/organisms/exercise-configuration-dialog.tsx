@@ -231,7 +231,7 @@ export default function ExerciseConfigurationDialog({
             >
               {efforts.map((code) => (
                 <MenuItem key={code} value={code}>
-                  {effortLabel(code)}
+                  {effortLabel(code, exercise?.type)}
                 </MenuItem>
               ))}
             </TextField>

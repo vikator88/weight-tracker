@@ -71,7 +71,8 @@ export default function WorkoutExercisesList({
 }: WorkoutExercisesListProps) {
   const { t } = useTranslation("workouts");
   const { t: tc } = useTranslation();
-  const { nameOf, effortLabel, compactSetSummary, exerciseLabelsOf } = useExerciseLabels();
+  const { nameOf, effortLabel, compactSetSummary, exerciseLabelsOf, typeWatermark } =
+    useExerciseLabels();
   // A stable id keeps dnd-kit's generated accessibility ids the same in the static export and in the browser.
   const dndId = useId();
   const sensors = useSensors(
@@ -99,8 +100,11 @@ export default function WorkoutExercisesList({
     }
   }
 
-  /** The sets on one line, comma separated, and the effort on the next; empty properties are left out. */
-  function linesOf({ sets, effort }: WorkoutExerciseDetail) {
+  /**
+   * The sets on one line, comma separated, and the effort in its type's scale on the next; empty properties are left
+   * out.
+   */
+  function linesOf({ sets, effort }: WorkoutExerciseDetail, type?: string) {
     const lines: string[] = [];
 
     if (sets.length > 0) {
@@ -115,7 +119,7 @@ export default function WorkoutExercisesList({
       lines.push(summaries.join(", "));
     }
     if (effort) {
-      lines.push(t("workout.exercises.effortLine", { effort: effortLabel(effort) }));
+      lines.push(t("workout.exercises.effortLine", { effort: effortLabel(effort, type) }));
     }
     return lines;
   }
@@ -194,7 +198,8 @@ export default function WorkoutExercisesList({
                         ? exerciseLabelsOf(exercise, !singleMuscleBodyParts.has(exercise.bodyPart))
                         : []
                     }
-                    lines={linesOf(workoutExercise)}
+                    lines={linesOf(workoutExercise, exercise?.type)}
+                    watermark={exercise ? typeWatermark(exercise.type) : undefined}
                     actions={
                       <>
                         <IconButton

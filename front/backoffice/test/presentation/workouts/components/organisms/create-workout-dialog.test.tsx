@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DomainError, fail, ok } from "@weight-tracker/core/domain";
 import type {
   CreateWorkoutRequest,
@@ -83,10 +83,7 @@ async function fill(
   values: Partial<Record<string, string>>,
 ) {
   for (const [label, value = ""] of Object.entries(values)) {
-    const field =
-      label === "Fecha"
-        ? screen.getByLabelText("Fecha")
-        : screen.getByRole("textbox", { name: label });
+    const field = screen.getByRole("textbox", { name: label });
     await user.clear(field);
     // Pasting keeps long values fast; the field still receives a real change event.
     await user.click(field);
@@ -94,14 +91,26 @@ async function fill(
   }
 }
 
-const trainerValues = { Nombre: "  Pierna  ", Fecha: "2026-11-02", "ID del atleta": athleteId };
+const trainerValues = { Nombre: "  Pierna  ", "ID del atleta": athleteId };
+
+const weekField = () => screen.getByRole("group", { name: "Semana" });
+
+/** Thursday 29 October 2026, local noon: the current week is 26 Oct – 1 Nov 2026. */
+const today = new Date(2026, 9, 29, 12);
 
 describe("CreateWorkoutDialog", () => {
   beforeEach(() => {
     push.mockClear();
+    // Only `Date` is faked, so user events and promises keep running.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(today);
   });
 
-  it("asks for the workout's data with empty fields", async () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("asks for the workout's data with empty fields and the current week", async () => {
     // Arrange & Act
     await renderDialog().rendered;
 
@@ -110,7 +119,7 @@ describe("CreateWorkoutDialog", () => {
     for (const name of ["Nombre", "Descripción", "ID del atleta"]) {
       expect(screen.getByRole("textbox", { name })).toHaveValue("");
     }
-    expect(screen.getByLabelText("Fecha")).toHaveValue("");
+    expect(within(weekField()).getByText("Semana del 26 oct – 1 nov")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Crear" })).toBeInTheDocument();
   });
@@ -144,8 +153,15 @@ describe("CreateWorkoutDialog", () => {
     await user.click(screen.getByRole("button", { name: "Crear" }));
 
     // Assert
-    expect(await screen.findAllByText("Este campo es obligatorio.")).toHaveLength(3);
+    expect(await screen.findAllByText("Este campo es obligatorio.")).toHaveLength(2);
+    expect(screen.getByRole("textbox", { name: "Nombre" })).toHaveAccessibleDescription(
+      "Este campo es obligatorio.",
+    );
+    expect(screen.getByRole("textbox", { name: "ID del atleta" })).toHaveAccessibleDescription(
+      "Este campo es obligatorio.",
+    );
     expect(screen.getByRole("textbox", { name: "Descripción" })).not.toHaveAccessibleDescription();
+    expect(within(weekField()).queryByText("Este campo es obligatorio.")).not.toBeInTheDocument();
     expect(execute).not.toHaveBeenCalled();
   });
 
@@ -218,6 +234,7 @@ describe("CreateWorkoutDialog", () => {
     await openedDialog();
     const user = userEvent.setup();
     await fill(user, trainerValues);
+    await user.click(within(weekField()).getByRole("button", { name: "Semana siguiente" }));
 
     // Act
     await user.click(screen.getByRole("button", { name: "Crear" }));
@@ -226,7 +243,7 @@ describe("CreateWorkoutDialog", () => {
     await waitFor(() => expect(execute).toHaveBeenCalledTimes(1));
     expect(execute).toHaveBeenCalledWith({
       name: "Pierna",
-      workoutDate: "2026-11-02",
+      workoutDate: "2026-11-04",
       userId: athleteId,
     });
   });
@@ -248,7 +265,7 @@ describe("CreateWorkoutDialog", () => {
       expect(execute).toHaveBeenCalledWith({
         name: "Pierna",
         description: "Día 1",
-        workoutDate: "2026-11-02",
+        workoutDate: "2026-10-28",
         userId: athleteId,
         trainerId,
       }),
@@ -342,8 +359,111 @@ describe("CreateWorkoutDialog", () => {
     for (const name of ["Name", "Description", "Athlete ID", "Trainer ID"]) {
       expect(screen.getByRole("textbox", { name })).toBeInTheDocument();
     }
-    expect(screen.getByLabelText("Date")).toBeInTheDocument();
+    const week = screen.getByRole("group", { name: "Week" });
+    expect(within(week).getByText("Week of Oct 26 – Nov 1")).toBeInTheDocument();
+    for (const name of ["Previous week", "Next week", "Pick a week"]) {
+      expect(within(week).getByRole("button", { name })).toBeInTheDocument();
+    }
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create" })).toBeInTheDocument();
+  });
+
+  describe("week field", () => {
+    it("shows the selected week with its buttons", async () => {
+      // Arrange & Act
+      await renderDialog().rendered;
+
+      // Assert
+      await openedDialog();
+      const field = weekField();
+      expect(within(field).getByText("Semana")).toBeInTheDocument();
+      expect(within(field).getByText("Semana del 26 oct – 1 nov")).toBeInTheDocument();
+      for (const name of ["Semana anterior", "Semana siguiente", "Elegir semana"]) {
+        expect(within(field).getByRole("button", { name })).toBeInTheDocument();
+      }
+    });
+
+    it("moves to the previous week without a request", async () => {
+      // Arrange
+      const { execute, rendered } = renderDialog();
+      await rendered;
+      await openedDialog();
+      const user = userEvent.setup();
+
+      // Act
+      await user.click(within(weekField()).getByRole("button", { name: "Semana anterior" }));
+
+      // Assert
+      expect(within(weekField()).getByText("Semana del 19 oct – 25 oct")).toBeInTheDocument();
+      expect(execute).not.toHaveBeenCalled();
+    });
+
+    it("moves to the next week across a month", async () => {
+      // Arrange
+      await renderDialog().rendered;
+      await openedDialog();
+      const user = userEvent.setup();
+
+      // Act
+      await user.click(within(weekField()).getByRole("button", { name: "Semana siguiente" }));
+
+      // Assert
+      expect(within(weekField()).getByText("Semana del 2 nov – 8 nov")).toBeInTheDocument();
+    });
+
+    it("disables the week field while the workout is being created", async () => {
+      // Arrange
+      const { rendered } = renderDialog({ createWorkout: () => new Promise(() => {}) });
+      await rendered;
+      await openedDialog();
+      const user = userEvent.setup();
+      await fill(user, trainerValues);
+
+      // Act
+      await user.click(screen.getByRole("button", { name: "Crear" }));
+
+      // Assert
+      await waitFor(() =>
+        expect(within(weekField()).getByRole("button", { name: "Semana anterior" })).toBeDisabled(),
+      );
+      expect(within(weekField()).getByRole("button", { name: "Semana siguiente" })).toBeDisabled();
+      expect(within(weekField()).getByRole("button", { name: "Elegir semana" })).toBeDisabled();
+    });
+
+    it("selects the week of the day picked in the calendar", async () => {
+      // Arrange
+      await renderDialog().rendered;
+      await openedDialog();
+      const picker = within(weekField()).getByLabelText("Elegir semana", { selector: "input" });
+
+      // Act
+      fireEvent.change(picker, { target: { value: "2026-11-13" } });
+
+      // Assert
+      expect(within(weekField()).getByText("Semana del 9 nov – 15 nov")).toBeInTheDocument();
+    });
+
+    it("shows both years and sends the Wednesday of a week spanning two years", async () => {
+      // Arrange
+      vi.setSystemTime(new Date(2026, 11, 29, 12));
+      const { execute, rendered } = renderDialog();
+      await rendered;
+      await openedDialog();
+      const user = userEvent.setup();
+      await fill(user, trainerValues);
+      expect(
+        within(weekField()).getByText("Semana del 28 dic 2026 – 3 ene 2027"),
+      ).toBeInTheDocument();
+
+      // Act
+      await user.click(screen.getByRole("button", { name: "Crear" }));
+
+      // Assert
+      await waitFor(() =>
+        expect(execute).toHaveBeenCalledWith(
+          expect.objectContaining({ workoutDate: "2026-12-30" }),
+        ),
+      );
+    });
   });
 });

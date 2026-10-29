@@ -18,7 +18,9 @@ import ExerciseListItem, {
   EXERCISE_LIST_MAX_HEIGHT,
 } from "@/presentation/workouts/components/molecules/exercise-list-item";
 import LabelFilter from "@/presentation/workouts/components/molecules/label-filter";
-import useExerciseLabels from "@/presentation/workouts/hooks/use-exercise-labels";
+import useExerciseLabels, {
+  EXERCISE_TYPES,
+} from "@/presentation/workouts/hooks/use-exercise-labels";
 
 interface ExerciseCatalogDialogProps {
   open: boolean;
@@ -26,6 +28,9 @@ interface ExerciseCatalogDialogProps {
   exercises: Exercise[];
   filterText: string;
   onFilterTextChange: (text: string) => void;
+  /** The exercise type pill selected, if any; it never shows or hides another row. */
+  selectedType: string | null;
+  onToggleType: (type: string) => void;
   selectedBodyPart: string | null;
   onToggleBodyPart: (bodyPart: string) => void;
   /** Only meaningful while a body part is selected; the screen clears it when the body part changes. */
@@ -51,6 +56,8 @@ export default function ExerciseCatalogDialog({
   exercises,
   filterText,
   onFilterTextChange,
+  selectedType,
+  onToggleType,
   selectedBodyPart,
   onToggleBodyPart,
   selectedMuscle,
@@ -60,8 +67,16 @@ export default function ExerciseCatalogDialog({
   onClose,
 }: ExerciseCatalogDialogProps) {
   const { t } = useTranslation("workouts");
-  const { nameOf, muscleLabel, bodyPartLabel, bodyPartColor, exerciseLabelsOf } =
-    useExerciseLabels();
+  const {
+    nameOf,
+    muscleLabel,
+    bodyPartLabel,
+    bodyPartColor,
+    typeLabel,
+    typeColor,
+    typeWatermark,
+    exerciseLabelsOf,
+  } = useExerciseLabels();
   const titleId = useId();
 
   const bodyParts = useMemo(
@@ -98,11 +113,18 @@ export default function ExerciseCatalogDialog({
 
     return exercises.filter(
       (exercise) =>
+        (selectedType === null || exercise.type === selectedType) &&
         (selectedBodyPart === null || exercise.bodyPart === selectedBodyPart) &&
         (selectedMuscle === null || exercise.muscle === selectedMuscle) &&
         normalize(nameOf(exercise)).includes(text),
     );
-  }, [exercises, filterText, selectedBodyPart, selectedMuscle, nameOf]);
+  }, [exercises, filterText, selectedType, selectedBodyPart, selectedMuscle, nameOf]);
+
+  // Every known type, always in the same order, whether or not the catalog has exercises of it.
+  const types = useMemo(
+    () => EXERCISE_TYPES.map((code) => ({ code, label: typeLabel(code), color: typeColor(code) })),
+    [typeLabel, typeColor],
+  );
 
   return (
     <Dialog
@@ -133,6 +155,14 @@ export default function ExerciseCatalogDialog({
             onChange={(event) => onFilterTextChange(event.target.value)}
             sx={{ mb: 2 }}
           />
+          <Box sx={{ mb: 1 }}>
+            <LabelFilter
+              label={t("workout.catalog.types")}
+              options={types}
+              selected={selectedType}
+              onToggle={onToggleType}
+            />
+          </Box>
           <LabelFilter
             label={t("workout.catalog.bodyParts")}
             options={bodyParts}
@@ -171,6 +201,9 @@ export default function ExerciseCatalogDialog({
                   key={exercise.id}
                   name={nameOf(exercise)}
                   labels={exerciseLabelsOf(exercise, !singleMuscleBodyParts.has(exercise.bodyPart))}
+                  watermark={typeWatermark(exercise.type)}
+                  // Half the width of the "Elegir ejercicio" button, so the plus does not sit over the icon.
+                  watermarkInsetRight={2.5}
                   actions={
                     <IconButton
                       edge="end"

@@ -4,7 +4,7 @@
     "newWorkout": "New workout",
     "columns": {
       "name": "Name",
-      "date": "Date",
+      "date": "Week",
       "athlete": "Athlete",
       "trainer": "Trainer",
       "exercises": "Exercises"
@@ -17,7 +17,7 @@
     "fields": {
       "name": "Name",
       "description": "Description",
-      "date": "Date",
+      "date": "Week",
       "userId": "Athlete ID",
       "trainerId": "Trainer ID"
     },
@@ -40,7 +40,8 @@
       "choose": "Choose exercise",
       "close": "Close",
       "bodyParts": "Body parts",
-      "muscles": "Muscles"
+      "muscles": "Muscles",
+      "types": "Type"
     },
     "details": {
       "save": "Save",
@@ -104,6 +105,12 @@
     "editTitle": "Edit workout",
     "properties": {
       "title": "Workout properties"
+    },
+    "week": {
+      "label": "Week of {{start}} – {{end}}",
+      "previous": "Previous week",
+      "next": "Next week",
+      "pick": "Pick a week"
     }
   },
   "muscles": {
@@ -146,5 +153,33 @@
     "Duration": "Seconds",
     "MaxReps": "Max reps",
     "RepsRange": "Rep range"
+  },
+  "exerciseTypes": {
+    "STRENGTH": "Strength",
+    "CARDIO": "Cardio",
+    "STRETCHING": "Stretching"
+  },
+  "effortsByType": {
+    "STRENGTH": {
+      "LOW": "RIR 5+",
+      "MIDLOW": "RIR 4",
+      "MID": "RIR 3",
+      "MIDHIGH": "RIR 1-2",
+      "HIGH": "RIR 0"
+    },
+    "CARDIO": {
+      "LOW": "RPE 1-2",
+      "MIDLOW": "RPE 3-4",
+      "MID": "RPE 5-6",
+      "MIDHIGH": "RPE 7-8",
+      "HIGH": "RPE 9-10"
+    },
+    "STRETCHING": {
+      "LOW": "Very light",
+      "MIDLOW": "Light",
+      "MID": "Moderate",
+      "MIDHIGH": "Intense",
+      "HIGH": "Very intense"
+    }
   }
 }

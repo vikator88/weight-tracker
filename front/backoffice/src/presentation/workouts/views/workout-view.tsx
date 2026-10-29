@@ -37,6 +37,7 @@ import useRemoveWorkoutExercise from "@/presentation/workouts/hooks/use-remove-w
 import useReorderWorkoutExercises from "@/presentation/workouts/hooks/use-reorder-workout-exercises";
 import useUpdateWorkout from "@/presentation/workouts/hooks/use-update-workout";
 import useWorkout from "@/presentation/workouts/hooks/use-workout";
+import { weekMiddleOf, weekStartOf } from "@/presentation/workouts/week";
 
 function WorkoutNotFound() {
   const { t } = useTranslation("workouts");
@@ -78,7 +79,8 @@ function toUpdate(workout: WorkoutDetail, values: WorkoutDetailsFormValues): Upd
   const input: UpdateWorkoutInput = {
     id: workout.id,
     name: values.name.trim(),
-    workoutDate: values.workoutDate,
+    // The form holds the week's Monday; the week is sent as its Wednesday.
+    workoutDate: weekMiddleOf(values.workoutDate),
     userId: workout.userId,
     trainerId: workout.trainerId,
   };
@@ -129,10 +131,11 @@ function LoadedWorkout({ workout, exercises }: { workout: WorkoutDetail; exercis
   const [values, setValues] = useState<WorkoutDetailsFormValues>({
     name: workout.name,
     description: workout.description ?? "",
-    workoutDate: workout.workoutDate,
+    workoutDate: weekStartOf(workout.workoutDate),
   });
   const [errors, setErrors] = useState<WorkoutDetailsFormViolations>({});
   const [filterText, setFilterText] = useState("");
+  const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedBodyPart, setSelectedBodyPart] = useState<string | null>(null);
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
   const [dialog, setDialog] = useState<OpenDialog>({ kind: "none" });
@@ -297,6 +300,8 @@ function LoadedWorkout({ workout, exercises }: { workout: WorkoutDetail; exercis
         exercises={available}
         filterText={filterText}
         onFilterTextChange={setFilterText}
+        selectedType={selectedType}
+        onToggleType={(type) => setSelectedType((current) => (current === type ? null : type))}
         selectedBodyPart={selectedBodyPart}
         onToggleBodyPart={(bodyPart) => {
           setSelectedBodyPart((current) => (current === bodyPart ? null : bodyPart));

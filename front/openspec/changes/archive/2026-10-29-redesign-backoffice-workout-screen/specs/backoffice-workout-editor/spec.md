@@ -311,27 +311,30 @@ the columns SHALL stack, the exercise first.
 - **WHEN** the dialog is open on a wide screen
 - **THEN** the exercise's name is in the left column and the effort field in the right one, side by side
 
-## MODIFIED Requirements
+### Requirement: A single muscle is left out of the exercise lists
 
-### Requirement: Each exercise shows its name, body part and muscle
-
-Each exercise, in the catalog and in the workout, SHALL show its name in the active language and, below it, labels with
-its body part and muscle translated. An unknown code SHALL be shown as it comes. A workout exercise SHALL take these
-from the catalog exercise with the same id; with no match it SHALL show its exercise id as the name and no labels. In
-the catalog and the workout list, the muscle label SHALL be left out when every catalog exercise of the same body part
-works that one muscle; the configuration dialog SHALL always show it.
-
-#### Scenario: Labels in Spanish
-
-- **WHEN** an exercise of body part `LEGS` and muscle `QUADRICEPS` is shown in Spanish, and the catalog has legs
-  exercises for another muscle too
-- **THEN** its labels read "Piernas" and "Cuádriceps"
+In the catalog and the workout list, an exercise's muscle label SHALL be left out when every catalog exercise of the
+same body part works that one muscle. The configuration dialog SHALL always show it.
 
 #### Scenario: Single-muscle body part
 
 - **WHEN** every chest exercise of the catalog works the chest
 - **THEN** a chest exercise in the catalog and in the workout list shows only the label "Pecho"
 - **AND** its configuration dialog shows both "Pecho" labels
+
+## MODIFIED Requirements
+
+### Requirement: Each exercise shows its name, body part and muscle
+
+Each exercise, in the catalog and in the workout, SHALL show its name in the active language and, below it, labels with
+its body part and muscle translated. An unknown code SHALL be shown as it comes. A workout exercise SHALL take these
+from the catalog exercise with the same id; with no match it SHALL show its exercise id as the name and no labels.
+
+#### Scenario: Labels in Spanish
+
+- **WHEN** an exercise of body part `LEGS` and muscle `QUADRICEPS` is shown in Spanish, and the catalog has legs
+  exercises for another muscle too
+- **THEN** its labels read "Piernas" and "Cuádriceps"
 
 #### Scenario: Name in the active language
 

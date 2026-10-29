@@ -2250,6 +2250,7 @@
           "videoUrl",
           "muscle",
           "bodyPart",
+          "type",
           "translations"
         ],
         "type": "object",
@@ -2274,6 +2275,9 @@
             "type": "string"
           },
           "bodyPart": {
+            "type": "string"
+          },
+          "type": {
             "type": "string"
           },
           "translations": {
@@ -2740,6 +2744,7 @@
           "translations",
           "muscle",
           "bodyPart",
+          "type",
           "effort",
           "sets",
           "superSeriesId"
@@ -2764,6 +2769,9 @@
             "type": "string"
           },
           "bodyPart": {
+            "type": "string"
+          },
+          "type": {
             "type": "string"
           },
           "effort": {

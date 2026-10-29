@@ -43,6 +43,15 @@ interface ExerciseListItemProps {
   /** The item's node and inline style, for a wrapper that moves it, such as a sortable list. */
   ref?: Ref<HTMLLIElement>;
   style?: CSSProperties;
+  /**
+   * Drawn behind the content in the card's bottom-right corner, at 75% of its height: an icon such as the exercise
+   * type's. It takes no part in the layout, so the content does not move.
+   */
+  watermark?: ReactNode;
+  /**
+   * How far, in `sx` spacing, the watermark ends from the card's right edge: room for actions it must not sit under.
+   */
+  watermarkInsetRight?: number;
 }
 
 /**
@@ -60,6 +69,8 @@ export default function ExerciseListItem({
   actions,
   ref,
   style,
+  watermark,
+  watermarkInsetRight = 0,
 }: ExerciseListItemProps) {
   const leadingSlot = leading && (
     <Box sx={{ display: "flex", flexShrink: 0, alignSelf: "center" }}>{leading}</Box>
@@ -115,7 +126,7 @@ export default function ExerciseListItem({
   const actionButtons = (
     <Box sx={{ display: "flex", flexShrink: 0, alignSelf: "center" }}>{actions}</Box>
   );
-  const background = selected ? "action.selected" : undefined;
+  const cardBackground = selected ? "action.selected" : undefined;
 
   return (
     <ListItem
@@ -125,15 +136,45 @@ export default function ExerciseListItem({
       aria-current={selected ? "true" : undefined}
       sx={{ display: "block", height: "100%" }}
     >
-      <Card variant="outlined" sx={{ height: "100%", p: 1.5, bgcolor: background }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {leadingSlot}
-          {positionBadge}
-          <Box sx={{ minWidth: 0, flex: 1 }}>{title}</Box>
-          {actionButtons}
+      <Card
+        variant="outlined"
+        sx={{
+          position: "relative",
+          overflow: "hidden",
+          height: "100%",
+          p: 1.5,
+          bgcolor: cardBackground,
+        }}
+      >
+        {watermark && (
+          <Box
+            aria-hidden
+            data-watermark
+            sx={{
+              position: "absolute",
+              right: (theme) => theme.spacing(watermarkInsetRight),
+              bottom: 0,
+              height: "75%",
+              aspectRatio: "1",
+              pointerEvents: "none",
+              zIndex: 0,
+              display: "flex",
+              "& svg": { width: "100%", height: "100%" },
+            }}
+          >
+            {watermark}
+          </Box>
+        )}
+        <Box sx={{ position: "relative", zIndex: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            {leadingSlot}
+            {positionBadge}
+            <Box sx={{ minWidth: 0, flex: 1 }}>{title}</Box>
+            {actionButtons}
+          </Box>
+          {labelChips}
+          {lineTexts}
         </Box>
-        {labelChips}
-        {lineTexts}
       </Card>
     </ListItem>
   );

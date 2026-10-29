@@ -39,6 +39,7 @@ const catalog = [
     videoUrl: null,
     muscle: "QUADRICEPS",
     bodyPart: "LEGS",
+    type: "STRENGTH",
     translations: [
       { languageCode: "es", name: "Sentadilla" },
       { languageCode: "en", name: "Squat" },
@@ -52,6 +53,7 @@ const benchPress = {
   videoUrl: null,
   muscle: "CHEST",
   bodyPart: "CHEST",
+  type: "STRENGTH",
   translations: [
     { languageCode: "es", name: "Press de banca" },
     { languageCode: "en", name: "Bench press" },
@@ -98,6 +100,9 @@ const crowded: StoredWorkout = {
     entryFor(`4e5f6a7b-8c9d-4e0f-9a1b-2c3d4e5f6a7${index}`, exercise.id),
   ),
 };
+
+/** Thursday 29 October 2026, local noon: the current week is 26 Oct – 1 Nov 2026, in the current year. */
+const today = new Date(2026, 9, 29, 12);
 
 function json(body: unknown, status = 200) {
   return { status, headers: cors, contentType: "application/json", body: JSON.stringify(body) };
@@ -322,18 +327,23 @@ async function moveFirstExerciseRight(page: Page) {
 
 test("creates a workout from the dialog and lands on its screen", async ({ page }) => {
   // Arrange
+  await page.clock.setFixedTime(today);
   await signIn(page);
   await page.goto("/assigned-plans");
   await page.getByRole("button", { name: "Nuevo entrenamiento" }).click();
   const dialog = page.getByRole("dialog", { name: "Nuevo entrenamiento" });
   await dialog.getByLabel("Nombre").fill("Pierna");
-  await dialog.getByLabel("Fecha").fill("2026-11-02");
   await dialog.getByLabel("ID del atleta").fill(athleteId);
+  const creation = page.waitForRequest(
+    (request) => request.url() === `${api}/workouts` && request.method() === "POST",
+  );
 
   // Act
   await dialog.getByRole("button", { name: "Crear" }).click();
 
   // Assert
+  // The dialog starts on the current week, which is sent as its Wednesday.
+  expect((await creation).postDataJSON()).toMatchObject({ workoutDate: "2026-10-28" });
   await expect(page).toHaveURL(/\/workout\/?\?id=8c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f$/);
   await expect(page.getByRole("heading", { level: 1, name: "Editar entrenamiento" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Nombre" })).toHaveValue("Pierna");
@@ -357,6 +367,30 @@ test("opens a workout from the table's edit action", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "Editar entrenamiento" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Nombre" })).toHaveValue("Empuje");
   await expect(page.getByRole("textbox", { name: "Descripción" })).toHaveValue("Día 2");
+});
+
+test("sends the Wednesday of the week chosen on the workout screen", async ({ page }) => {
+  // Arrange
+  await page.clock.setFixedTime(today);
+  await signIn(page);
+  await page.goto(`/workout?id=${existing.id}`);
+  const week = page
+    .getByRole("region", { name: "Propiedades del entrenamiento" })
+    .getByRole("group", { name: "Semana" });
+  await expect(week.getByText("Semana del 2 nov – 8 nov")).toBeVisible();
+  await week.getByRole("button", { name: "Semana anterior" }).click();
+  await expect(week.getByText("Semana del 26 oct – 1 nov")).toBeVisible();
+  const update = page.waitForRequest(
+    (request) => request.url() === `${api}/workouts/${existing.id}` && request.method() === "PUT",
+  );
+
+  // Act
+  await page.getByRole("button", { name: "Guardar" }).click();
+
+  // Assert
+  expect((await update).postDataJSON()).toMatchObject({ workoutDate: "2026-10-28" });
+  await page.reload();
+  await expect(week.getByText("Semana del 26 oct – 1 nov")).toBeVisible();
 });
 
 test("saves a workout's data and shows it after a reload", async ({ page }) => {
@@ -384,7 +418,7 @@ test("adds an exercise through the catalog and configuration dialogs and keeps i
   await page.goto(`/workout?id=${existing.id}`);
   const dialog = await chooseFromCatalog(page, "Sentadilla");
   await dialog.getByRole("combobox", { name: "Esfuerzo" }).click();
-  await page.getByRole("option", { name: "Alto", exact: true }).click();
+  await page.getByRole("option", { name: "RIR 0", exact: true }).click();
   const form = dialog.getByRole("group", { name: "Añadir serie" });
   await form.getByRole("spinbutton", { name: "Series" }).fill("2");
   await form.getByRole("spinbutton", { name: "Valor" }).fill("15");
@@ -413,11 +447,54 @@ test("adds an exercise through the catalog and configuration dialogs and keeps i
   const exercisesCard = page.getByRole("region", { name: "Ejercicios" });
   await expect(exercisesCard.getByText("Sentadilla")).toBeVisible();
   await expect(exercisesCard.getByText("2 × 15, 1 × máx", { exact: true })).toBeVisible();
-  await expect(exercisesCard.getByText("Esfuerzo: Alto", { exact: true })).toBeVisible();
+  await expect(exercisesCard.getByText("Esfuerzo: RIR 0", { exact: true })).toBeVisible();
   await exercisesCard.getByRole("button", { name: "Editar ejercicio" }).click();
   const details = page.getByRole("dialog", { name: "Configuración del ejercicio" });
   await expect(details.getByText("2 × 15 repeticiones", { exact: true })).toBeVisible();
   await expect(details.getByText("1 × máximo", { exact: true })).toBeVisible();
+});
+
+test("filters the catalog by type and prescribes a strength exercise in RIR", async ({ page }) => {
+  // Arrange
+  const sent = await signIn(page);
+  await page.goto(`/workout?id=${existing.id}`);
+  await page.getByRole("button", { name: "Añadir ejercicio" }).click();
+  const catalogDialog = page.getByRole("dialog", { name: "Catálogo de ejercicios" });
+  await catalogDialog
+    .getByRole("group", { name: "Tipo" })
+    .getByRole("button", { name: "Fuerza" })
+    .click();
+  await catalogDialog
+    .getByRole("listitem")
+    .filter({ hasText: "Sentadilla" })
+    .getByRole("button", { name: "Elegir ejercicio" })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Configuración del ejercicio" });
+  await dialog.getByRole("combobox", { name: "Esfuerzo" }).click();
+  await expect(page.getByRole("option")).toHaveText([
+    "RIR 5+",
+    "RIR 4",
+    "RIR 3",
+    "RIR 1-2",
+    "RIR 0",
+  ]);
+  await page.getByRole("option", { name: "RIR 0", exact: true }).click();
+  const form = dialog.getByRole("group", { name: "Añadir serie" });
+  await form.getByRole("spinbutton", { name: "Series" }).fill("3");
+  await form.getByRole("spinbutton", { name: "Valor" }).fill("8");
+  await dialog.getByRole("button", { name: "Añadir serie" }).click();
+
+  // Act
+  await dialog.getByRole("button", { name: "Guardar" }).click();
+
+  // Assert
+  await expect(dialog).toBeHidden();
+  expect(sent.additions).toEqual([
+    expect.objectContaining({ exerciseId: catalog[0]!.id, effort: "HIGH" }),
+  ]);
+  await expect(
+    page.getByRole("region", { name: "Ejercicios" }).getByText("Esfuerzo: RIR 0", { exact: true }),
+  ).toBeVisible();
 });
 
 test("edits an exercise's sets through the pencil and keeps them after a reload", async ({
@@ -478,7 +555,7 @@ test("removes a saved exercise and lists it in the catalog again", async ({ page
   await page.goto(`/workout?id=${existing.id}`);
   const dialog = await chooseFromCatalog(page, "Sentadilla");
   await dialog.getByRole("combobox", { name: "Esfuerzo" }).click();
-  await page.getByRole("option", { name: "Medio", exact: true }).click();
+  await page.getByRole("option", { name: "RIR 3", exact: true }).click();
   const form = dialog.getByRole("group", { name: "Añadir serie" });
   await form.getByRole("spinbutton", { name: "Series" }).fill("3");
   await form.getByRole("spinbutton", { name: "Valor" }).fill("10");

@@ -16,6 +16,7 @@ import type {
   WorkoutExerciseDetail,
 } from "@weight-tracker/core/domain";
 import i18n from "@/infrastructure/i18n";
+import theme from "@/presentation/common/theme";
 import WorkoutView from "@/presentation/workouts/views/workout-view";
 import renderWithProviders from "../../../support/render-with-providers";
 
@@ -35,6 +36,7 @@ function catalogExercise(
   bodyPart: string,
   [es, en]: [string, string],
   videoUrl: string | null,
+  type = "STRENGTH",
 ): Exercise {
   return {
     id,
@@ -42,6 +44,7 @@ function catalogExercise(
     videoUrl,
     muscle,
     bodyPart,
+    type,
     translations: [
       { languageCode: "es", name: es },
       { languageCode: "en", name: en },
@@ -96,6 +99,33 @@ const legCurl = catalogExercise(
   null,
 );
 const muscleCatalog = async () => ok([...catalog, curl, pushdown, hammerCurl, legCurl]);
+
+/** One exercise of each other type and one of a type the backoffice does not know. */
+const bike = catalogExercise(
+  "ex-bike",
+  "QUADRICEPS",
+  "LEGS",
+  ["Bicicleta", "Bike"],
+  null,
+  "CARDIO",
+);
+const hamstringStretch = catalogExercise(
+  "ex-stretch",
+  "HAMSTRINGS",
+  "LEGS",
+  ["Estiramiento de isquios", "Hamstring stretch"],
+  null,
+  "STRETCHING",
+);
+const treePose = catalogExercise(
+  "ex-tree",
+  "ABDOMINALS",
+  "CORE",
+  ["Postura del árbol", "Tree pose"],
+  null,
+  "YOGA",
+);
+const typeCatalog = async () => ok([...catalog, bike, hamstringStretch, treePose]);
 
 function workoutExercise(
   id: string,
@@ -351,6 +381,13 @@ describe("WorkoutView", () => {
     replace.mockClear();
     push.mockClear();
     navigation.search = "id=w-1";
+    // Only `Date` is faked, so user events, dnd-kit and promises keep running; the current year is 2026.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 29, 12));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("reads the workout and the catalog once", async () => {
@@ -454,7 +491,9 @@ describe("WorkoutView", () => {
     await openCatalog(user);
 
     // Assert
-    const pills = within(catalogDialog()).getAllByRole("button", { pressed: false });
+    const pills = within(
+      within(catalogDialog()).getByRole("group", { name: "Partes del cuerpo" }),
+    ).getAllByRole("button", { pressed: false });
     expect(pills.map((pill) => pill.textContent)).toEqual(["Pecho", "Piernas"]);
     expect(catalogNames()).toEqual(["Sentadilla", "Prensa de piernas", "Press de banca"]);
   });
@@ -655,7 +694,7 @@ describe("WorkoutView", () => {
     await loaded();
     const user = userEvent.setup();
     await chooseFromCatalog(user, "Prensa de piernas");
-    await chooseEffort(user, "Alto");
+    await chooseEffort(user, "RIR 0");
     await addSet(user, { count: "2", value: "15" });
     await user.click(within(configurationDialog()).getByRole("button", { name: "Guardar" }));
     await dialogsClosed();
@@ -728,7 +767,7 @@ describe("WorkoutView", () => {
     await loaded();
     const user = userEvent.setup();
     await editExercise(user, 0);
-    await chooseEffort(user, "Bajo");
+    await chooseEffort(user, "RIR 5+");
 
     // Act
     await user.keyboard("{Escape}");
@@ -744,7 +783,7 @@ describe("WorkoutView", () => {
     await loaded();
     const user = userEvent.setup();
     await editExercise(user, 0);
-    await chooseEffort(user, "Bajo");
+    await chooseEffort(user, "RIR 5+");
     await user.click(within(configurationDialog()).getByRole("button", { name: "Quitar serie" }));
     await user.click(within(configurationDialog()).getByRole("button", { name: "Cancelar" }));
     await dialogsClosed();
@@ -755,7 +794,7 @@ describe("WorkoutView", () => {
     // Assert
     expect(
       within(configurationDialog()).getByRole("combobox", { name: "Esfuerzo" }),
-    ).toHaveTextContent("Alto");
+    ).toHaveTextContent("RIR 0");
     expect(setSummaries()).toEqual(["3 × 10 repeticiones"]);
   });
 
@@ -765,7 +804,7 @@ describe("WorkoutView", () => {
     await loaded();
     const user = userEvent.setup();
     await editExercise(user, 0);
-    await chooseEffort(user, "Bajo");
+    await chooseEffort(user, "RIR 5+");
     await user.click(within(configurationDialog()).getByRole("button", { name: "Cancelar" }));
     await dialogsClosed();
 
@@ -775,7 +814,7 @@ describe("WorkoutView", () => {
     // Assert
     expect(
       within(configurationDialog()).getByRole("combobox", { name: "Esfuerzo" }),
-    ).toHaveTextContent("Medio");
+    ).toHaveTextContent("RIR 3");
   });
 
   it("disables Cancelar while the exercise is being saved", async () => {
@@ -785,7 +824,7 @@ describe("WorkoutView", () => {
     await loaded();
     const user = userEvent.setup();
     await chooseFromCatalog(user, "Sentadilla");
-    await chooseEffort(user, "Alto");
+    await chooseEffort(user, "RIR 0");
     await addSet(user, { count: "3", value: "10" });
 
     // Act
@@ -803,7 +842,7 @@ describe("WorkoutView", () => {
     await loaded();
     const user = userEvent.setup();
     await chooseFromCatalog(user, "Sentadilla");
-    await chooseEffort(user, "Alto");
+    await chooseEffort(user, "RIR 0");
     await addSet(user, { count: "3", value: "10" });
     await user.click(within(configurationDialog()).getByRole("button", { name: "Guardar" }));
 
@@ -822,7 +861,11 @@ describe("WorkoutView", () => {
     await loaded();
     const card = propertiesSection();
     expect(within(card).getByRole("textbox", { name: "Nombre" })).toHaveValue("Pierna");
-    expect(within(card).getByLabelText("Fecha")).toHaveValue("2026-11-02");
+    expect(
+      within(within(card).getByRole("group", { name: "Semana" })).getByText(
+        "Semana del 2 nov – 8 nov",
+      ),
+    ).toBeInTheDocument();
     expect(within(card).getByRole("textbox", { name: "Descripción" })).toHaveValue("Día 1");
     expect(within(card).queryByRole("list")).not.toBeInTheDocument();
   });
@@ -1191,13 +1234,35 @@ describe("WorkoutView", () => {
     expect(mutations.update).toHaveBeenCalledWith({
       id: "w-1",
       name: "Pierna B",
-      workoutDate: "2026-11-02",
+      // The Wednesday of the loaded week.
+      workoutDate: "2026-11-04",
       description: "Día 1",
       userId: withTrainer.userId,
       trainerId: withTrainer.trainerId,
     });
     expect(mutations.create).not.toHaveBeenCalled();
     expect(mutations.addExercise).not.toHaveBeenCalled();
+  });
+
+  it("sends the Wednesday of the previous week after Semana anterior", async () => {
+    // Arrange
+    const { mutations, rendered } = renderWorkout();
+    await rendered;
+    await loaded();
+    const user = userEvent.setup();
+    await user.click(
+      within(within(propertiesSection()).getByRole("group", { name: "Semana" })).getByRole(
+        "button",
+        { name: "Semana anterior" },
+      ),
+    );
+
+    // Act
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+
+    // Assert
+    await waitFor(() => expect(mutations.update).toHaveBeenCalledTimes(1));
+    expect(mutations.update.mock.calls[0]?.[0]).toMatchObject({ workoutDate: "2026-10-28" });
   });
 
   it("sends no description when it is left blank", async () => {
@@ -1304,7 +1369,7 @@ describe("WorkoutView", () => {
     await loaded();
     const [item] = workoutItems();
     const setsLine = within(item!).getByText("2 × 15, 1 × 10–12, 1 × máx");
-    const effortLine = within(item!).getByText("Esfuerzo: Alto");
+    const effortLine = within(item!).getByText("Esfuerzo: RIR 0");
     expect(setsLine).not.toBe(effortLine);
     expect(
       setsLine.compareDocumentPosition(effortLine) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -1318,7 +1383,7 @@ describe("WorkoutView", () => {
     await loaded();
     const user = userEvent.setup();
     await chooseFromCatalog(user, "Prensa de piernas");
-    await chooseEffort(user, "Medio");
+    await chooseEffort(user, "RIR 3");
     await addSet(user, { count: "3", value: "10" });
 
     // Act
@@ -1333,7 +1398,7 @@ describe("WorkoutView", () => {
     ]);
     const item = workoutItems()[2]!;
     expect(within(item).getByText("3 × 10", { exact: true })).toBeInTheDocument();
-    expect(within(item).getByText("Esfuerzo: Medio")).toBeInTheDocument();
+    expect(within(item).getByText("Esfuerzo: RIR 3")).toBeInTheDocument();
   });
 
   it("closes the dialog and updates an edited exercise as the API answered it", async () => {
@@ -1647,7 +1712,7 @@ describe("WorkoutView", () => {
     const dialog = await screen.findByRole("dialog", { name: "Configuración del ejercicio" });
     expect(within(dialog).getByRole("heading", { name: "Press de banca" })).toBeInTheDocument();
     expect(within(dialog).getAllByText("Pecho")).toHaveLength(2);
-    expect(within(dialog).getByRole("combobox", { name: "Esfuerzo" })).toHaveTextContent("Medio");
+    expect(within(dialog).getByRole("combobox", { name: "Esfuerzo" })).toHaveTextContent("RIR 3");
     expect(setSummaries()).toEqual(["4 × 8–12 repeticiones"]);
     expect(within(dialog).getByRole("button", { name: "Cancelar" })).toBeEnabled();
     expect(within(dialog).getByRole("button", { name: "Guardar" })).toBeEnabled();
@@ -1668,7 +1733,7 @@ describe("WorkoutView", () => {
     expect(within(dialog).getByRole("heading", { name: "Sentadilla" })).toBeInTheDocument();
     expect(within(dialog).getByText("Piernas")).toBeInTheDocument();
     expect(within(dialog).getByText("Cuádriceps")).toBeInTheDocument();
-    expect(within(dialog).getByRole("combobox", { name: "Esfuerzo" })).toHaveTextContent("Alto");
+    expect(within(dialog).getByRole("combobox", { name: "Esfuerzo" })).toHaveTextContent("RIR 0");
     expect(setSummaries()).toEqual(["3 × 10 repeticiones"]);
   });
 
@@ -1801,7 +1866,7 @@ describe("WorkoutView", () => {
     await loaded();
     const user = userEvent.setup();
     await chooseFromCatalog(user, "Prensa de piernas");
-    await chooseEffort(user, "Alto");
+    await chooseEffort(user, "RIR 0");
     await addSet(user, { count: "2", value: "15" });
     await addSet(user, { count: "1", type: "Máximas repeticiones" });
 
@@ -1858,7 +1923,7 @@ describe("WorkoutView", () => {
     await loaded();
     const user = userEvent.setup();
     await chooseFromCatalog(user, "Sentadilla");
-    await chooseEffort(user, "Medio");
+    await chooseEffort(user, "RIR 3");
     await addSet(user, { count: "3", value: "10" });
 
     // Act
@@ -2014,5 +2079,295 @@ describe("WorkoutView", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add exercise", hidden: true })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save", hidden: true })).toBeInTheDocument();
+  });
+
+  describe("exercise type", () => {
+    const typeGroup = () => within(catalogDialog()).getByRole("group", { name: "Tipo" });
+    const typePill = (name: string) => within(typeGroup()).getByRole("button", { name });
+
+    async function effortOptions(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(within(configurationDialog()).getByRole("combobox", { name: "Esfuerzo" }));
+      return screen.getAllByRole("option").map((option) => option.textContent);
+    }
+
+    it("shows the type pills first, under Tipo, outlined in their colours", async () => {
+      // Arrange
+      await renderWorkout({ getWorkout: withoutExercises }).rendered;
+      await loaded();
+      const user = userEvent.setup();
+
+      // Act
+      await openCatalog(user);
+
+      // Assert
+      const pills = within(typeGroup()).getAllByRole("button");
+      expect(pills.map((pill) => pill.textContent)).toEqual(["Fuerza", "Cardio", "Estiramiento"]);
+      expect(pills[0]).toHaveClass("MuiChip-colorStrength", "MuiChip-outlined");
+      expect(pills[1]).toHaveClass("MuiChip-colorCardio", "MuiChip-outlined");
+      expect(pills[2]).toHaveClass("MuiChip-colorStretching", "MuiChip-outlined");
+      const typeLabel = within(catalogDialog()).getByText("Tipo");
+      const bodyPartsLabel = within(catalogDialog()).getByText("Partes del cuerpo");
+      expect(
+        typeLabel.compareDocumentPosition(bodyPartsLabel) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it("keeps only the selected type's exercises, fills its pill and keeps the other rows", async () => {
+      // Arrange
+      await renderWorkout({ getWorkout: withoutExercises, getExercises: typeCatalog }).rendered;
+      await loaded();
+      const user = userEvent.setup();
+      await openCatalog(user);
+
+      // Act
+      await user.click(typePill("Cardio"));
+
+      // Assert
+      expect(catalogNames()).toEqual(["Bicicleta"]);
+      expect(typePill("Cardio")).toHaveClass("MuiChip-colorCardio", "MuiChip-filled");
+      expect(
+        within(catalogDialog()).getByRole("group", { name: "Partes del cuerpo" }),
+      ).toBeInTheDocument();
+    });
+
+    it("clears the type when its pill is selected again", async () => {
+      // Arrange
+      await renderWorkout({ getWorkout: withoutExercises, getExercises: typeCatalog }).rendered;
+      await loaded();
+      const user = userEvent.setup();
+      await openCatalog(user);
+      await user.click(typePill("Cardio"));
+
+      // Act
+      await user.click(typePill("Cardio"));
+
+      // Assert
+      expect(typePill("Cardio")).toHaveAttribute("aria-pressed", "false");
+      expect(catalogNames()).toHaveLength(6);
+    });
+
+    it("combines the type with a body part", async () => {
+      // Arrange
+      await renderWorkout({ getWorkout: withoutExercises, getExercises: typeCatalog }).rendered;
+      await loaded();
+      const user = userEvent.setup();
+      await openCatalog(user);
+      await user.click(typePill("Fuerza"));
+
+      // Act
+      await user.click(
+        within(within(catalogDialog()).getByRole("group", { name: "Partes del cuerpo" })).getByRole(
+          "button",
+          { name: "Piernas" },
+        ),
+      );
+
+      // Assert
+      expect(catalogNames()).toEqual(["Sentadilla", "Prensa de piernas"]);
+    });
+
+    it("keeps the type when the catalog opens again", async () => {
+      // Arrange
+      await renderWorkout({ getWorkout: withoutExercises, getExercises: typeCatalog }).rendered;
+      await loaded();
+      const user = userEvent.setup();
+      await openCatalog(user);
+      await user.click(typePill("Cardio"));
+      await user.keyboard("{Escape}");
+      await dialogsClosed();
+
+      // Act
+      await openCatalog(user);
+
+      // Assert
+      expect(typePill("Cardio")).toHaveAttribute("aria-pressed", "true");
+      expect(catalogNames()).toEqual(["Bicicleta"]);
+    });
+
+    /** The type icon drawn behind a card, if any; MUI icons carry a `data-testid` named after them. */
+    const watermarkOf = (item: HTMLElement) =>
+      item.querySelector<HTMLElement>("[data-watermark]")?.querySelector<SVGElement>("svg") ?? null;
+    const catalogItem = (name: string) =>
+      within(catalogDialog())
+        .getAllByRole("listitem")
+        .find((item) => within(item).queryByText(name) !== null)!;
+
+    it("draws each catalog card's type icon in its pastel tone and none for an unknown type", async () => {
+      // Arrange
+      await renderWorkout({ getWorkout: withoutExercises, getExercises: typeCatalog }).rendered;
+      await loaded();
+      const user = userEvent.setup();
+
+      // Act
+      await openCatalog(user);
+
+      // Assert
+      const expected = [
+        ["Sentadilla", "FitnessCenterIcon", theme.palette.strength.pastel],
+        ["Bicicleta", "FavoriteIcon", theme.palette.cardio.pastel],
+        ["Estiramiento de isquios", "SelfImprovementIcon", theme.palette.stretching.pastel],
+      ] as const;
+      for (const [name, icon, color] of expected) {
+        const watermark = watermarkOf(catalogItem(name));
+        expect(watermark).toHaveAttribute("data-testid", icon);
+        expect(watermark).toHaveStyle({ color });
+      }
+      expect(watermarkOf(catalogItem("Postura del árbol"))).toBeNull();
+    });
+
+    it("draws the icon behind the content, bottom-right, out of the layout and the pointer's way", async () => {
+      // Arrange
+      await renderWorkout({ getWorkout: withoutExercises, getExercises: typeCatalog }).rendered;
+      await loaded();
+      const user = userEvent.setup();
+
+      // Act
+      await openCatalog(user);
+
+      // Assert
+      const holder = catalogItem("Sentadilla").querySelector<HTMLElement>("[data-watermark]")!;
+      expect(holder).toHaveAttribute("aria-hidden", "true");
+      // Inset by half the width of the "Elegir ejercicio" button, so the plus does not sit over the icon.
+      expect(holder).toHaveStyle({
+        position: "absolute",
+        right: "20px",
+        bottom: "0px",
+        height: "75%",
+        pointerEvents: "none",
+      });
+    });
+
+    it("draws a workout card's icon from its catalog type and none for a missing exercise", async () => {
+      // Arrange
+      const getWorkout = async () =>
+        ok({
+          ...workout,
+          exercises: [
+            workoutExercise("we-bike", bike.id, "MID", []),
+            workoutExercise("we-gone", "ex-unknown", "MID", []),
+          ],
+        });
+
+      // Act
+      await renderWorkout({ getWorkout, getExercises: typeCatalog }).rendered;
+
+      // Assert
+      await loaded();
+      const [bikeItem, goneItem] = workoutItems();
+      expect(watermarkOf(bikeItem!)).toHaveAttribute("data-testid", "FavoriteIcon");
+      expect(watermarkOf(bikeItem!)).toHaveStyle({ color: theme.palette.cardio.pastel });
+      expect(watermarkOf(goneItem!)).toBeNull();
+      // Nothing to keep clear of in the workout list: the icon reaches the card's edge.
+      expect(bikeItem!.querySelector("[data-watermark]")).toHaveStyle({ right: "0px" });
+    });
+
+    it("offers the RIR scale for a strength exercise", async () => {
+      // Arrange
+      await renderWorkout({ getWorkout: withoutExercises, getExercises: typeCatalog }).rendered;
+      await loaded();
+      const user = userEvent.setup();
+      await chooseFromCatalog(user, "Sentadilla");
+
+      // Act
+      const options = await effortOptions(user);
+
+      // Assert
+      expect(options).toEqual(["RIR 5+", "RIR 4", "RIR 3", "RIR 1-2", "RIR 0"]);
+    });
+
+    it("offers the RPE scale for a cardio exercise", async () => {
+      // Arrange
+      await renderWorkout({ getWorkout: withoutExercises, getExercises: typeCatalog }).rendered;
+      await loaded();
+      const user = userEvent.setup();
+      await chooseFromCatalog(user, "Bicicleta");
+
+      // Act
+      const options = await effortOptions(user);
+
+      // Assert
+      expect(options).toEqual(["RPE 1-2", "RPE 3-4", "RPE 5-6", "RPE 7-8", "RPE 9-10"]);
+    });
+
+    it("offers the intensity scale for a stretching exercise", async () => {
+      // Arrange
+      await renderWorkout({ getWorkout: withoutExercises, getExercises: typeCatalog }).rendered;
+      await loaded();
+      const user = userEvent.setup();
+      await chooseFromCatalog(user, "Estiramiento de isquios");
+
+      // Act
+      const options = await effortOptions(user);
+
+      // Assert
+      expect(options).toEqual(["Muy suave", "Suave", "Moderado", "Intenso", "Muy intenso"]);
+    });
+
+    it("keeps the generic scale for an unknown type", async () => {
+      // Arrange
+      await renderWorkout({ getWorkout: withoutExercises, getExercises: typeCatalog }).rendered;
+      await loaded();
+      const user = userEvent.setup();
+      await chooseFromCatalog(user, "Postura del árbol");
+
+      // Act
+      const options = await effortOptions(user);
+
+      // Assert
+      expect(options).toEqual(["Bajo", "Medio-bajo", "Medio", "Medio-alto", "Alto"]);
+    });
+
+    it("shows a strength exercise's effort in RIR in the workout list", async () => {
+      // Arrange & Act
+      await renderWorkout().rendered;
+
+      // Assert
+      await loaded();
+      const benchItem = workoutItems()[1]!;
+      expect(within(benchItem).getByText("Esfuerzo: RIR 3")).toBeInTheDocument();
+    });
+
+    it("follows the active language for the types and the stretching scale", async () => {
+      // Arrange
+      await renderWorkout({ getWorkout: withoutExercises, getExercises: typeCatalog }).rendered;
+      await loaded();
+      const user = userEvent.setup();
+      await openCatalog(user);
+
+      // Act
+      await act(() => i18n.changeLanguage("en"));
+
+      // Assert
+      const types = within(screen.getByRole("dialog", { name: "Exercise catalog" })).getByRole(
+        "group",
+        { name: "Type" },
+      );
+      expect(
+        within(types)
+          .getAllByRole("button")
+          .map((pill) => pill.textContent),
+      ).toEqual(["Strength", "Cardio", "Stretching"]);
+    });
+
+    it("offers the stretching scale in English", async () => {
+      // Arrange
+      await renderWorkout({ getWorkout: withoutExercises, getExercises: typeCatalog }).rendered;
+      await loaded();
+      const user = userEvent.setup();
+      await chooseFromCatalog(user, "Estiramiento de isquios");
+      await effortOptions(user);
+
+      // Act
+      await act(() => i18n.changeLanguage("en"));
+
+      // Assert
+      expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
+        "Very light",
+        "Light",
+        "Moderate",
+        "Intense",
+        "Very intense",
+      ]);
+    });
   });
 });

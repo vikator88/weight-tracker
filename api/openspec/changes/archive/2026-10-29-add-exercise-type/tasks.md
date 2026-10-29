@@ -24,7 +24,7 @@
 
 - [x] 3.1 Add `ExerciseEntity.Type` (`int`), map it in `WeightTrackerDbContext` with `.HasColumnName("Type")`, and read and write it in `ExerciseMapper` with a `MapType` that throws `PersistenceMappingException`, mirroring `MapMuscle`. Verify that the build succeeds.
 - [x] 3.2 Extend the mapper tests in `test/WeightTracker.Unit/Infra/Mappers/AggregateMapperTests.cs`: `Type` round-trips, and an unknown stored type throws `PersistenceMappingException`. Verify that the unit suite passes.
-- [ ] 3.3 Give `DatabaseSeeder.SeededExercise` a type argument and pass `STRENGTH` for the four existing seeded exercises. Add `Running_Treadmill` (`CARDIO`, `QUADRICEPS`) and `90_90_Hamstring` (`STRETCHING`, `HAMSTRINGS`) to `SeedData` and the seeder, with ids, dataset ids and translation names copied exactly from the catalog. Verify that `dotnet run` in Development still starts, and that the seeder inserts nothing extra in a migrated database.
+- [x] 3.3 Give `DatabaseSeeder.SeededExercise` a type argument and pass `STRENGTH` for the four existing seeded exercises. Add `Running_Treadmill` (`CARDIO`, `QUADRICEPS`) and `90_90_Hamstring` (`STRETCHING`, `HAMSTRINGS`) to `SeedData` and the seeder, with ids, dataset ids and translation names copied exactly from the catalog. Verify that `dotnet run` in Development still starts, and that the seeder inserts nothing extra in a migrated database.
 - [x] 3.4 Review the persistence and seed changes against how `Muscle` is stored, mapped and seeded. Confirm the EF configuration matches the migration column.
 
 ## 4. Api

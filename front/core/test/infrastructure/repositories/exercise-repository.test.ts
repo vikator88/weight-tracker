@@ -9,6 +9,7 @@ const exercise: Exercise = {
   videoUrl: null,
   muscle: "quadriceps",
   bodyPart: "LEGS",
+  type: "STRENGTH",
   translations: [],
 };
 
@@ -46,6 +47,19 @@ describe("ExerciseRepository", () => {
 
       // Assert
       expect(result).toEqual(ok([exercise]));
+    });
+
+    it("returns each exercise's type unchanged, known or not", async () => {
+      // Arrange
+      const cardio = { ...exercise, id: "2a3b4c5d-6e7f-4809-9a1b-2c3d4e5f6a7b", type: "CARDIO" };
+      const unknown = { ...exercise, id: "3b4c5d6e-7f80-4a1b-8c2d-3e4f5a6b7c8d", type: "YOGA" };
+      const repository = new ExerciseRepository(new FakeHttpClient(async () => [cardio, unknown]));
+
+      // Act
+      const result = await repository.getAll();
+
+      // Assert
+      expect(result).toEqual(ok([cardio, unknown]));
     });
 
     it("returns an empty list when the catalog is empty", async () => {

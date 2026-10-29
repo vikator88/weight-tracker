@@ -13,6 +13,7 @@ import Card from "@/presentation/common/components/atoms/card";
 import CardContent from "@/presentation/common/components/atoms/card-content";
 import TextField from "@/presentation/common/components/atoms/text-field";
 import Typography from "@/presentation/common/components/atoms/typography";
+import WeekField from "@/presentation/workouts/components/molecules/week-field";
 
 interface WorkoutDetailsCardProps {
   values: WorkoutDetailsFormValues;
@@ -70,15 +71,18 @@ export default function WorkoutDetailsCard({
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "minmax(0, 1fr) 11rem" },
+              gridTemplateColumns: { xs: "1fr", sm: "minmax(0, 1fr) auto" },
               gap: 2,
             }}
           >
             <TextField {...field("name")} />
-            <TextField
-              {...field("workoutDate")}
-              type="date"
-              slotProps={{ inputLabel: { shrink: true } }}
+            <WeekField
+              value={values.workoutDate}
+              onChange={(monday) => onChange("workoutDate", monday)}
+              disabled={disabled}
+              error={
+                errors.workoutDate ? t(`createWorkout.validation.${errors.workoutDate}`) : undefined
+              }
             />
           </Box>
           <TextField {...field("description")} multiline minRows={2} />
