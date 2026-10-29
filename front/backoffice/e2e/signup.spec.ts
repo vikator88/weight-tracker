@@ -33,7 +33,7 @@ test("signs up, lands on home and stays there after a reload", async ({ page }) 
   await page.reload();
 
   // Assert
-  await expect(page.getByRole("heading", { level: 1, name: "Weight Tracker" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Trainera" })).toBeVisible();
   await expect(page).toHaveURL("/");
 });
 

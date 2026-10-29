@@ -82,7 +82,7 @@ export default function ExerciseListItem({
         width: 24,
         height: 24,
         borderRadius: "50%",
-        bgcolor: "primary.light",
+        bgcolor: "primary.main",
         color: "primary.contrastText",
         display: "flex",
         alignItems: "center",

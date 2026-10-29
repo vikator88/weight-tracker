@@ -21,7 +21,7 @@ describe("HomeView", () => {
     await renderWithProviders(<HomeView />);
 
     // Assert
-    expect(screen.getByRole("heading", { name: "Weight Tracker" })).toBeOnTheScreen();
+    expect(screen.getByRole("heading", { name: "Trainera" })).toBeOnTheScreen();
     expect(screen.getByText("Has iniciado sesión.")).toBeOnTheScreen();
   });
 

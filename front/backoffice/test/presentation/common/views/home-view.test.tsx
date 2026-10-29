@@ -57,9 +57,7 @@ describe("HomeView", () => {
     );
 
     // Assert
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "Weight Tracker" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Trainera" })).toBeInTheDocument();
     expect(screen.getByText("Has iniciado sesión.")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Menú principal" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Buscar" })).toBeInTheDocument();
@@ -72,7 +70,7 @@ describe("HomeView", () => {
 
     // Assert
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
-    expect(screen.queryByRole("heading", { name: "Weight Tracker" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Trainera" })).not.toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Menú principal" })).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: "Buscar" })).not.toBeInTheDocument();
   });
@@ -86,7 +84,7 @@ describe("HomeView", () => {
 
     // Assert
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
-    expect(screen.queryByRole("heading", { name: "Weight Tracker" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Trainera" })).not.toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Menú principal" })).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: "Buscar" })).not.toBeInTheDocument();
   });
@@ -97,7 +95,7 @@ describe("HomeView", () => {
 
     // Assert
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Weight Tracker" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Trainera" })).not.toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Menú principal" })).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: "Buscar" })).not.toBeInTheDocument();
   });
@@ -110,7 +108,7 @@ describe("HomeView", () => {
     );
 
     // Assert
-    await screen.findByRole("heading", { level: 1, name: "Weight Tracker" });
+    await screen.findByRole("heading", { level: 1, name: "Trainera" });
     expect(screen.getByRole("button", { name: "Menú de usuario" })).toBeInTheDocument();
     expect(screen.queryByText("Cerrar sesión")).not.toBeInTheDocument();
   });
@@ -121,9 +119,7 @@ describe("HomeView", () => {
 
     // Assert
     expect((await screen.findAllByLabelText("Cargando")).length).toBeGreaterThan(0);
-    expect(
-      screen.queryByRole("heading", { name: "Weight Tracker", level: 1 }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Trainera", level: 1 })).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -133,7 +129,7 @@ describe("HomeView", () => {
 
     // Act
     await rendered;
-    await screen.findByRole("heading", { level: 1, name: "Weight Tracker" });
+    await screen.findByRole("heading", { level: 1, name: "Trainera" });
 
     // Assert
     expect(read).toHaveBeenCalledTimes(1);
@@ -144,9 +140,7 @@ describe("HomeView", () => {
     await renderHome(async () => ok(completeProfile)).rendered;
 
     // Assert
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "Weight Tracker" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Trainera" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByText("Ana García")).toBeInTheDocument();
   });
@@ -164,9 +158,7 @@ describe("HomeView", () => {
       expect(
         await screen.findByRole("dialog", { name: "Paso 1 de 1 · Dinos cómo te llamas" }),
       ).toBeInTheDocument();
-      expect(
-        screen.queryByRole("heading", { name: "Weight Tracker", level: 1 }),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Trainera", level: 1 })).not.toBeInTheDocument();
       expect(screen.getAllByLabelText("Cargando").length).toBeGreaterThan(0);
     },
   );
@@ -182,9 +174,7 @@ describe("HomeView", () => {
     await user.click(screen.getByRole("button", { name: "Finalizar" }));
 
     // Assert
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "Weight Tracker" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Trainera" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByText("Lucía Pérez")).toBeInTheDocument();
   });
@@ -205,9 +195,7 @@ describe("HomeView", () => {
     // Assert
     expect(await screen.findByText("No hay conexión con el servidor.")).toBeInTheDocument();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("heading", { name: "Weight Tracker", level: 1 }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Trainera", level: 1 })).not.toBeInTheDocument();
   });
 
   it("shows the error and reads the profile again when Reintentar is pressed", async () => {
@@ -226,9 +214,7 @@ describe("HomeView", () => {
     await user.click(screen.getByRole("button", { name: "Reintentar" }));
 
     // Assert
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "Weight Tracker" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Trainera" })).toBeInTheDocument();
     expect(screen.queryByText("No hay conexión con el servidor.")).not.toBeInTheDocument();
     expect(read).toHaveBeenCalledTimes(2);
   });
@@ -249,9 +235,7 @@ describe("HomeView", () => {
     });
 
     // Assert
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "Weight Tracker" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Trainera" })).toBeInTheDocument();
     expect(screen.getByText("Ana García")).toBeInTheDocument();
     expect(read).toHaveBeenCalledTimes(2);
     expect(replace).not.toHaveBeenCalled();
@@ -272,7 +256,7 @@ describe("HomeView", () => {
 
     // Assert
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
-    expect(screen.queryByRole("heading", { name: "Weight Tracker" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Trainera" })).not.toBeInTheDocument();
     expect(screen.queryByText("Ana García")).not.toBeInTheDocument();
     expect(screen.queryByText(/Tu sesión no es válida/)).not.toBeInTheDocument();
     expect(read).toHaveBeenCalledTimes(1);

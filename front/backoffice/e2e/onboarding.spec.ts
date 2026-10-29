@@ -30,7 +30,7 @@ test("asks a new user for their name, then shows home and the name in the header
   await signIn(page);
   const dialog = page.getByRole("dialog", { name: "Paso 1 de 1 · Dinos cómo te llamas" });
   await expect(dialog).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1, name: "Weight Tracker" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1, name: "Trainera" })).toHaveCount(0);
   await dialog.getByLabel("Nombre").fill("Lu");
   await dialog.getByRole("button", { name: "Finalizar" }).click();
   await expect(dialog.getByText("Debe tener al menos 3 caracteres.")).toBeVisible();
@@ -42,7 +42,7 @@ test("asks a new user for their name, then shows home and the name in the header
 
   // Assert
   await expect(dialog).toHaveCount(0);
-  await expect(page.getByRole("heading", { level: 1, name: "Weight Tracker" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Trainera" })).toBeVisible();
   await expect(page.getByText("Lucía Pérez")).toBeVisible();
 });
 

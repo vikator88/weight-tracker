@@ -82,7 +82,7 @@ test("renews an expired access token and shows the profile", async ({ page }) =>
   await logIn(page);
 
   // Assert
-  await expect(page.getByRole("heading", { level: 1, name: "Weight Tracker" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Trainera" })).toBeVisible();
   await expect(page.getByText("Ana García")).toBeVisible();
   await expect(page).toHaveURL("/");
   expect(refreshes).toEqual([{ refreshToken: "refresh" }]);
@@ -101,6 +101,6 @@ test("sends the user to login when the refresh token is rejected", async ({ page
   // Assert
   await expect(page).toHaveURL(/\/login\/?$/);
   await expect(page.getByRole("heading", { level: 1, name: "Iniciar sesión" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Weight Tracker" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Trainera" })).toHaveCount(0);
   await expect(page.getByText("Ana García")).toHaveCount(0);
 });

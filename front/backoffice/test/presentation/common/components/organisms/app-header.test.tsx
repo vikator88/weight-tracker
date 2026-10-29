@@ -44,4 +44,14 @@ describe("AppHeader", () => {
     const labels = screen.getAllByRole("button").map((button) => button.getAttribute("aria-label"));
     expect(labels).toEqual(["Cambiar idioma", "Alertas", "Menú de usuario"]);
   });
+
+  it("shows the dark mode switch right before the language menu", async () => {
+    // Arrange & Act
+    await renderWithProviders(<AppHeader />);
+
+    // Assert
+    const darkMode = screen.getByRole("switch", { name: "Modo oscuro" });
+    const language = screen.getByRole("button", { name: "Cambiar idioma" });
+    expect(darkMode.compareDocumentPosition(language)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
 });

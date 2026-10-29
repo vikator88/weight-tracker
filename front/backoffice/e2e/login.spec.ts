@@ -33,7 +33,7 @@ test("logs in, lands on home and stays there after a reload", async ({ page }) =
   await page.reload();
 
   // Assert
-  await expect(page.getByRole("heading", { level: 1, name: "Weight Tracker" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Trainera" })).toBeVisible();
   await expect(page).toHaveURL("/");
 });
 
@@ -74,7 +74,7 @@ test("sends a visitor who logged out from home back to login", async ({ page }) 
 
   // Assert
   await expect(page).toHaveURL(/\/login\/?$/);
-  await expect(page.getByRole("heading", { name: "Weight Tracker" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Trainera" })).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "Menú principal" })).toHaveCount(0);
 });
 
@@ -93,6 +93,21 @@ test("keeps the chosen language after a reload", async ({ page }) => {
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
 });
 
+test("keeps dark mode after a reload", async ({ page }) => {
+  // Arrange
+  await logIn(page);
+
+  // Act
+  await page.getByRole("switch", { name: "Modo oscuro" }).click();
+  await expect(page.getByRole("switch", { name: "Modo oscuro" })).toBeChecked();
+  await page.reload();
+
+  // Assert
+  await expect(page.getByRole("switch", { name: "Modo oscuro" })).toBeChecked();
+  // The dark background, #0B1120.
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(11, 17, 32)");
+});
+
 test("sends a visitor without tokens from home to login", async ({ page }) => {
   // Arrange & Act
   await page.goto("/");
@@ -100,7 +115,7 @@ test("sends a visitor without tokens from home to login", async ({ page }) => {
   // Assert
   await expect(page).toHaveURL(/\/login\/?$/);
   await expect(page.getByRole("heading", { level: 1, name: "Iniciar sesión" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Weight Tracker" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Trainera" })).toHaveCount(0);
 });
 
 test("shows the invalid-credentials message when the API answers 401", async ({ page }) => {

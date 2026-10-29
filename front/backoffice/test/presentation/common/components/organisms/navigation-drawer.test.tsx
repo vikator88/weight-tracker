@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import NavigationDrawerProvider from "@/presentation/common/components/navigation-drawer-provider";
 import NavigationDrawer from "@/presentation/common/components/organisms/navigation-drawer";
 import renderWithProviders from "../../../../support/render-with-providers";
 
@@ -42,7 +43,6 @@ describe("NavigationDrawer", () => {
         .getAllByText(/./)
         .map((element) => element.textContent),
     ).toEqual([
-      "Weight Tracker",
       "Inicio",
       "Atletas",
       "Todos los atletas",
@@ -60,13 +60,14 @@ describe("NavigationDrawer", () => {
     ]);
   });
 
-  it("shows the app name as a row that is not an entry", async () => {
+  it("shows the app name as a logo row that is not an entry", async () => {
     // Arrange & Act
     await renderWithProviders(<NavigationDrawer />);
 
     // Assert
-    const appName = screen.getByText("Weight Tracker");
-    expect(appName.closest("a, button, [role='button']")).toBeNull();
+    const logo = screen.getByRole("img", { name: "Trainera" });
+    expect(logo).toHaveAttribute("src", "/trainera-logo-dark.svg");
+    expect(logo.closest("a, button, [role='button']")).toBeNull();
   });
 
   it("makes Inicio the first entry, linked to home and selected", async () => {
@@ -150,5 +151,84 @@ describe("NavigationDrawer", () => {
     // Assert
     expect(execute).not.toHaveBeenCalled();
     expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("shows the collapse button in the logo row, expanded", async () => {
+    // Arrange & Act
+    await renderWithProviders(
+      <NavigationDrawerProvider>
+        <NavigationDrawer />
+      </NavigationDrawerProvider>,
+    );
+
+    // Assert
+    const toggle = screen.getByRole("button", { name: "Contraer menú" });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle.parentElement).toContainElement(screen.getByRole("img", { name: "Trainera" }));
+  });
+
+  it("collapses to a rail of icons that keep their names", async () => {
+    // Arrange
+    await renderWithProviders(
+      <NavigationDrawerProvider>
+        <NavigationDrawer />
+      </NavigationDrawerProvider>,
+    );
+
+    // Act
+    await userEvent.setup().click(screen.getByRole("button", { name: "Contraer menú" }));
+
+    // Assert
+    expect(screen.getByRole("button", { name: "Expandir menú" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(screen.queryByRole("img", { name: "Trainera" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Atletas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Inicio")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Inicio" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Planes asignados" })).toHaveAttribute(
+      "href",
+      "/assigned-plans",
+    );
+    expect(screen.getByRole("button", { name: "Calendario" })).toBeInTheDocument();
+  });
+
+  it("keeps Inicio selected while collapsed", async () => {
+    // Arrange
+    await renderWithProviders(
+      <NavigationDrawerProvider>
+        <NavigationDrawer />
+      </NavigationDrawerProvider>,
+    );
+
+    // Act
+    await userEvent.setup().click(screen.getByRole("button", { name: "Contraer menú" }));
+
+    // Assert
+    expect(screen.getByRole("link", { name: "Inicio" })).toHaveClass("Mui-selected");
+  });
+
+  it("expands again with the labels and the logo", async () => {
+    // Arrange
+    await renderWithProviders(
+      <NavigationDrawerProvider>
+        <NavigationDrawer />
+      </NavigationDrawerProvider>,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Contraer menú" }));
+
+    // Act
+    await user.click(screen.getByRole("button", { name: "Expandir menú" }));
+
+    // Assert
+    expect(screen.getByRole("button", { name: "Contraer menú" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByRole("img", { name: "Trainera" })).toBeInTheDocument();
+    expect(screen.getByText("Atletas")).toBeInTheDocument();
+    expect(screen.getByText("Inicio")).toBeInTheDocument();
   });
 });
